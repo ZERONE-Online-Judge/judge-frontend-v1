@@ -1179,13 +1179,16 @@ async function restoreFullExecution({
         : []),
     ],
   };
-  savedRuns.runs = [
-    {
-      ...savedEntry('full-suite', status),
-      expected_status: 'time_limit_exceeded',
-      execution: executionCases.execution,
-    },
-  ];
+  savedRuns = {
+    ...savedRuns,
+    runs: [
+      {
+        ...savedEntry('full-suite', status),
+        expected_status: 'time_limit_exceeded',
+        execution: executionCases.execution,
+      },
+    ],
+  };
   await refreshSaved();
   for (let i = 0; i < 20 && !row('persisted.py'); i++) await flush();
   await flush();
@@ -1267,5 +1270,30 @@ test('incomplete verification leaves unrun cases disabled and never claims full 
     entry.querySelector('button[aria-label="테스트 #9 채점 대기 상세 보기"]')
       .disabled,
     true,
+  );
+});
+
+test('a collapsed running row uses the final shared verdict without reopening its case grid', async () => {
+  const entry = await restoreFullExecution({
+    status: 'judging',
+    complete: false,
+  });
+  const toggle = entry.querySelector('button[aria-expanded="true"]');
+  await act(async () => toggle.click());
+  savedRuns = {
+    ...savedRuns,
+    runs: savedRuns.runs.map((run) => ({
+      ...run,
+      submission: { ...run.submission, status: 'wrong_answer' },
+      execution: { ...run.execution, completed: 4, full_suite_complete: true },
+    })),
+  };
+  await refreshSaved();
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  assert.match(entry.textContent, /기대 판정 일치/);
+  assert.doesNotMatch(entry.textContent, /기대 판정 불일치/);
+  assert.equal(
+    entry.querySelectorAll('button[aria-label^="테스트 #"]').length,
+    0,
   );
 });

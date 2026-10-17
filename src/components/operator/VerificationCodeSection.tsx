@@ -236,7 +236,13 @@ function VerificationCodeRow({
     if (sid && !isBusy && expanded) void refetchCases();
   }, [sid, isBusy, expanded, refetchCases]);
   const shownResult = result
-    ? { ...result, execution: cases.data?.execution ?? result.execution }
+    ? {
+        ...result,
+        execution:
+          !expanded && result.execution
+            ? result.execution
+            : (cases.data?.execution ?? result.execution),
+      }
     : undefined;
   const matches =
     shownResult &&

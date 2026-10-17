@@ -1,3 +1,4 @@
+import type { VerificationExecution } from './verificationExecution';
 import { apiRequest, apiBlobRequest } from '@/shared/api/client';
 import type { ProblemAsset } from './types';
 import type { Submission } from '@/domains/submissionScoreboard/types';
@@ -199,6 +200,7 @@ export type SavedVerificationRuns = {
     asset_id: string;
     asset: ProblemAsset;
     expected_status: VerificationCodeKind;
+    execution?: VerificationExecution | null;
     snapshot_available?: boolean;
     submission: Submission;
     stale: boolean;

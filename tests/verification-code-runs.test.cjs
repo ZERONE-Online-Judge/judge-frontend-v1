@@ -43,7 +43,24 @@ let uploads,
   analysisRequests,
   historyReads,
   historyGate;
+let executionCases = { execution: null, testcases: [] };
+let executionDetails = {};
+let executionReads = [];
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.open = true;
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.open = false;
+};
 const mocks = {
+  '@/shared/api/client': {
+    apiRequest: async (url) => {
+      executionReads.push(url);
+      return url.endsWith('/testcases')
+        ? executionCases
+        : executionDetails[Number(url.split('/').at(-1))];
+    },
+  },
   '@/domains/problemManagement/verificationAi': {
     listVerificationRuns: async (contestId, problemId, token) => {
       historyReads.push({ contestId, problemId, token });
@@ -168,6 +185,9 @@ function Editor({ token = 'token' } = {}) {
 }
 
 beforeEach(async () => {
+  executionCases = { execution: null, testcases: [] };
+  executionDetails = {};
+  executionReads = [];
   uploads = [];
   submissions = [];
   waits = [];
@@ -294,12 +314,12 @@ test('all selected files appear in their category immediately and upload/judge i
   assert.equal(row('second.cpp'), secondRow);
   assert.equal(row('first.cpp'), firstRow);
   assert.equal(category.querySelectorAll('[role="group"]').length, 2);
-  assert.match(secondRow.textContent, /통과/);
+  assert.match(secondRow.textContent, /기대 판정 일치/);
   assert.equal(button(secondRow, '채점').disabled, false);
   assert.equal(button(firstRow, '처리 중').disabled, true);
   assert.equal(button(firstRow, '삭제').disabled, true);
   await resolve(waits[1].gate, submission('first-submission', 'wrong_answer'));
-  assert.match(firstRow.textContent, /확인 필요/);
+  assert.match(firstRow.textContent, /기대 판정 불일치/);
 });
 
 test('upload and judging failures remain on their own rows while other files complete', async () => {
@@ -336,7 +356,7 @@ test('upload and judging failures remain on their own rows while other files com
     submissions[1].gate,
     submission('good-submission', 'time_limit_exceeded'),
   );
-  assert.match(row('good.cpp').textContent, /통과/);
+  assert.match(row('good.cpp').textContent, /기대 판정 일치/);
   await act(async () => button(row('upload-fail.cpp'), '삭제').click());
   assert.equal(row('upload-fail.cpp'), null);
   await act(async () => {
@@ -349,7 +369,7 @@ test('upload and judging failures remain on their own rows while other files com
     submissions[2].gate,
     submission('retry-submission', 'time_limit_exceeded'),
   );
-  assert.match(row('judge-fail.cpp').textContent, /통과/);
+  assert.match(row('judge-fail.cpp').textContent, /기대 판정 일치/);
 });
 
 test('identical filenames and repeated selections have independent rows and results', async () => {
@@ -414,7 +434,7 @@ test('switching problems keeps uploads, submissions, caches and results scoped t
     0,
   );
   await act(async () => changeProblem('problem-a'));
-  assert.match(row('problem-a.cpp').textContent, /통과/);
+  assert.match(row('problem-a.cpp').textContent, /기대 판정 일치/);
   assert.equal(row('problem-b.cpp'), null);
 });
 
@@ -435,7 +455,7 @@ test('long-running judging continues past the old polling limit and stops at a f
     );
     assert.equal(waits.length, 61);
     assert.equal(api.results[0].stage, 'done');
-    assert.match(row('long.cpp').textContent, /통과/);
+    assert.match(row('long.cpp').textContent, /기대 판정 일치/);
   } finally {
     window.setTimeout = previousTimeout;
   }
@@ -491,7 +511,10 @@ test('compact results keep long logs collapsed and separate input, expected and 
   );
   const entry = row('readable.cpp');
   const summary = entry.querySelector('[aria-live="polite"]');
-  assert.match(summary.textContent, /통과.*판정.*틀렸습니다.*테스트케이스 #2/);
+  assert.match(
+    summary.textContent,
+    /기대 판정 일치.*판정.*틀렸습니다.*테스트케이스 #2/,
+  );
   assert.doesNotMatch(
     summary.textContent,
     /source_sha256|wrong answer expected/,
@@ -771,7 +794,7 @@ test('latest accepted verdict and logs survive a fresh browser session without A
   );
   await flush();
   const entry = row('persisted.py');
-  assert.match(entry.textContent, /통과.*판정.*맞았습니다/);
+  assert.match(entry.textContent, /기대 판정 일치.*판정.*맞았습니다/);
   assert.match(entry.textContent, /서버 저장 · 운영자 공유/);
   assert.match(entry.textContent, /출제 운영자/);
   assert.match(entry.textContent, /all 30 tests passed/);
@@ -804,7 +827,7 @@ test('server completion replaces local judging progress and polling failure', as
   };
   await refreshSaved();
   assert.equal(api.results[0].stage, 'done');
-  assert.match(row('persisted.py').textContent, /통과/);
+  assert.match(row('persisted.py').textContent, /기대 판정 일치/);
   assert.equal(row('persisted.py').querySelector('[role="progressbar"]'), null);
   await act(async () =>
     waits[0].gate.reject(new Error('temporary network failure')),
@@ -843,7 +866,7 @@ test('another operator newer request wins over unfinished local run using actual
   );
   await flush();
   assert.equal(api.results[0].submission.submission_id, 'new');
-  assert.match(row('persisted.py').textContent, /통과/);
+  assert.match(row('persisted.py').textContent, /기대 판정 일치/);
 });
 
 test('reopening within the global fresh-cache period fetches the newest shared result', async () => {
@@ -859,7 +882,7 @@ test('reopening within the global fresh-cache period fetches the newest shared r
   await flush();
   assert.ok(historyReads.length > count);
   assert.equal(api.results[0].submission.submission_id, 'second');
-  assert.match(row('persisted.py').textContent, /통과/);
+  assert.match(row('persisted.py').textContent, /기대 판정 일치/);
   assert.equal(analysisRequests, 0);
 });
 
@@ -889,7 +912,7 @@ test('restored legacy verdict remains visible and explains why AI requires a fre
   };
   await refreshSaved();
   const entry = row('persisted.py');
-  assert.match(entry.textContent, /확인 필요/);
+  assert.match(entry.textContent, /기대 판정 불일치/);
   assert.match(entry.textContent, /old saved output/);
   assert.match(
     entry.textContent,
@@ -1097,4 +1120,152 @@ test('investigation report recommends test coverage without a repair template an
   );
   assert.match(evidence, /입력·기대 출력 교차 확인/);
   assert.match(evidence, /참조 풀이 실제 출력/);
+});
+
+async function restoreFullExecution({
+  status = 'time_limit_exceeded',
+  complete = true,
+} = {}) {
+  executionCases = {
+    execution: {
+      collect_all_results: true,
+      total: 4,
+      completed: complete ? 4 : 2,
+      full_suite_complete: complete,
+      node_name: 'zoj-judge-agent-03',
+      agent_version: '0.2.25',
+      testcase_version: 7,
+      observed_statuses: ['accepted', 'wrong_answer', 'time_limit_exceeded'],
+      runtime_ms: 1100,
+      memory_kb: 4096,
+    },
+    indices: [2, 7, 9, 10],
+    testcases: [
+      {
+        index: 2,
+        final_status: 'accepted',
+        runtime_ms: 3,
+        memory_kb: 512,
+        output_available: true,
+        output_truncated: false,
+      },
+      {
+        index: 7,
+        final_status: 'wrong_answer',
+        runtime_ms: 7,
+        memory_kb: 1024,
+        output_available: true,
+        output_truncated: false,
+      },
+      ...(complete
+        ? [
+            {
+              index: 9,
+              final_status: 'time_limit_exceeded',
+              runtime_ms: 1100,
+              memory_kb: 4096,
+              output_available: true,
+              output_truncated: false,
+            },
+            {
+              index: 10,
+              final_status: 'accepted',
+              runtime_ms: 3,
+              memory_kb: 512,
+              output_available: true,
+              output_truncated: false,
+            },
+          ]
+        : []),
+    ],
+  };
+  savedRuns.runs = [
+    {
+      ...savedEntry('full-suite', status),
+      expected_status: 'time_limit_exceeded',
+      execution: executionCases.execution,
+    },
+  ];
+  await refreshSaved();
+  for (let i = 0; i < 20 && !row('persisted.py'); i++) await flush();
+  await flush();
+  return row('persisted.py');
+}
+
+test('full verification renders every immutable index, actual maxima and any matching expected verdict', async () => {
+  const entry = await restoreFullExecution({ status: 'wrong_answer' });
+  assert.equal(
+    entry.querySelectorAll('button[aria-label^="테스트 #"]').length,
+    4,
+  );
+  assert.ok(
+    entry.querySelector('button[aria-label="테스트 #9 시간 초과 상세 보기"]'),
+  );
+  assert.match(entry.textContent, /기대 판정 일치/);
+  assert.match(entry.textContent, /판정 확인 4 \/ 4개 · 100%/);
+  assert.match(entry.textContent, /최대 실행 시간 1100ms/);
+  assert.match(entry.textContent, /최대 메모리 4 MiB/);
+  assert.match(entry.textContent, /zoj-judge-agent-03 · v0.2.25/);
+  assert.equal(analysisRequests, 0);
+  assert.equal(button(entry, 'AI 분석하기'), undefined);
+  const toggle = entry.querySelector('button[aria-expanded="true"]');
+  await act(async () => toggle.click());
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(
+    entry.querySelectorAll('button[aria-label^="테스트 #"]').length,
+    0,
+  );
+  await act(async () => toggle.click());
+  await flush();
+  assert.equal(
+    entry.querySelectorAll('button[aria-label^="테스트 #"]').length,
+    4,
+  );
+});
+
+test('a case opens a modal with its own input, expected output, actual output and resource measurements', async () => {
+  executionDetails[7] = {
+    index: 7,
+    final_status: 'wrong_answer',
+    runtime_ms: 7,
+    memory_kb: 1024,
+    input: { text: '2 3\n', size: 4, truncated: false },
+    expected: { text: '5\n', size: 2, truncated: false },
+    actual: { text: '4\n', size: 2, truncated: false },
+    judge_message: 'comparison failed',
+  };
+  const entry = await restoreFullExecution();
+  await act(async () =>
+    entry
+      .querySelector('button[aria-label="테스트 #7 틀렸습니다 상세 보기"]')
+      .click(),
+  );
+  await flush();
+  const dialog = document.querySelector('dialog');
+  assert.ok(dialog.open);
+  assert.match(dialog.textContent, /테스트 #7.*틀렸습니다 · 7ms · 1 MiB/);
+  assert.deepEqual(
+    [...dialog.querySelectorAll('pre')]
+      .slice(0, 3)
+      .map((node) => node.textContent),
+    ['2 3\n', '5\n', '4\n'],
+  );
+  assert.ok(executionReads.some((url) => url.endsWith('/testcases/7')));
+  await act(async () => button(dialog, '닫기').click());
+  assert.equal(document.querySelector('dialog'), null);
+});
+
+test('incomplete verification leaves unrun cases disabled and never claims full expectation coverage', async () => {
+  const entry = await restoreFullExecution({
+    status: 'system_error',
+    complete: false,
+  });
+  assert.match(entry.textContent, /판정 확인 2 \/ 4개 · 50%/);
+  assert.match(entry.textContent, /검증 중단/);
+  assert.match(entry.textContent, /기대 판정 불일치/);
+  assert.equal(
+    entry.querySelector('button[aria-label="테스트 #9 채점 대기 상세 보기"]')
+      .disabled,
+    true,
+  );
 });

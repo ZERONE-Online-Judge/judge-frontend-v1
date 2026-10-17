@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { VerificationExecution } from './verificationExecution';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listVerificationRuns,
@@ -41,6 +42,7 @@ export type VerificationRunResult = {
   stale?: boolean;
   persisted?: boolean;
   snapshotAvailable?: boolean;
+  execution?: VerificationExecution | null;
 };
 
 export const VERIFICATION_CODE_KINDS: {
@@ -136,7 +138,6 @@ export default function useVerificationCodeRuns({
         (run) =>
           isSubmissionPending(run.submission.status) ||
           (query.state.data?.available &&
-            run.submission.status !== run.expected_status &&
             run.analysis &&
             ['queued', 'running'].includes(run.analysis.status)),
       )
@@ -365,6 +366,7 @@ export default function useVerificationCodeRuns({
           }
         : {}),
       analysis: persistent?.analysis,
+      execution: persistent?.execution,
       stale: persistent?.stale,
       persisted: Boolean(persistent),
       snapshotAvailable: persistent?.snapshot_available,
@@ -384,6 +386,7 @@ export default function useVerificationCodeRuns({
         : 'done',
       submission: savedRun.submission,
       analysis: savedRun.analysis,
+      execution: savedRun.execution,
       stale: savedRun.stale,
       persisted: true,
       snapshotAvailable: savedRun.snapshot_available,

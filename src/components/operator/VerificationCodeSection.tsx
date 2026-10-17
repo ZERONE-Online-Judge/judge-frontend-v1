@@ -1,4 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import VerificationTestResults from '@/components/operator/VerificationTestResults';
+import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
+import { formatUserApiError } from '@/shared/api/errors';
+import {
+  getVerificationCases,
+  verificationExpectationMatches,
+} from '@/domains/problemManagement/verificationExecution';
 import VerificationAnalysisPanel from '@/components/operator/VerificationAnalysisPanel';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import type { ProblemAsset } from '@/domains/problemManagement/types';
@@ -51,8 +59,8 @@ export default function VerificationCodeSection({
             검증 코드 채점
           </h3>
           <p className="text-sm leading-6 font-normal text-slate-500">
-            파일을 추가하면 자동으로 채점합니다. 각 코드가 기대한 결과로
-            판정되는지 확인하세요. AI 검증은 ‘AI 분석하기’를 눌렀을 때만
+            파일을 추가하면 모든 테스트를 끝까지 채점합니다. 각 코드가 기대한
+            결과로 판정되는지 확인하세요. AI 검증은 ‘AI 분석하기’를 눌렀을 때만
             시작합니다. 코드별 마지막 채점 결과와 AI 분석은 서버에 저장되어
             새로고침하거나 다른 운영자가 열어도 함께 볼 수 있습니다.
           </p>
@@ -205,6 +213,38 @@ function VerificationCodeRow({
   result?: VerificationRunResult;
 }) {
   const isBusy = isVerificationRunning(result);
+  const [expanded, setExpanded] = useState(true);
+  const sid = result?.submission?.submission_id;
+  const cases = useQuery({
+    queryKey: [
+      'operator',
+      'verification-cases',
+      contestId,
+      result?.problemId,
+      sid,
+      tokenQueryIdentity(token),
+    ],
+    queryFn: () =>
+      getVerificationCases(contestId, result!.problemId, sid!, token),
+    enabled: Boolean(sid && expanded),
+    placeholderData: () => undefined,
+    refetchInterval: isBusy && expanded ? 1500 : false,
+    staleTime: 0,
+  });
+  const refetchCases = cases.refetch;
+  useEffect(() => {
+    if (sid && !isBusy && expanded) void refetchCases();
+  }, [sid, isBusy, expanded, refetchCases]);
+  const shownResult = result
+    ? { ...result, execution: cases.data?.execution ?? result.execution }
+    : undefined;
+  const matches =
+    shownResult &&
+    verificationExpectationMatches(
+      expectedStatus,
+      shownResult.submission?.status,
+      shownResult.execution,
+    );
   const [pythonRuntime, setPythonRuntime] = useState(
     asset?.source_language === 'pypy3' ||
       result?.submission?.language === 'pypy3'
@@ -219,20 +259,24 @@ function VerificationCodeRow({
     >
       <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 hidden size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 sm:flex">
+          <button
+            type="button"
+            aria-label={`${filename} 결과 ${expanded ? '접기' : '펼치기'}`}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+          >
             <svg
               aria-hidden="true"
-              className="size-5"
-              viewBox="0 0 24 24"
+              viewBox="0 0 20 20"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              strokeWidth="1.7"
+              className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`}
             >
-              <path d="m8 8-4 4 4 4m8-8 4 4-4 4M13.5 5l-3 14" />
+              <path d="m7 4 6 6-6 6" />
             </svg>
-          </span>
+          </button>
           <div className="grid min-w-0 flex-1 gap-2">
             <button
               className="w-fit max-w-full truncate text-left text-sm font-semibold text-slate-900 hover:text-indigo-700 disabled:text-slate-900"
@@ -244,7 +288,20 @@ function VerificationCodeRow({
               {filename}
             </button>
             {result ? (
-              <VerificationResultSummary result={result} />
+              <p className="flex flex-wrap gap-2 text-xs text-slate-500">
+                <span>기대 {submissionStatusLabel(expectedStatus)}</span>
+                {!isBusy ? (
+                  <span
+                    className={
+                      matches
+                        ? 'font-medium text-emerald-700'
+                        : 'font-medium text-amber-800'
+                    }
+                  >
+                    {matches ? '기대 판정 일치' : '기대 판정 불일치'}
+                  </span>
+                ) : null}
+              </p>
             ) : (
               <p className="text-xs font-normal text-slate-400">
                 채점 기록 없음
@@ -304,31 +361,66 @@ function VerificationCodeRow({
           </button>
         </div>
       </div>
-      {result ? (
-        <VerificationResultDetails
-          key={result.submission?.submission_id ?? result.id}
-          result={result}
-        />
-      ) : null}
-      {result?.submission &&
-      !isSubmissionPending(result.submission.status) &&
-      result.submission.status !== expectedStatus ? (
-        result.snapshotAvailable === false ? (
-          <p className="text-xs leading-5 text-slate-500 sm:ml-12">
-            채점 당시 자료가 저장되지 않은 기록입니다. AI 분석은 다시 채점한 뒤
-            요청할 수 있습니다.
-          </p>
-        ) : (
-          <VerificationAnalysisPanel
-            contestId={contestId}
-            problemId={result.problemId}
-            submissionId={result.submission.submission_id}
-            token={token}
-            available={aiAvailable}
-            initial={result.analysis}
-            stale={result.stale}
-          />
-        )
+      {expanded ? (
+        <div className="grid min-w-0 gap-4">
+          {shownResult ? (
+            <VerificationResultSummary result={shownResult} />
+          ) : null}
+          {sid && cases.data?.execution ? (
+            <VerificationTestResults
+              key={sid}
+              contestId={contestId}
+              problemId={result!.problemId}
+              submissionId={sid}
+              token={token}
+              data={cases.data}
+              expectedStatus={expectedStatus}
+            />
+          ) : null}
+          {result?.persisted &&
+          !isBusy &&
+          cases.data &&
+          !cases.data.execution ? (
+            <p className="text-xs leading-5 text-slate-500">
+              이전 채점 방식으로 저장된 기록입니다. ‘채점’을 누르면 전체 테스트
+              결과를 새로 저장합니다.
+            </p>
+          ) : null}
+          {cases.error ? (
+            <p role="alert" className="text-xs text-rose-700">
+              {formatUserApiError(
+                cases.error,
+                '테스트별 결과를 불러오지 못했습니다.',
+              )}
+            </p>
+          ) : null}
+          {result ? (
+            <VerificationResultDetails
+              key={result.submission?.submission_id ?? result.id}
+              result={result}
+            />
+          ) : null}
+          {result?.submission &&
+          !isSubmissionPending(result.submission.status) &&
+          !matches ? (
+            result.snapshotAvailable === false ? (
+              <p className="text-xs leading-5 text-slate-500 sm:ml-12">
+                채점 당시 자료가 저장되지 않은 기록입니다. AI 분석은 다시 채점한
+                뒤 요청할 수 있습니다.
+              </p>
+            ) : (
+              <VerificationAnalysisPanel
+                contestId={contestId}
+                problemId={result.problemId}
+                submissionId={result.submission.submission_id}
+                token={token}
+                available={aiAvailable}
+                initial={result.analysis}
+                stale={result.stale}
+              />
+            )
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -346,7 +438,13 @@ function VerificationResultSummary({
     !isWorking &&
     actualStatus &&
     !isSubmissionPending(actualStatus);
-  const passed = isComplete && actualStatus === result.expectedStatus;
+  const passed =
+    isComplete &&
+    verificationExpectationMatches(
+      result.expectedStatus,
+      actualStatus,
+      result.execution,
+    );
   const failed = isComplete && !passed;
   const progressText = submissionProgressText(result.submission);
   const progressPercent = submissionProgressPercent(result.submission);
@@ -361,7 +459,13 @@ function VerificationResultSummary({
 
   return (
     <div aria-live="polite" className="grid min-w-0 gap-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+      <div
+        className={
+          result.execution
+            ? 'hidden'
+            : 'flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs'
+        }
+      >
         <span
           className={[
             'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-medium',
@@ -399,7 +503,11 @@ function VerificationResultSummary({
           ) : (
             <span className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
           )}
-          {passed ? '통과' : failed ? '확인 필요' : currentLabel}
+          {passed
+            ? '기대 판정 일치'
+            : failed
+              ? '기대 판정 불일치'
+              : currentLabel}
         </span>
         {isComplete ? (
           <span className="font-normal text-slate-500">
@@ -413,13 +521,20 @@ function VerificationResultSummary({
           </span>
         ) : null}
       </div>
-      {isWorking ? (
-        <div className="grid w-full max-w-md gap-1.5">
+      {isWorking || result.execution ? (
+        <div className="grid w-full gap-1.5">
           <div
             aria-label={`${result.filename} 진행도`}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={progressPercent ?? undefined}
+            aria-valuenow={
+              result.execution
+                ? Math.round(
+                    (100 * result.execution.completed) /
+                      Math.max(1, result.execution.total),
+                  )
+                : (progressPercent ?? undefined)
+            }
             aria-valuetext={progressText || currentLabel}
             role="progressbar"
             className="h-1.5 overflow-hidden rounded-full bg-slate-100"
@@ -427,12 +542,19 @@ function VerificationResultSummary({
             <div
               className={`h-full rounded-full bg-indigo-500 transition-all duration-300 ${progressPercent === null ? 'motion-safe:animate-pulse' : ''}`}
               style={{
-                width: progressPercent === null ? '25%' : `${progressPercent}%`,
+                width: result.execution
+                  ? `${(100 * result.execution.completed) / Math.max(1, result.execution.total)}%`
+                  : progressPercent === null
+                    ? '25%'
+                    : `${progressPercent}%`,
               }}
             />
           </div>
           <p className="text-xs font-normal text-slate-500">
-            {progressText || verificationStageHelp(result.stage, actualStatus)}
+            {result.execution
+              ? `${isWorking ? '전체 테스트 채점 중' : result.execution.full_suite_complete ? '검증 종료' : '검증 중단'} · 판정 확인 ${result.execution.completed} / ${result.execution.total}개 · ${Math.round((100 * result.execution.completed) / Math.max(1, result.execution.total))}%`
+              : progressText ||
+                verificationStageHelp(result.stage, actualStatus)}
           </p>
         </div>
       ) : null}

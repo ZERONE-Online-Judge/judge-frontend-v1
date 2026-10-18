@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -381,7 +382,8 @@ export default function EditorImportPanel({
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Editor에서 문제 확인 →
+                              Editor에서 문제 확인{' '}
+                              <InterfaceIcon name="arrowRight" />
                             </a>
                           </div>
                           <fieldset className="grid gap-2 rounded-lg border border-slate-200 p-3 text-sm">

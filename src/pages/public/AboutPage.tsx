@@ -271,7 +271,10 @@ export default function AboutPage() {
                 대회 둘러보기 <Arrow />
               </Link>
               <a className="experience-text-link" href="#about-coding-tests">
-                코딩 테스트부터 알아보기 <span aria-hidden="true">↓</span>
+                코딩 테스트부터 알아보기{' '}
+                <span aria-hidden="true">
+                  <InterfaceIcon name="arrowDown" />
+                </span>
               </a>
             </div>
           </div>
@@ -591,7 +594,7 @@ export default function AboutPage() {
             </Link>
           </div>
           <span className="about-cta-wordmark" aria-hidden="true">
-            ZERO → ONE
+            ZERO <InterfaceIcon name="arrowRight" /> ONE
           </span>
         </div>
       </section>

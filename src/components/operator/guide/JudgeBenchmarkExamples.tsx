@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { judgeBenchmark, type JudgeBenchmarkCase } from '@/data/judgeBenchmark';
 
@@ -105,7 +106,8 @@ export default function JudgeBenchmarkExamples({
             <small>초</small>
           </strong>
           <p>
-            제출 생성 → 최초 배정 · P95 {seconds(scenario.queueWaitMs.p95)}초
+            제출 생성 <InterfaceIcon name="arrowRight" /> 최초 배정 · P95{' '}
+            {seconds(scenario.queueWaitMs.p95)}초
           </p>
         </div>
         <div>
@@ -280,7 +282,8 @@ export default function JudgeBenchmarkExamples({
           href={judgeBenchmark.snapshotPath}
           download
         >
-          예제 8종 · 소스와 측정 요약 다운로드 ↓
+          예제 8종 · 소스와 측정 요약 다운로드{' '}
+          <InterfaceIcon name="arrowDown" />
         </a>
         <a
           className="og-benchmark-download"
@@ -288,7 +291,7 @@ export default function JudgeBenchmarkExamples({
           download
         >
           {judgeBenchmark.measurementCount.toLocaleString()}건 전체 실행 기록
-          다운로드 ↓
+          다운로드 <InterfaceIcon name="arrowDown" />
         </a>
       </div>
     </section>

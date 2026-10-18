@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import VerificationAgentEvidence from '@/components/operator/VerificationAgentEvidence';
 import VerificationMarkdown from '@/components/operator/VerificationMarkdown';
@@ -107,7 +108,10 @@ export default function VerificationAnalysisPanel({
             } else setOpen(!open);
           }}
         >
-          {label} <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+          {label}{' '}
+          <span aria-hidden="true">
+            <InterfaceIcon name={open ? 'chevronUp' : 'chevronDown'} />
+          </span>
         </button>
         {status === 'succeeded' ? (
           <span className="text-xs text-slate-500">

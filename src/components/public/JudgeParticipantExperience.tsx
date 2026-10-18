@@ -343,9 +343,15 @@ function Scoreboard() {
               className={`experience-button ${solved ? 'is-dark' : 'is-lime'}`}
               onClick={() => setSolved(!solved)}
             >
-              {solved
-                ? '정답 이전으로 돌아가기 ↺'
-                : '35분에 정답 제출해 보기 →'}
+              {solved ? (
+                <>
+                  정답 이전으로 돌아가기 <InterfaceIcon name="refresh" />
+                </>
+              ) : (
+                <>
+                  35분에 정답 제출해 보기 <InterfaceIcon name="arrowRight" />
+                </>
+              )}
             </button>
             <p className="judge-card-caption">
               다른 문제도 풀었다면 각 문제의 시간을 합산해요. 정답 이후의 제출은

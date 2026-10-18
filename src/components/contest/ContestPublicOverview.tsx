@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import ContestPageFrame from '@/components/contest/ContestPageFrame';
 import ContestPageNavigation from '@/components/contest/ContestPageNavigation';
@@ -169,7 +170,10 @@ export default function ContestPublicOverview({
     <ContestPageFrame>
       <div className="contest-public-overview">
         <Link className="contest-public-back" to="/contests">
-          <span aria-hidden="true">←</span> 대회 목록
+          <span aria-hidden="true">
+            <InterfaceIcon name="arrowLeft" />
+          </span>{' '}
+          대회 목록
         </Link>
 
         <section

@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { judgeTimeSources } from '@/data/judgeTimeSources';
 import { ExperienceReveal } from '@/components/common/PublicExperience';
@@ -246,7 +247,8 @@ export default function JudgeTimeReference() {
               href={data.snapshotPath}
               download
             >
-              소스·입력·기대 출력·전체 실험 기록 다운로드 ↓
+              소스·입력·기대 출력·전체 실험 기록 다운로드{' '}
+              <InterfaceIcon name="arrowDown" />
             </a>
           </div>
         </details>

@@ -198,7 +198,7 @@ export default function HeaderAuthControls({
               <small>이메일 인증 후 비밀번호 등록·변경</small>
             </span>
             <span className="header-security-arrow" aria-hidden="true">
-              →
+              <InterfaceIcon name="arrowRight" />
             </span>
           </button>
           {previewContests.length ? (

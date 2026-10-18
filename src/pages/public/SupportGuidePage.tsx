@@ -360,7 +360,7 @@ export default function SupportGuidePage() {
               <div className="support-privacy">
                 <aside>
                   <span className="support-large-mark" aria-hidden="true">
-                    ◇
+                    <InterfaceIcon name="diamond" />
                   </span>
                   <h3>개인정보 처리 기준</h3>
                   <nav aria-label="개인정보처리방침 목차">

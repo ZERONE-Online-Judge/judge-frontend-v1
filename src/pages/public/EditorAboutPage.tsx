@@ -168,7 +168,10 @@ function RoleMap() {
         </div>
       </article>
       <p className="editor-about-role-connector">
-        <span aria-hidden="true">↓</span> 검증한 문제를 대회로
+        <span aria-hidden="true">
+          <InterfaceIcon name="arrowDown" />
+        </span>{' '}
+        검증한 문제를 대회로
       </p>
       <article>
         <span className="editor-about-role-label">대회 운영</span>
@@ -239,7 +242,10 @@ export default function EditorAboutPage() {
               <ExperienceArrow />
             </a>
             <a className="experience-text-link" href="#editor-purpose">
-              Editor가 하는 일 <span aria-hidden="true">↓</span>
+              Editor가 하는 일{' '}
+              <span aria-hidden="true">
+                <InterfaceIcon name="arrowDown" />
+              </span>
             </a>
           </div>
           <div className="editor-about-hero-preview">
@@ -533,7 +539,7 @@ export default function EditorAboutPage() {
             ZOJ Editor로 이동 <ExperienceArrow />
           </a>
           <span className="editor-about-cta-wordmark" aria-hidden="true">
-            PROBLEM → CONTEST
+            PROBLEM <InterfaceIcon name="arrowRight" /> CONTEST
           </span>
         </ExperienceReveal>
       </section>

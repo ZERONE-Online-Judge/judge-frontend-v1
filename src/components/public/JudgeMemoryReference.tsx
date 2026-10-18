@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { ExperienceReveal } from '@/components/common/PublicExperience';
 import { judgeMemoryBenchmark as benchmark } from '@/data/judgeMemoryBenchmark';
@@ -134,7 +135,8 @@ export default function JudgeMemoryReference() {
               href={benchmark.snapshotPath}
               download
             >
-              4개 언어 코드와 72회 측정 기록 다운로드 ↓
+              4개 언어 코드와 72회 측정 기록 다운로드{' '}
+              <InterfaceIcon name="arrowDown" />
             </a>
           </div>
         </details>

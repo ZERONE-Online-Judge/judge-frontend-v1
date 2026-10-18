@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import type {
   Contest,
@@ -65,7 +66,9 @@ export default function ScoreboardFreezeDialog({
       <div className="grid gap-4">
         <div className="zoj-inset flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
           <span className="text-slate-500">{labels[change.from]}</span>
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">
+            <InterfaceIcon name="arrowRight" />
+          </span>
           <strong className="text-indigo-700">{labels[change.to]}</strong>
         </div>
         <p className="zoj-modal-copy">

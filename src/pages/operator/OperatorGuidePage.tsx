@@ -235,7 +235,7 @@ function GuideContent({
                 type="button"
                 onClick={() => goTo('operators', 'missing-menu')}
               >
-                권한 안내 보기 →
+                권한 안내 보기 <InterfaceIcon name="arrowRight" />
               </button>
             </div>
           </aside>
@@ -338,7 +338,9 @@ function GuideContent({
                       onClick={() => goTo(category.id, article.id)}
                     >
                       {index + 1}. {article.title}
-                      <span>↓</span>
+                      <span>
+                        <InterfaceIcon name="arrowDown" />
+                      </span>
                     </button>
                   ))}
                 </nav>

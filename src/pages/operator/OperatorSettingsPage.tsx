@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import ProblemLanguageSettings from '@/components/operator/ProblemLanguageSettings';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
 import './OperatorSettingsPage.css';
@@ -1084,7 +1085,7 @@ function SettingsSection({
           {summary ? <span>{summary}</span> : null}
         </span>
         <span className="settings-section-chevron" aria-hidden="true">
-          ⌄
+          <InterfaceIcon name="chevronDown" />
         </span>
       </summary>
       <fieldset disabled={disabled} className="settings-section-body">

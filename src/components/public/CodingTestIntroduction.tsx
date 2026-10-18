@@ -178,7 +178,10 @@ export default function CodingTestIntroduction() {
               </p>
               <div className="about-contribution-links">
                 <Link to="/contests">
-                  ZOJ에서 열리는 대회 보기 <span aria-hidden="true">→</span>
+                  ZOJ에서 열리는 대회 보기{' '}
+                  <span aria-hidden="true">
+                    <InterfaceIcon name="arrowRight" />
+                  </span>
                 </Link>
                 <Link to="/editor">
                   문제를 만드는 ZOJ Editor 알아보기{' '}

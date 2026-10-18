@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -113,7 +114,8 @@ export default function EditorUpdateModal({
             <div>
               <dt className="text-slate-500">활성 테스트</dt>
               <dd>
-                {preview.current_testcase_count}개 →{' '}
+                {preview.current_testcase_count}개{' '}
+                <InterfaceIcon name="arrowRight" />{' '}
                 {preview.incoming_testcase_count}개
               </dd>
             </div>

@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { type FormEvent, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -399,7 +400,7 @@ function PreviewButton({
         {log.body_preview || '내용 미리보기'}
       </span>
       <span className="mt-1 block text-xs font-semibold text-indigo-700">
-        이메일 내용 보기 →
+        이메일 내용 보기 <InterfaceIcon name="arrowRight" />
       </span>
     </button>
   );

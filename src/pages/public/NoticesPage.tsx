@@ -284,7 +284,13 @@ export default function NoticesPage() {
               onClick={() => void noticesQuery.refetch()}
               type="button"
             >
-              {noticesQuery.isFetching ? '확인 중…' : '다시 확인하기 ↻'}
+              {noticesQuery.isFetching ? (
+                '확인 중…'
+              ) : (
+                <>
+                  다시 확인하기 <InterfaceIcon name="refresh" />
+                </>
+              )}
             </button>
           </div>
         ) : null}
@@ -506,7 +512,7 @@ function NoticeRow({
                 }}
                 type="button"
               >
-                접기 ↑
+                접기 <InterfaceIcon name="arrowUp" />
               </button>
             </div>
           </article>
@@ -536,7 +542,7 @@ function Pagination({
         onClick={() => onChange(current - 1)}
         type="button"
       >
-        ←
+        <InterfaceIcon name="arrowLeft" />
       </button>
       {pages.map((page, i) => (
         <Fragment key={page}>
@@ -559,7 +565,7 @@ function Pagination({
         onClick={() => onChange(current + 1)}
         type="button"
       >
-        →
+        <InterfaceIcon name="arrowRight" />
       </button>
     </nav>
   );

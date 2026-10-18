@@ -50,7 +50,7 @@ export default function JudgeStatusPage() {
       value: status?.active_node_count,
       unit: '대',
       description: '현재 연결을 확인한 서버예요.',
-      icon: '▤',
+      icon: 'list' as const,
     },
   ];
 
@@ -169,7 +169,9 @@ export default function JudgeStatusPage() {
               <article className="judge-metric" key={metric.label}>
                 <div>
                   <h3>{metric.label}</h3>
-                  <span aria-hidden="true">{metric.icon}</span>
+                  <span aria-hidden="true">
+                    <InterfaceIcon name={metric.icon} />
+                  </span>
                 </div>
                 <p>
                   <strong key={metric.value ?? 'loading'}>

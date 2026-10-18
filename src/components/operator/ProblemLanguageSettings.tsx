@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +30,9 @@ export default function ProblemLanguageSettings({
           <strong>문제별 제출 언어</strong>
           <span>각 문제에서 참가자가 사용할 언어를 선택합니다.</span>
         </span>
-        <span aria-hidden="true">⌄</span>
+        <span aria-hidden="true">
+          <InterfaceIcon name="chevronDown" />
+        </span>
       </summary>
       <div className="settings-section-body">
         <p className="text-xs text-slate-500">

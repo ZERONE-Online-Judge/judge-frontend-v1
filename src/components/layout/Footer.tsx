@@ -141,7 +141,10 @@ export default function Footer() {
               </span>
             </a>
             <button type="button" onClick={backToTop}>
-              맨 위로 <span aria-hidden="true">↑</span>
+              맨 위로{' '}
+              <span aria-hidden="true">
+                <InterfaceIcon name="arrowUp" />
+              </span>
             </button>
           </div>
         </div>

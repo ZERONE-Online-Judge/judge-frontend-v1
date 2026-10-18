@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { rejudgingStatusLabel } from '@/domains/submissionScoreboard/rejudging';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -110,7 +111,8 @@ export default function RejudgingPanel({
                 </span>
                 <span className="text-xs text-slate-500">
                   완료 {batch.completed}/{batch.total} · 판정 변경{' '}
-                  {batch.changed_verdicts}개 · 결과 비교 →
+                  {batch.changed_verdicts}개 · 결과 비교{' '}
+                  <InterfaceIcon name="arrowRight" />
                 </span>
               </span>
             </button>

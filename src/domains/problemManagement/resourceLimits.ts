@@ -16,6 +16,8 @@ const LANGUAGE_TIME_ADJUSTMENTS: Partial<
 > = {
   java8: { multiplier: 2, bonusMs: 1000 },
   python313: { multiplier: 3, bonusMs: 2000 },
+  pypy3: { multiplier: 3, bonusMs: 2000 },
+  kotlin: { multiplier: 2, bonusMs: 1000 },
 };
 
 const LANGUAGE_MEMORY_ADJUSTMENTS: Partial<
@@ -23,6 +25,8 @@ const LANGUAGE_MEMORY_ADJUSTMENTS: Partial<
 > = {
   java8: { multiplier: 2, bonusMb: 16 },
   python313: { multiplier: 2, bonusMb: 32 },
+  pypy3: { multiplier: 2, bonusMb: 128 },
+  kotlin: { multiplier: 2, bonusMb: 16 },
 };
 
 function formatTime(ms: number) {

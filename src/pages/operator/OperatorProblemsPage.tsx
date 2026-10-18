@@ -156,6 +156,18 @@ const AUTOMATIC_LANGUAGE_ADJUSTMENTS: Partial<
     timeBonusMs: 2000,
     timeMultiplier: 3,
   },
+  pypy3: {
+    memoryBonusMb: 128,
+    memoryMultiplier: 2,
+    timeBonusMs: 2000,
+    timeMultiplier: 3,
+  },
+  kotlin: {
+    memoryBonusMb: 16,
+    memoryMultiplier: 2,
+    timeBonusMs: 1000,
+    timeMultiplier: 2,
+  },
 };
 
 function sleep(ms: number) {

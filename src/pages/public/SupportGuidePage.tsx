@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import PublicHero from '@/components/common/PublicHero';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -119,13 +120,19 @@ export default function SupportGuidePage() {
               </div>
             </div>
             <div className="support-art-ticket">
-              <span>✓</span>
+              <span>
+                <InterfaceIcon name="check" />
+              </span>
               <div>
                 준비됐나요?<small>LET’S GET STARTED</small>
               </div>
-              <span>↗</span>
+              <span>
+                <InterfaceIcon name="arrowUpRight" />
+              </span>
             </div>
-            <i className="support-spark">✳</i>
+            <i className="support-spark">
+              <InterfaceIcon name="asterisk" />
+            </i>
           </div>
         </div>
       </PublicHero>
@@ -186,7 +193,9 @@ export default function SupportGuidePage() {
                 to={supportPath(section.id)}
               >
                 {section.label}
-                <span aria-hidden="true">↗</span>
+                <span aria-hidden="true">
+                  <InterfaceIcon name="arrowUpRight" />
+                </span>
               </Link>
             ))}
           </div>
@@ -223,7 +232,9 @@ export default function SupportGuidePage() {
                         ))}
                       </div>
                       <span className="support-step-icon" aria-hidden="true">
-                        {['↗', '</>', '✓'][i]}
+                        <InterfaceIcon
+                          name={(['arrowUpRight', 'code', 'check'] as const)[i]}
+                        />
                       </span>
                     </li>
                   ))}
@@ -323,7 +334,11 @@ export default function SupportGuidePage() {
                     <section key={group.title}>
                       <span className="support-rule-index">0{i + 1} /</span>
                       <div className="support-rule-art" aria-hidden="true">
-                        {['↔', '◷', '↗'][i]}
+                        <InterfaceIcon
+                          name={
+                            (['exchange', 'clock', 'arrowUpRight'] as const)[i]
+                          }
+                        />
                       </div>
                       <h3>{group.title}</h3>
                       {group.items.map((item) => (
@@ -359,7 +374,7 @@ export default function SupportGuidePage() {
                     className="experience-text-link"
                     href="mailto:zoj.service@gmail.com"
                   >
-                    개인정보 문의 ↗
+                    개인정보 문의 <InterfaceIcon name="arrowUpRight" />
                   </a>
                 </aside>
                 <div>
@@ -388,7 +403,7 @@ export default function SupportGuidePage() {
               <div className="support-contact-layout">
                 <aside>
                   <div className="support-contact-icon" aria-hidden="true">
-                    ↗
+                    <InterfaceIcon name="arrowUpRight" />
                   </div>
                   <h3>
                     조금 더 알려주시면,
@@ -403,7 +418,8 @@ export default function SupportGuidePage() {
                   <div className="support-contact-email">
                     <span>이메일로도 연락할 수 있어요</span>
                     <a href="mailto:zoj.service@gmail.com">
-                      zoj.service@gmail.com ↗
+                      zoj.service@gmail.com{' '}
+                      <InterfaceIcon name="arrowUpRight" />
                     </a>
                   </div>
                 </aside>

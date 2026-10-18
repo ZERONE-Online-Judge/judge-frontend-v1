@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import './CodingTestIntroduction.css';
 
@@ -72,7 +73,7 @@ export default function CodingTestIntroduction() {
             >
               <div className="about-everyday-heading">
                 <span className="about-everyday-symbol" aria-hidden="true">
-                  ☕
+                  <InterfaceIcon name="coffee" />
                 </span>
                 <span>생활 속 문제로 생각해 보면</span>
               </div>
@@ -181,7 +182,9 @@ export default function CodingTestIntroduction() {
                 </Link>
                 <Link to="/editor">
                   문제를 만드는 ZOJ Editor 알아보기{' '}
-                  <span aria-hidden="true">↗</span>
+                  <span aria-hidden="true">
+                    <InterfaceIcon name="arrowUpRight" />
+                  </span>
                 </Link>
               </div>
             </div>

@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import PublicHero from '@/components/common/PublicHero';
 import CodingTestIntroduction from '@/components/public/CodingTestIntroduction';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
@@ -146,7 +147,11 @@ function JudgePreview() {
             style={{ '--step': i } as CSSProperties}
             key={name}
           >
-            <div>{['</>', '≡', '{ }', '✓'][i]}</div>
+            <div>
+              <InterfaceIcon
+                name={(['code', 'list', 'braces', 'check'] as const)[i]}
+              />
+            </div>
             <span>{name}</span>
           </div>
         ))}
@@ -196,7 +201,7 @@ function ScorePreview() {
           <div className="about-score-cells">
             {[0, 1, 2, 3].map((n) => (
               <span className={n < 4 - i ? 'is-solved' : ''} key={n}>
-                {n < 4 - i ? '✓' : '−'}
+                <InterfaceIcon name={n < 4 - i ? 'check' : 'minus'} />
               </span>
             ))}
           </div>
@@ -282,7 +287,9 @@ export default function AboutPage() {
                   <i />
                 </span>
                 <span>ZOJ / Problem workspace</span>
-                <span>↗</span>
+                <span>
+                  <InterfaceIcon name="arrowUpRight" />
+                </span>
               </div>
               <CodePreview compact />
               <div className="about-test-strip">
@@ -303,7 +310,7 @@ export default function AboutPage() {
                 <strong>다음은, 당신의 대회.</strong>
               </div>
               <span className="about-result-spark" aria-hidden="true">
-                ✳
+                <InterfaceIcon name="asterisk" />
               </span>
             </div>
             <p className="about-media-caption">
@@ -502,14 +509,21 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="about-role-board" data-reveal>
-            {[
-              ['01', '출제자', '문제와 테스트케이스를 다듬고', '{ }'],
-              ['02', '검수자', '직접 풀어보며 완성도를 높이고', '✓'],
-              ['03', '운영자', '참가자와 대회의 흐름을 살피고', '↗'],
-            ].map(([number, role, description, icon]) => (
+            {(
+              [
+                ['01', '출제자', '문제와 테스트케이스를 다듬고', 'braces'],
+                ['02', '검수자', '직접 풀어보며 완성도를 높이고', 'check'],
+                [
+                  '03',
+                  '운영자',
+                  '참가자와 대회의 흐름을 살피고',
+                  'arrowUpRight',
+                ],
+              ] as const
+            ).map(([number, role, description, icon]) => (
               <div className="about-role-row" key={role}>
                 <span className="about-role-icon" aria-hidden="true">
-                  {icon}
+                  <InterfaceIcon name={icon} />
                 </span>
                 <div>
                   <strong>{role}</strong>
@@ -534,7 +548,9 @@ export default function AboutPage() {
             <div />
             <div />
             <div />
-            <span>✳</span>
+            <span>
+              <InterfaceIcon name="asterisk" />
+            </span>
           </div>
           <div>
             <p className="about-eyebrow">

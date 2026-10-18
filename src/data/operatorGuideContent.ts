@@ -587,7 +587,7 @@ export const operatorGuideCategories: GuideCategory[] = [
         ],
         effect:
           '파일명 기준으로 입력과 기대 출력을 연결합니다. 본문에 넣은 예제와 채점용 테스트케이스 파일은 별개의 데이터입니다.',
-        example: '01.in  ↔  01.out\n02.in  ↔  02.out\nedge.in  ↔  edge.out',
+        example: '01.in + 01.out\n02.in + 02.out\nedge.in + edge.out',
         note: '압축 파일은 먼저 해제한 뒤 .in·.out 파일을 선택하세요. 새 데이터 반영 뒤에는 번들 상태와 검증 제출도 확인하세요.',
       },
       {

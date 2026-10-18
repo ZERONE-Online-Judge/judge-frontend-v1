@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import JudgeSubmissionJourney from '@/components/public/JudgeSubmissionJourney';
 import JudgeMemoryReference from '@/components/public/JudgeMemoryReference';
 import { useState } from 'react';
@@ -18,7 +19,11 @@ const verdicts = [
     description:
       '문제의 출력 조건과 자원 제한을 만족했습니다. 등록된 테스트에 대한 정답 판정이에요.',
     next: '다음 문제에 도전해 볼까요?',
-    visual: ['테스트 01  ✓', '테스트 02  ✓', '테스트 03  ✓'],
+    visual: [
+      { text: '테스트 01  ', icon: 'check' },
+      { text: '테스트 02  ', icon: 'check' },
+      { text: '테스트 03  ', icon: 'check' },
+    ],
   },
   {
     status: 'wrong_answer',
@@ -45,7 +50,11 @@ const verdicts = [
     description:
       '배열 범위 초과, 0으로 나누기, 처리하지 않은 예외 등을 확인해 보세요.',
     next: '최소·최대 입력에서도 정상 종료하는지 살펴보세요.',
-    visual: ['배열 크기     3', '유효 인덱스   0  1  2', '접근 위치     3  ✕'],
+    visual: [
+      '배열 크기     3',
+      '유효 인덱스   0  1  2',
+      { text: '접근 위치     3  ', icon: 'close' },
+    ],
   },
   {
     status: 'time_limit_exceeded',
@@ -55,7 +64,7 @@ const verdicts = [
       '입력이 커질 때 반복 횟수가 얼마나 늘어나는지 확인해요. 무한 반복이나 느린 입출력도 원인이 됩니다.',
     next: '문제와 언어에 적용되는 시간 제한을 확인하세요.',
     visual: [
-      '실행 시작     ━━━━━━━▶',
+      { text: '실행 시작     ', icon: 'arrowRight' },
       '시간 제한     ┃',
       '제한 도달 → 실행 중단',
     ],
@@ -67,7 +76,11 @@ const verdicts = [
     description:
       '큰 배열, 너무 많은 객체, 깊은 재귀처럼 메모리가 늘어나는 부분을 찾아보세요.',
     next: '최대 입력 기준으로 자료구조 크기를 계산해 보세요.',
-    visual: ['배열 + 객체 + 실행 환경', '▰ ▰ ▰ ▰ ▰ ▰ ▰', '메모리 제한 초과'],
+    visual: [
+      '배열 + 객체 + 실행 환경',
+      { text: '', icon: 'memory' },
+      '메모리 제한 초과',
+    ],
   },
   {
     status: 'output_limit_exceeded',
@@ -98,7 +111,11 @@ const verdicts = [
     description:
       '풀이가 틀렸다는 뜻은 아닙니다. 채점 환경이나 문제 자료를 운영자가 확인해야 해요.',
     next: '제출 번호와 오류 메시지를 대회 운영자에게 알려 주세요.',
-    visual: ['코드 접수     ✓', '채점 처리     !', '운영자 확인 필요'],
+    visual: [
+      { text: '코드 접수     ', icon: 'check' },
+      { text: '채점 처리     ', icon: 'alert' },
+      '운영자 확인 필요',
+    ],
   },
 ] as const;
 
@@ -139,7 +156,9 @@ function Verdicts() {
                 >
                   <span>{item.short}</span>
                   {submissionStatusLabel(item.status)}
-                  <i aria-hidden="true">↗</i>
+                  <i aria-hidden="true">
+                    <InterfaceIcon name="arrowUpRight" />
+                  </i>
                 </button>
               ))}
             </div>
@@ -152,7 +171,32 @@ function Verdicts() {
                 <h3>{verdict.title}</h3>
                 <p>{verdict.description}</p>
                 <pre className="judge-verdict-visual">
-                  <code>{verdict.visual.join('\n')}</code>
+                  <code>
+                    {verdict.visual.map((line, index) => (
+                      <span key={index}>
+                        {typeof line === 'string' ? (
+                          line
+                        ) : (
+                          <>
+                            {line.text}
+                            <InterfaceIcon
+                              name={line.icon}
+                              size={16}
+                              width={
+                                line.icon === 'arrowRight'
+                                  ? 90
+                                  : line.icon === 'memory'
+                                    ? 126
+                                    : 16
+                              }
+                              preserveAspectRatio="none"
+                            />
+                          </>
+                        )}
+                        {index < verdict.visual.length - 1 ? '\n' : ''}
+                      </span>
+                    ))}
+                  </code>
                 </pre>
                 <span className="judge-small-label">다음 한 걸음</span>
                 <p className="judge-verdict-next">{verdict.next}</p>
@@ -353,11 +397,21 @@ export default function JudgeParticipantExperience() {
         className="experience-container judge-topic-links"
         aria-label="채점 알아보기"
       >
-        <a href="#judge-journey">채점 흐름 ↗</a>
-        <a href="#judge-performance">실행 시간 ↗</a>
-        <a href="#judge-memory">메모리 사용 ↗</a>
-        <a href="#judge-verdicts">결과 읽기 ↗</a>
-        <a href="#judge-scoreboard">점수 계산 ↗</a>
+        <a href="#judge-journey">
+          채점 흐름 <InterfaceIcon name="arrowUpRight" />
+        </a>
+        <a href="#judge-performance">
+          실행 시간 <InterfaceIcon name="arrowUpRight" />
+        </a>
+        <a href="#judge-memory">
+          메모리 사용 <InterfaceIcon name="arrowUpRight" />
+        </a>
+        <a href="#judge-verdicts">
+          결과 읽기 <InterfaceIcon name="arrowUpRight" />
+        </a>
+        <a href="#judge-scoreboard">
+          점수 계산 <InterfaceIcon name="arrowUpRight" />
+        </a>
       </nav>
       <JudgeSubmissionJourney />
       <JudgeTimeReference />

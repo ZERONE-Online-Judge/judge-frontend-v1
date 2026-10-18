@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import PublicHero from '@/components/common/PublicHero';
 import { type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -148,7 +149,9 @@ export default function JudgeStatusPage() {
           </div>
           <div className={`judge-status-note is-${tone}`} role="status">
             <span className="judge-status-symbol">
-              {connected ? '✓' : unavailable ? '!' : '·'}
+              <InterfaceIcon
+                name={connected ? 'check' : unavailable ? 'alert' : 'circle'}
+              />
             </span>
             <div>
               <h3>{title}</h3>
@@ -213,7 +216,7 @@ export default function JudgeStatusPage() {
                 onClick={() => void query.refetch()}
                 type="button"
               >
-                다시 확인하기 ↻
+                다시 확인하기 <InterfaceIcon name="refresh" />
               </button>
             ) : null}
           </div>

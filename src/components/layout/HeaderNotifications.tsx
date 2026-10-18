@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import HeaderPanel, {
   HeaderIcon,
   type HeaderIconName,
@@ -264,7 +265,8 @@ export default function HeaderNotifications() {
               type="button"
               onClick={openPanel}
             >
-              새 알림 {toasts.length}개 모두 보기 ↗
+              새 알림 {toasts.length}개 모두 보기{' '}
+              <InterfaceIcon name="arrowUpRight" />
             </button>
           ) : null}
         </div>

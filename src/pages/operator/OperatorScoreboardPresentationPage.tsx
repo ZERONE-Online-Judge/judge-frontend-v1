@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { getPresentationScoreboard } from '@/domains/presentationAccess/api';
 import { usePresentationSession } from '@/domains/presentationAccess/session';
 import { isSessionAuthError } from '@/shared/api/errors';
@@ -91,7 +92,11 @@ function problemScoreByCode(row: ScoreboardRow) {
 function solvedLabel(score?: ScoreboardProblemScore) {
   if (!score) return '';
   if (score.solved) {
-    return score.wrong_attempts > 0 ? `+${score.wrong_attempts}` : '✓';
+    return score.wrong_attempts > 0 ? (
+      `+${score.wrong_attempts}`
+    ) : (
+      <InterfaceIcon name="check" size={14} label="정답" />
+    );
   }
   if (score.attempts > 0) return `-${score.attempts}`;
   return '';

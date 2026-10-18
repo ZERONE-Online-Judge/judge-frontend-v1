@@ -367,10 +367,6 @@
   font-size: 11px;
   color: #557267;
 }
-.contest-directory .directory-resources span:before {
-  content: '↗';
-  margin-right: 4px;
-}
 .contest-directory .directory-card-action {
   display: grid;
   justify-items: end;

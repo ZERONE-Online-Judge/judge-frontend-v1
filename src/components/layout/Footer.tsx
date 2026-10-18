@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import backgroundLogoUrl from '@/assets/logos/background-logo.png';
 import { SvgIcon } from '@/utils/Icons';
@@ -80,7 +81,10 @@ export default function Footer() {
               className="zoj-footer-contact"
               href="mailto:zoj.service@gmail.com"
             >
-              zoj.service@gmail.com <span aria-hidden="true">↗</span>
+              zoj.service@gmail.com{' '}
+              <span aria-hidden="true">
+                <InterfaceIcon name="arrowUpRight" />
+              </span>
             </a>
           </div>
           <div className="zoj-footer-navigation">
@@ -132,7 +136,9 @@ export default function Footer() {
               <span>
                 GitHub <span className="sr-only">(새 창)</span>
               </span>
-              <span aria-hidden="true">↗</span>
+              <span aria-hidden="true">
+                <InterfaceIcon name="arrowUpRight" />
+              </span>
             </a>
             <button type="button" onClick={backToTop}>
               맨 위로 <span aria-hidden="true">↑</span>

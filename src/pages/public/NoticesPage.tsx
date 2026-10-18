@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import PublicHero from '@/components/common/PublicHero';
 import { useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useMemo } from 'react';
@@ -165,7 +166,9 @@ export default function NoticesPage() {
             <div className="notices-art-sheet">
               <div>
                 <span>ZOJ NEWS</span>
-                <i>↗</i>
+                <i>
+                  <InterfaceIcon name="arrowUpRight" />
+                </i>
               </div>
               <span className="notices-art-line is-wide" />
               <span className="notices-art-line" />
@@ -181,9 +184,14 @@ export default function NoticesPage() {
               </div>
             </div>
             <div className="notices-art-tag">
-              <span>✳</span> 알아두면 좋은 이야기
+              <span>
+                <InterfaceIcon name="asterisk" />
+              </span>{' '}
+              알아두면 좋은 이야기
             </div>
-            <span className="notices-art-spark">✦</span>
+            <span className="notices-art-spark">
+              <InterfaceIcon name="sparkle" />
+            </span>
           </div>
         </div>
       </PublicHero>
@@ -338,7 +346,9 @@ export default function NoticesPage() {
               </ul>
             ) : (
               <div className="notices-empty">
-                <span aria-hidden="true">{ordered.length ? '⌕' : '✉'}</span>
+                <span aria-hidden="true">
+                  <InterfaceIcon name={ordered.length ? 'search' : 'mail'} />
+                </span>
                 <h3>
                   {ordered.length
                     ? '찾으시는 공지가 없어요.'

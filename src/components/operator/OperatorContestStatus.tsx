@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
 import type { Contest } from '@/domains/contestAdministration/types';
@@ -44,7 +45,10 @@ export default function OperatorContestStatus({
         <p>대회 진행 현황</p>
         {canManageSettings ? (
           <Link to={`/operator/contests/${contest.contest_id}/settings`}>
-            대회 설정 <span aria-hidden="true">↗</span>
+            대회 설정{' '}
+            <span aria-hidden="true">
+              <InterfaceIcon name="arrowUpRight" />
+            </span>
           </Link>
         ) : null}
       </div>

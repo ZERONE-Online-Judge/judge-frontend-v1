@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/common/PageLayout';
@@ -194,7 +195,10 @@ function GuideContent({
                 searchRef.current?.focus();
               }}
             >
-              {word} <span>↗</span>
+              {word}{' '}
+              <span>
+                <InterfaceIcon name="arrowUpRight" />
+              </span>
             </button>
           ))}
         </div>
@@ -296,7 +300,13 @@ function GuideContent({
                       onClick={() => copyLink()}
                       className="og-copy"
                     >
-                      {copied === 'section' ? '복사 완료 ✓' : '안내 링크 복사'}
+                      {copied === 'section' ? (
+                        <>
+                          복사 완료 <InterfaceIcon name="check" />
+                        </>
+                      ) : (
+                        '안내 링크 복사'
+                      )}
                     </button>
                   </div>
                   <p>{category.description}</p>
@@ -536,7 +546,7 @@ function GuideArticleCard({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {reference.label} ↗
+                    {reference.label} <InterfaceIcon name="arrowUpRight" />
                   </a>
                 </li>
               ))}
@@ -544,7 +554,15 @@ function GuideArticleCard({
           </div>
         ) : null}
         <button type="button" className="og-article-copy" onClick={onCopy}>
-          {copied ? '링크 복사 완료 ✓' : '이 안내 링크 복사 ↗'}
+          {copied ? (
+            <>
+              링크 복사 완료 <InterfaceIcon name="check" />
+            </>
+          ) : (
+            <>
+              이 안내 링크 복사 <InterfaceIcon name="arrowUpRight" />
+            </>
+          )}
         </button>
       </div>
     </article>

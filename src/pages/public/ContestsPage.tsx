@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import PublicHero from '@/components/common/PublicHero';
 import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import { useQuery } from '@tanstack/react-query';
@@ -221,7 +222,9 @@ export default function ContestsPage() {
             <div className="directory-art-ticket">
               <div>
                 <span>ZOJ CONTEST</span>
-                <span>↗</span>
+                <span>
+                  <InterfaceIcon name="arrowUpRight" />
+                </span>
               </div>
               <p>
                 READY.
@@ -237,7 +240,10 @@ export default function ContestsPage() {
             </div>
             <div className="directory-art-code">&lt;/&gt;</div>
             <div className="directory-art-label">
-              <span>✳</span> 새로운 도전을 기다리며
+              <span>
+                <InterfaceIcon name="asterisk" />
+              </span>{' '}
+              새로운 도전을 기다리며
             </div>
           </div>
         </div>
@@ -360,13 +366,15 @@ export default function ContestsPage() {
               }}
               type="button"
             >
-              다시 확인하기 ↻
+              다시 확인하기 <InterfaceIcon name="refresh" />
             </button>
           </div>
         ) : null}
         {showSignIn ? (
           <div className="directory-empty">
-            <span aria-hidden="true">↗</span>
+            <span aria-hidden="true">
+              <InterfaceIcon name="arrowUpRight" />
+            </span>
             <h3>내 대회, 로그인하고 만나세요.</h3>
             <p>
               등록된 이메일로 로그인하면 참가 중인 대회와 운영하는 대회를 확인할
@@ -447,7 +455,11 @@ export default function ContestsPage() {
             {!waiting && !failed && displayedCount === 0 ? (
               <div className="directory-empty">
                 <span aria-hidden="true">
-                  {search || phaseFilter !== 'all' ? '⌕' : '✳'}
+                  <InterfaceIcon
+                    name={
+                      search || phaseFilter !== 'all' ? 'search' : 'asterisk'
+                    }
+                  />
                 </span>
                 <h3>
                   {search || phaseFilter !== 'all'

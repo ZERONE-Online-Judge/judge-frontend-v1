@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +24,7 @@ const shortcuts = [
     description: '대회 현장에서 시작된 우리의 이야기.',
     to: '/about',
     label: 'ZOJ 소개',
-    symbol: '✳',
+    symbol: 'asterisk',
   },
   {
     number: '02',
@@ -31,7 +32,7 @@ const shortcuts = [
     description: '로그인부터 제출까지, 차근차근 함께해요.',
     to: '/support',
     label: '참가 방법',
-    symbol: '↗',
+    symbol: 'arrowUpRight',
   },
   {
     number: '03',
@@ -39,9 +40,9 @@ const shortcuts = [
     description: '서버 상태부터 판정과 점수 계산까지 알아보세요.',
     to: '/judge-status',
     label: '채점 안내',
-    symbol: '</>',
+    symbol: 'code',
   },
-];
+] as const;
 
 export default function MainPage() {
   const visible = useDocumentVisibility();
@@ -97,7 +98,9 @@ export default function MainPage() {
                 <span>
                   {item.number} / {item.label}
                 </span>
-                <i aria-hidden="true">{item.symbol}</i>
+                <i aria-hidden="true">
+                  <InterfaceIcon name={item.symbol} />
+                </i>
               </div>
               <h2>{item.title}</h2>
               <p>{item.description}</p>
@@ -131,7 +134,7 @@ export default function MainPage() {
               disabled={contestsQuery.isFetching}
               onClick={() => void contestsQuery.refetch()}
             >
-              다시 확인하기 ↻
+              다시 확인하기 <InterfaceIcon name="refresh" />
             </button>
           </div>
         ) : null}
@@ -160,7 +163,9 @@ export default function MainPage() {
           </ul>
         ) : !contestsQuery.isPending && !contestsQuery.isError ? (
           <div className="home-feed-message">
-            <span aria-hidden="true">✳</span>
+            <span aria-hidden="true">
+              <InterfaceIcon name="asterisk" />
+            </span>
             <h3>새로운 도전을 준비하고 있어요.</h3>
             <p>대회가 공개되면 이곳에서 가장 먼저 만나보세요.</p>
           </div>
@@ -198,7 +203,7 @@ export default function MainPage() {
                   disabled={noticesQuery.isFetching}
                   onClick={() => void noticesQuery.refetch()}
                 >
-                  다시 확인하기 ↻
+                  다시 확인하기 <InterfaceIcon name="refresh" />
                 </button>
               </div>
             ) : null}

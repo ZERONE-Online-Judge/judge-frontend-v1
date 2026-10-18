@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import HeaderPanel, { HeaderIcon } from '@/components/layout/HeaderPanel';
 import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -217,7 +218,10 @@ export default function HeaderAuthControls({
                   onClick={() => setIsAccountPanelOpen(false)}
                 >
                   <strong>{contest.title}</strong>
-                  <span>유형을 선택해 참가자 화면 사전 점검 ↗</span>
+                  <span>
+                    유형을 선택해 참가자 화면 사전 점검{' '}
+                    <InterfaceIcon name="arrowUpRight" />
+                  </span>
                 </Link>
               ))}
             </section>

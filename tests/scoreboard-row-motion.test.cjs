@@ -130,7 +130,7 @@ test('unrevealed submissions are visibly pending until a published result arrive
   const element = await mount([waiting]);
   assert.match(element.textContent, /\?2/);
   assert.match(element.querySelector('[title]').title, /미공개 제출 2건/);
-  assert.doesNotMatch(element.textContent, /✓/);
+  assert.equal(element.querySelector('svg[aria-label="정답"]'), null);
   await act(async () =>
     root.render(
       React.createElement(Table, {
@@ -153,7 +153,7 @@ test('unrevealed submissions are visibly pending until a published result arrive
     ),
   );
   assert.doesNotMatch(element.textContent, /\?2/);
-  assert.match(element.textContent, /✓/);
+  assert.ok(element.querySelector('svg[aria-label="정답"]'));
 });
 
 function medalsIn(element) {

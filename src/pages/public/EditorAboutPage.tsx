@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useEffect } from 'react';
 import PublicHero from '@/components/common/PublicHero';
 import {
@@ -90,7 +91,9 @@ function VerificationPreview() {
           ))}
         </div>
         <div className="editor-about-verification-result">
-          <span aria-hidden="true">✓</span>
+          <span aria-hidden="true">
+            <InterfaceIcon name="check" />
+          </span>
           <div>
             <strong>기대 판정과 일치</strong>
             <p>정답 풀이도, 틀려야 하는 풀이도 함께 확인합니다.</p>
@@ -487,7 +490,7 @@ export default function EditorAboutPage() {
           <div className="editor-about-publish-options">
             <article>
               <span className="editor-about-publish-symbol" aria-hidden="true">
-                ↗
+                <InterfaceIcon name="arrowUpRight" />
               </span>
               <h3>제작한 문제를 ZOJ 대회로</h3>
               <p>

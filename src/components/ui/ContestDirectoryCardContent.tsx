@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { ExperienceArrow } from '@/components/common/PublicExperience';
 
 export type ContestDirectoryMeta = {
@@ -100,6 +101,7 @@ export default function ContestDirectoryCardContent({
           <div className="directory-resources">
             {publicLabels.map((label) => (
               <span key={label}>
+                <InterfaceIcon name="arrowUpRight" />{' '}
                 {label
                   .replace('비로그인 공개', '공개')
                   .replace('참가자 공개 유지', '참가자 공개')}

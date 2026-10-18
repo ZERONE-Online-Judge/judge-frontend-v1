@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import type { ScoreboardProblemScore } from '@/domains/submissionScoreboard/types';
 
 type ContestScoreboardProblemCellProps = {
@@ -7,7 +8,11 @@ type ContestScoreboardProblemCellProps = {
 function scoreLabel(score?: ScoreboardProblemScore) {
   if (!score) return '';
   if (score.solved) {
-    return score.wrong_attempts > 0 ? `+${score.wrong_attempts}` : '✓';
+    return score.wrong_attempts > 0 ? (
+      `+${score.wrong_attempts}`
+    ) : (
+      <InterfaceIcon name="check" size={14} label="정답" />
+    );
   }
   if (score.attempts > 0) return `-${score.attempts}`;
 

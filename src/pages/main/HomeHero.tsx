@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import '@/pages/public/PublicExperience.css';
 import './HomeHero.css';
@@ -27,21 +28,29 @@ export default function HomeHero() {
             Z<span>O</span>J<span className="home-monogram-dot">.</span>
           </div>
           <div className="home-satellite is-code">
-            <span>&lt;/&gt;</span>
+            <span>
+              <InterfaceIcon name="code" />
+            </span>
             <div>
               <small>YOUR IDEA</small>
               <strong>Hello, possibility.</strong>
             </div>
           </div>
           <div className="home-satellite is-result">
-            <span>✓</span>
+            <span>
+              <InterfaceIcon name="check" />
+            </span>
             <div>
               <small>YOUR NEXT STEP</small>
               <strong>한 번 더, 한 걸음 더.</strong>
             </div>
           </div>
-          <span className="home-star is-first">✳</span>
-          <span className="home-star is-second">✦</span>
+          <span className="home-star is-first">
+            <InterfaceIcon name="asterisk" />
+          </span>
+          <span className="home-star is-second">
+            <InterfaceIcon name="sparkle" />
+          </span>
           <span className="home-universe-coordinate">
             FROM ZERO
             <br />
@@ -51,7 +60,10 @@ export default function HomeHero() {
         <div className="home-launch-bottom">
           <div className="home-launch-actions">
             <Link to="/about" className="home-about-link">
-              ZOJ 알아보기 <span aria-hidden="true">↗</span>
+              ZOJ 알아보기{' '}
+              <span aria-hidden="true">
+                <InterfaceIcon name="arrowUpRight" />
+              </span>
             </Link>
           </div>
         </div>

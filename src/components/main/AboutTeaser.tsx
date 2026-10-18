@@ -1,3 +1,4 @@
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 
 export default function AboutTeaser() {
@@ -32,7 +33,10 @@ export default function AboutTeaser() {
           to="/about"
           className="inline-flex min-h-12 shrink-0 items-center gap-5 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-[#b8f28b]"
         >
-          ZOJ 소개 <span aria-hidden="true">↗</span>
+          ZOJ 소개{' '}
+          <span aria-hidden="true">
+            <InterfaceIcon name="arrowUpRight" />
+          </span>
         </Link>
       </div>
     </section>

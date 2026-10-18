@@ -151,9 +151,22 @@ const mocks = {
     },
     listOperatorSubmissionsPage: async (contestId, token, filters) => {
       record('submissions', { contestId, token, filters });
+      const filtered = filters.submissionKind
+        ? submissionItems.filter(
+            (item) =>
+              (item.submission_kind ?? 'participant') ===
+              filters.submissionKind,
+          )
+        : submissionItems;
+      const offset = Number(filters.cursor ?? 0);
+      const end = offset + filters.limit;
       return {
-        data: submissionItems,
-        page: { total_count: 1, current_cursor: null, next_cursor: null },
+        data: filtered.slice(offset, end),
+        page: {
+          total_count: filtered.length,
+          current_cursor: filters.cursor ?? null,
+          next_cursor: end < filtered.length ? String(end) : null,
+        },
       };
     },
     getOperatorSubmission: async (contestId, submissionId, token) => {
@@ -384,6 +397,7 @@ test('submission viewers use safe filter labels and inspect source/results witho
     limit: 20,
     problemId: 'problem',
     teamId: 'team',
+    submissionKind: undefined,
   });
   await click(button('보기'));
   const detail = document.querySelector('dialog[aria-label="제출 상세"]');
@@ -687,6 +701,7 @@ test('all submissions clears persisted filters and identifies review and preview
     limit: 20,
     problemId: undefined,
     teamId: undefined,
+    submissionKind: undefined,
   });
   for (const field of ['division', 'problem', 'team']) {
     assert.equal(
@@ -762,4 +777,65 @@ test('service masters query all mail instead of the contest-specific endpoint', 
     /조건에 맞는 이메일 발송 기록이 없습니다/,
   );
   assert.equal(button('다음').disabled, true);
+});
+
+test('submission kind filters reset pagination and persist the selected kind', async () => {
+  submissionItems = [
+    ...Array.from({ length: 21 }, (_, i) => ({
+      ...submission,
+      submission_id: `real-${i}`,
+      submission_kind: 'participant',
+    })),
+    ...['operator_test', 'participant_preview', 'mock_judging'].map((kind) => ({
+      ...submission,
+      submission_id: kind,
+      submission_kind: kind,
+    })),
+  ];
+  await render(SubmissionsPage, '/submissions');
+  await click(button('다음'));
+  assert.equal(requests('submissions').at(-1).filters.cursor, '20');
+  for (const [label, kind] of [
+    ['검수·테스트 제출', 'operator_test'],
+    ['참가자 제출', 'participant'],
+    ['참가자 미리보기', 'participant_preview'],
+    ['모의채점', 'mock_judging'],
+  ]) {
+    await click(button(label));
+    const request = requests('submissions').at(-1).filters;
+    assert.equal(request.submissionKind, kind);
+    assert.equal(request.cursor, undefined);
+    assert.equal(button(label).getAttribute('aria-pressed'), 'true');
+    assert.equal(
+      window.localStorage.getItem('zoj.operator.submissions.kind.contest'),
+      kind,
+    );
+    const expectedRows = kind === 'participant' ? 20 : 1;
+    assert.equal(container.querySelectorAll('tbody tr').length, expectedRows);
+  }
+  await click(button('전체 제출 보기'));
+  assert.equal(
+    requests('submissions').at(-1).filters.submissionKind,
+    undefined,
+  );
+  assert.equal(button('전체').getAttribute('aria-pressed'), 'true');
+  assert.equal(
+    window.localStorage.getItem('zoj.operator.submissions.kind.contest'),
+    'all',
+  );
+});
+
+test('saved submission kind restores without requesting other submission kinds', async () => {
+  window.localStorage.setItem(
+    'zoj.operator.submissions.kind.contest',
+    'operator_test',
+  );
+  await render(SubmissionsPage, '/submissions');
+  assert.ok(requests('submissions').length);
+  assert.ok(
+    requests('submissions').every(
+      (request) => request.filters.submissionKind === 'operator_test',
+    ),
+  );
+  assert.equal(button('검수·테스트 제출').getAttribute('aria-pressed'), 'true');
 });

@@ -8,6 +8,7 @@ import type {
   ScoreboardReleaseAction,
   Submission,
   SubmissionCreateRequest,
+  SubmissionKindFilter,
 } from '@/domains/submissionScoreboard/types';
 import { apiPageRequest, apiRequest } from '@/shared/api/client';
 
@@ -247,6 +248,7 @@ export function listOperatorSubmissionsPage(
     limit?: number;
     problemId?: string;
     teamId?: string;
+    submissionKind?: Exclude<SubmissionKindFilter, 'all'>;
   } = {},
 ) {
   const search = new URLSearchParams();
@@ -255,6 +257,8 @@ export function listOperatorSubmissionsPage(
   if (options.divisionId) search.set('division_id', options.divisionId);
   if (options.problemId) search.set('problem_id', options.problemId);
   if (options.teamId) search.set('participant_team_id', options.teamId);
+  if (options.submissionKind)
+    search.set('submission_kind', options.submissionKind);
   const query = search.toString();
 
   return apiPageRequest<Submission[]>(

@@ -11,6 +11,13 @@ export type JudgeLanguage =
   | 'pypy3'
   | 'kotlin';
 
+export type SubmissionKindFilter =
+  | 'all'
+  | 'participant'
+  | 'operator_test'
+  | 'participant_preview'
+  | 'mock_judging';
+
 export type Submission = {
   submission_id: string;
   problem_id: string;

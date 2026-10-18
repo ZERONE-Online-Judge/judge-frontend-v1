@@ -39,7 +39,10 @@ import {
   listOperatorSubmissionsPage,
   waitOperatorSubmissionStatus,
 } from '@/domains/submissionScoreboard/api';
-import type { Submission } from '@/domains/submissionScoreboard/types';
+import type {
+  Submission,
+  SubmissionKindFilter,
+} from '@/domains/submissionScoreboard/types';
 import {
   isSubmissionPending,
   submissionProgressText,
@@ -52,6 +55,16 @@ import AnimatedNumber from '@/shared/ui/AnimatedNumber';
 import SubmissionStatusBadge from '@/shared/ui/SubmissionStatusBadge';
 
 const SUBMISSIONS_PAGE_SIZE = 20;
+const SUBMISSION_KIND_OPTIONS: {
+  value: SubmissionKindFilter;
+  label: string;
+}[] = [
+  { value: 'all', label: '전체' },
+  { value: 'participant', label: '참가자 제출' },
+  { value: 'operator_test', label: '검수·테스트 제출' },
+  { value: 'participant_preview', label: '참가자 미리보기' },
+  { value: 'mock_judging', label: '모의채점' },
+];
 type SubmissionProblem = Pick<
   Problem,
   'problem_id' | 'problem_code' | 'title'
@@ -148,6 +161,16 @@ function OperatorSubmissionsContent({
   const divisionStorageKey = operatorSubmissionDivisionStorageKey(contestId);
   const problemStorageKey = operatorSubmissionProblemStorageKey(contestId);
   const teamStorageKey = operatorSubmissionTeamStorageKey(contestId);
+  const kindStorageKey = `zoj.operator.submissions.kind.${contestId}`;
+  const [submissionKind, setSubmissionKind] = useState<SubmissionKindFilter>(
+    () => {
+      const saved = readStoredValue(kindStorageKey);
+      return (
+        SUBMISSION_KIND_OPTIONS.find((option) => option.value === saved)
+          ?.value ?? 'all'
+      );
+    },
+  );
   const [divisionId, setDivisionId] = useState(() =>
     readStoredValue(divisionStorageKey),
   );
@@ -182,6 +205,7 @@ function OperatorSubmissionsContent({
       'operator',
       'submissions',
       contestId,
+      submissionKind,
       divisionId,
       problemId || null,
       teamId || null,
@@ -195,6 +219,7 @@ function OperatorSubmissionsContent({
         limit: SUBMISSIONS_PAGE_SIZE,
         problemId: problemId || undefined,
         teamId: teamId || undefined,
+        submissionKind: submissionKind === 'all' ? undefined : submissionKind,
       }),
     placeholderData: keepPreviousData,
     refetchInterval: (query) => {
@@ -454,6 +479,8 @@ function OperatorSubmissionsContent({
               type="button"
               className="h-10 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
               onClick={() => {
+                setSubmissionKind('all');
+                writeStoredValue(kindStorageKey, 'all');
                 setDivisionId('');
                 setProblemId('');
                 setTeamId('');
@@ -557,9 +584,35 @@ function OperatorSubmissionsContent({
             ) : null}
           </div>
         }
-        description="참가자 제출, 문제 검수·테스트, 참가자 미리보기 채점을 함께 표시합니다. 팀을 선택하면 해당 참가 팀의 제출만 표시됩니다."
+        description="제출 구분을 선택해 참가자, 검수·테스트, 미리보기, 모의채점을 나눠 확인합니다. 유형·문제·팀 필터와 함께 적용됩니다."
         title="제출 목록"
       >
+        <div
+          role="group"
+          aria-label="제출 구분"
+          className="flex flex-wrap gap-2"
+        >
+          {SUBMISSION_KIND_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={submissionKind === option.value}
+              className={[
+                'rounded-lg border px-3 py-2 text-sm font-semibold transition',
+                submissionKind === option.value
+                  ? 'border-indigo-600 bg-indigo-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50',
+              ].join(' ')}
+              onClick={() => {
+                setSubmissionKind(option.value);
+                writeStoredValue(kindStorageKey, option.value);
+                setCursorStack([]);
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <OperatorSubmissionsTable
           onRetry={canRejudge ? retry : undefined}
           retryPending={retryMutation.isPending}

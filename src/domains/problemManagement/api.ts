@@ -127,9 +127,11 @@ export function deleteOperatorProblem(
   contestId: string,
   problemId: string,
   token: string,
+  cancelRejudging = false,
 ) {
+  const query = cancelRejudging ? '?cancel_rejudging=true' : '';
   return apiRequest<Problem>(
-    `/operator/contests/${contestId}/problems/${problemId}`,
+    `/operator/contests/${contestId}/problems/${problemId}${query}`,
     token,
     {
       method: 'DELETE',

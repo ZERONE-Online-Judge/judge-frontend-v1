@@ -78,6 +78,11 @@ function apiErrorUserMessage(error: ApiClientError) {
   if (error.status === 413)
     return '전송할 데이터가 너무 큽니다. 파일이나 코드 크기를 줄여 주세요.';
   if (error.code === 'api_busy') return error.message;
+  if (
+    error.code === 'rejudging_conflict' ||
+    error.code.startsWith('problem_deletion_')
+  )
+    return error.message;
   if (error.code.startsWith('verification_')) return error.message;
 
   if (error.code.startsWith('problem_archive_')) return error.message;

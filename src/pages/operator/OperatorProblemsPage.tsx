@@ -1018,7 +1018,7 @@ function OperatorProblemsContent({
 
   const deleteProblemMutation = useMutation({
     mutationFn: (problem: Problem) =>
-      deleteOperatorProblem(contestId, problem.problem_id, token),
+      deleteOperatorProblem(contestId, problem.problem_id, token, true),
     onSuccess: (_deleted, problem) => {
       setEditorMode('idle');
       setAuthoringTab('settings');
@@ -1547,7 +1547,7 @@ function OperatorProblemsContent({
     if (!selectedProblem || deleteProblemMutation.isPending) return;
 
     const confirmed = await confirmAction(
-      `${selectedProblem.problem_code}. ${selectedProblem.title} 문제를 삭제할까요?\n\n채점 파일, 테스트케이스, 제출 기록도 함께 삭제됩니다.`,
+      `${selectedProblem.problem_code}. ${selectedProblem.title} 문제를 삭제할까요?\n\n진행 중이거나 결과 반영을 기다리는 재채점 작업은 먼저 취소합니다. 채점 파일, 테스트케이스, 제출 기록과 재채점 기록도 함께 삭제됩니다.`,
     );
     if (!confirmed) return;
 

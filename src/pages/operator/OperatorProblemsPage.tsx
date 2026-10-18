@@ -3,7 +3,6 @@ import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel
 import useConfirmation from '@/shared/ui/useConfirmation';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import VerificationCodeSection from '@/components/operator/VerificationCodeSection';
-import VerificationTaskPanel from '@/components/operator/VerificationTaskPanel';
 import useVerificationCodeRuns, {
   VERIFICATION_CODE_KINDS,
   verificationKindFromAsset,
@@ -702,7 +701,7 @@ function OperatorProblemsContent({
   const [problemSearch, setProblemSearch] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
   const [authoringTab, setAuthoringTab] = useState<
-    'settings' | 'statement' | 'editorial' | 'tests' | 'agent' | 'preview'
+    'settings' | 'statement' | 'editorial' | 'tests' | 'preview'
   >('settings');
   const [form, setForm] = useState(emptyProblemForm);
   const [selectedProblemId, setSelectedProblemId] = useState('');
@@ -1893,13 +1892,12 @@ function OperatorProblemsContent({
                     수정할 문제를 목록에서 가져와 주세요.
                   </p>
                 ) : null}
-                <div className="grid items-start gap-2 md:grid-cols-3 xl:grid-cols-6">
+                <div className="grid items-start gap-2 md:grid-cols-3 xl:grid-cols-5">
                   {[
                     ['settings', '기본 정보'],
                     ['statement', '문제/예제'],
                     ['editorial', '해설'],
                     ['tests', '테스트케이스'],
-                    ['agent', '검증 에이전트'],
                     ['preview', '전체 미리보기'],
                   ].map(([value, label]) => (
                     <button
@@ -2535,7 +2533,7 @@ function OperatorProblemsContent({
                         {formNotice}
                       </p>
                     ) : null}
-                    {authoringTab !== 'tests' && authoringTab !== 'agent' ? (
+                    {authoringTab !== 'tests' ? (
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white disabled:bg-slate-300"
@@ -2576,20 +2574,6 @@ function OperatorProblemsContent({
             )}
           </OperatorPanel>
 
-          {authoringTab === 'agent' ? (
-            effectiveSelectedProblemId ? (
-              <VerificationTaskPanel
-                key={effectiveSelectedProblemId}
-                contestId={contestId}
-                problemId={effectiveSelectedProblemId}
-                token={token}
-              />
-            ) : (
-              <p className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-600">
-                문제를 저장하거나 목록에서 선택한 뒤 검증을 맡길 수 있습니다.
-              </p>
-            )
-          ) : null}
           {authoringTab === 'tests' ? (
             <OperatorPanel
               description={

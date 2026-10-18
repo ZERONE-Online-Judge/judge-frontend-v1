@@ -135,7 +135,7 @@ export default function VerificationTestResults({
         테스트 번호를 누르면 채점 당시 입력·기대 출력·실제 출력과 시간·메모리를
         확인할 수 있습니다.
       </p>
-      <div className="grid max-h-[36rem] grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2 overflow-auto p-1">
+      <div className="grid max-h-[36rem] grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 overflow-auto p-1">
         {indices.map((index) => {
           const item = completed.get(index);
           const tone = !item
@@ -152,7 +152,7 @@ export default function VerificationTestResults({
               disabled={!item}
               onClick={() => setSelected(index)}
               aria-label={`테스트 #${index} ${item ? submissionStatusLabel(item.final_status) : '채점 대기'} 상세 보기`}
-              className={`grid min-h-24 content-center justify-items-center gap-1 rounded-lg border px-2 py-2.5 text-xs transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-default ${tone}`}
+              className={`grid min-h-20 content-center justify-items-center gap-1 rounded-lg border px-1.5 py-2 text-xs transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-default ${tone}`}
             >
               <span className="opacity-70">#{index}</span>
               <strong className="text-sm">

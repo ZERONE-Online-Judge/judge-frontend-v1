@@ -53,7 +53,10 @@ function effectiveTimeLimit(
 ): LimitValue {
   const override = problem.language_resource_limits?.[language]?.time_limit_ms;
   if (override) return { value: override, source: 'override' };
-  const adjustment = LANGUAGE_TIME_ADJUSTMENTS[language];
+  const adjustment = problem.language_resource_limits?.[language]
+    ?.disable_auto_adjustment
+    ? undefined
+    : LANGUAGE_TIME_ADJUSTMENTS[language];
   if (!adjustment) return { value: problem.time_limit_ms, source: 'base' };
   return {
     value: problem.time_limit_ms * adjustment.multiplier + adjustment.bonusMs,
@@ -68,7 +71,10 @@ function effectiveMemoryLimit(
   const override =
     problem.language_resource_limits?.[language]?.memory_limit_mb;
   if (override) return { value: override, source: 'override' };
-  const adjustment = LANGUAGE_MEMORY_ADJUSTMENTS[language];
+  const adjustment = problem.language_resource_limits?.[language]
+    ?.disable_auto_adjustment
+    ? undefined
+    : LANGUAGE_MEMORY_ADJUSTMENTS[language];
   if (!adjustment) return { value: problem.memory_limit_mb, source: 'base' };
   return {
     value: problem.memory_limit_mb * adjustment.multiplier + adjustment.bonusMb,

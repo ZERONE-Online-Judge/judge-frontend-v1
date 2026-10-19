@@ -16,6 +16,7 @@ export type Problem = {
     Record<
       string,
       {
+        disable_auto_adjustment?: boolean;
         time_limit_ms?: number | null;
         memory_limit_mb?: number | null;
       }

@@ -1,3 +1,4 @@
+import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import useConfirmation from '@/shared/ui/useConfirmation';
@@ -107,7 +108,14 @@ type ProblemForm = {
   examples: { input: string; note?: string; output: string }[];
   inputDescription: string;
   languageResourceLimits: Partial<
-    Record<JudgeLanguage, { memoryLimitMb: string; timeLimitMs: string }>
+    Record<
+      JudgeLanguage,
+      {
+        memoryLimitMb: string;
+        timeLimitMs: string;
+        disableAutoAdjustment?: boolean;
+      }
+    >
   >;
   memoryLimitMb: string;
   note: string;
@@ -262,6 +270,7 @@ function problemFormFromProblem(problem: Problem): ProblemForm {
         return [
           language,
           {
+            disableAutoAdjustment: Boolean(limit.disable_auto_adjustment),
             memoryLimitMb:
               limit.memory_limit_mb === undefined ||
               limit.memory_limit_mb === null
@@ -276,7 +285,11 @@ function problemFormFromProblem(problem: Problem): ProblemForm {
       })
       .filter(Boolean) as [
       JudgeLanguage,
-      { memoryLimitMb: string; timeLimitMs: string },
+      {
+        memoryLimitMb: string;
+        timeLimitMs: string;
+        disableAutoAdjustment?: boolean;
+      },
     ][],
   );
 
@@ -322,15 +335,23 @@ function languageResourceLimitsFromForm(form: ProblemForm) {
         if (!limit) return null;
         const timeLimitMs = limit.timeLimitMs.trim();
         const memoryLimitMb = limit.memoryLimitMb.trim();
-        const payload: { memory_limit_mb?: number; time_limit_ms?: number } =
-          {};
+        const payload: {
+          memory_limit_mb?: number;
+          time_limit_ms?: number;
+          disable_auto_adjustment?: boolean;
+        } = {};
+        if (limit.disableAutoAdjustment) payload.disable_auto_adjustment = true;
         if (timeLimitMs) payload.time_limit_ms = Number(timeLimitMs);
         if (memoryLimitMb) payload.memory_limit_mb = Number(memoryLimitMb);
         return Object.keys(payload).length ? [language, payload] : null;
       })
       .filter(Boolean) as [
       JudgeLanguage,
-      { memory_limit_mb?: number; time_limit_ms?: number },
+      {
+        memory_limit_mb?: number;
+        time_limit_ms?: number;
+        disable_auto_adjustment?: boolean;
+      },
     ][],
   );
 }
@@ -419,6 +440,7 @@ function normalizeProblemLimitForm(form: ProblemForm) {
     );
     languageMessages.push(languageTime.message, languageMemory.message);
     normalizedLanguageLimits[language] = {
+      ...limit,
       memoryLimitMb: languageMemory.value,
       timeLimitMs: languageTime.value,
     };
@@ -444,7 +466,9 @@ function automaticLanguageLimitText(
   const adjustment = AUTOMATIC_LANGUAGE_ADJUSTMENTS[language];
   if (!adjustment) return '';
   const limit = form.languageResourceLimits[language];
-  if (limit?.timeLimitMs.trim() || limit?.memoryLimitMb.trim()) return '';
+  if (limit?.disableAutoAdjustment)
+    return '자동 보정 꺼짐 · 비워 둔 항목은 문제 기본 제한을 사용합니다.';
+  if (limit?.timeLimitMs.trim() && limit?.memoryLimitMb.trim()) return '';
   const baseTimeMs = limitValueOrFallback(
     form.timeLimitMs,
     1000,
@@ -460,9 +484,13 @@ function automaticLanguageLimitText(
   const adjustedMemoryMb =
     baseMemoryMb * adjustment.memoryMultiplier + adjustment.memoryBonusMb;
   return [
-    '자동 보정 중',
-    `시간: 기본 ${baseTimeMs.toLocaleString('ko-KR')}ms x ${adjustment.timeMultiplier} + ${adjustment.timeBonusMs.toLocaleString('ko-KR')}ms = ${adjustedTimeMs.toLocaleString('ko-KR')}ms`,
-    `메모리: 기본 ${baseMemoryMb.toLocaleString('ko-KR')}MB x ${adjustment.memoryMultiplier} + ${adjustment.memoryBonusMb.toLocaleString('ko-KR')}MB = ${adjustedMemoryMb.toLocaleString('ko-KR')}MB`,
+    '빈 항목에 자동 보정 적용',
+    limit?.timeLimitMs.trim()
+      ? `시간: 직접 지정 ${limit.timeLimitMs}ms`
+      : `시간: 기본 ${baseTimeMs.toLocaleString('ko-KR')}ms × ${adjustment.timeMultiplier} + ${adjustment.timeBonusMs.toLocaleString('ko-KR')}ms = ${adjustedTimeMs.toLocaleString('ko-KR')}ms`,
+    limit?.memoryLimitMb.trim()
+      ? `메모리: 직접 지정 ${limit.memoryLimitMb}MB`
+      : `메모리: 기본 ${baseMemoryMb.toLocaleString('ko-KR')}MB × ${adjustment.memoryMultiplier} + ${adjustment.memoryBonusMb.toLocaleString('ko-KR')}MB = ${adjustedMemoryMb.toLocaleString('ko-KR')}MB`,
   ].join(' / ');
 }
 
@@ -2056,97 +2084,30 @@ function OperatorProblemsContent({
                             ))}
                           </div>
                         </fieldset>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-sm font-semibold text-slate-900">
-                                언어별 리소스 제한
-                              </h3>
-                              <p className="mt-1 text-xs font-medium text-slate-500">
-                                비워두면 기본 시간/메모리 제한을 그대로
-                                사용합니다.
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-4 grid gap-3">
-                            {judgeLanguages.map((language) => {
-                              const limit = form.languageResourceLimits[
-                                language
-                              ] ?? {
-                                memoryLimitMb: '',
-                                timeLimitMs: '',
-                              };
-                              const automaticLimitText =
-                                automaticLanguageLimitText(form, language);
-                              return (
-                                <div
-                                  className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)] md:items-end"
-                                  key={language}
-                                >
-                                  <div>
-                                    <p className="text-xs font-semibold tracking-normal text-slate-500 uppercase">
-                                      Language
-                                    </p>
-                                    <p className="mt-1 text-sm font-semibold text-slate-950">
-                                      {LANGUAGE_LABELS[language]}
-                                    </p>
-                                  </div>
-                                  <TextInput
-                                    label="시간(ms)"
-                                    onBlur={normalizeLimitsInForm}
-                                    onChange={(value) => {
-                                      setFormNotice('');
-                                      setForm((prev) => ({
-                                        ...prev,
-                                        languageResourceLimits: {
-                                          ...prev.languageResourceLimits,
-                                          [language]: {
-                                            memoryLimitMb:
-                                              prev.languageResourceLimits[
-                                                language
-                                              ]?.memoryLimitMb ?? '',
-                                            timeLimitMs: value,
-                                          },
-                                        },
-                                      }));
-                                    }}
-                                    placeholder={form.timeLimitMs}
-                                    inputMode="numeric"
-                                    value={limit.timeLimitMs}
-                                  />
-                                  <TextInput
-                                    label="메모리(MB)"
-                                    onBlur={normalizeLimitsInForm}
-                                    onChange={(value) => {
-                                      setFormNotice('');
-                                      setForm((prev) => ({
-                                        ...prev,
-                                        languageResourceLimits: {
-                                          ...prev.languageResourceLimits,
-                                          [language]: {
-                                            memoryLimitMb: value,
-                                            timeLimitMs:
-                                              prev.languageResourceLimits[
-                                                language
-                                              ]?.timeLimitMs ?? '',
-                                          },
-                                        },
-                                      }));
-                                    }}
-                                    placeholder={form.memoryLimitMb}
-                                    inputMode="numeric"
-                                    value={limit.memoryLimitMb}
-                                  />
-                                  {automaticLimitText ? (
-                                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed font-medium text-amber-800 md:col-span-3">
-                                      {automaticLimitText}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                        <LanguageResourceLimitsEditor
+                          rows={judgeLanguages.map((language) => ({
+                            language,
+                            label: LANGUAGE_LABELS[language],
+                            corrected: Boolean(
+                              AUTOMATIC_LANGUAGE_ADJUSTMENTS[language],
+                            ),
+                            hint: automaticLanguageLimitText(form, language),
+                          }))}
+                          values={form.languageResourceLimits}
+                          baseTime={form.timeLimitMs}
+                          baseMemory={form.memoryLimitMb}
+                          onNormalize={normalizeLimitsInForm}
+                          onChange={(language, value) => {
+                            setFormNotice('');
+                            setForm((prev) => ({
+                              ...prev,
+                              languageResourceLimits: {
+                                ...prev.languageResourceLimits,
+                                [language]: value,
+                              },
+                            }));
+                          }}
+                        />
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           정렬 순서
                           <select

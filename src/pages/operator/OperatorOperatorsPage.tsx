@@ -1,5 +1,6 @@
 import OperatorList from '@/components/operator/OperatorList';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
+import useConfirmation from '@/shared/ui/useConfirmation';
 import { type FormEvent, useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -19,6 +20,7 @@ import {
   listContestOperators,
   removeContestOperator,
   updateContestOperator,
+  replaceContestOperatorAccount,
   transferContestOwner,
 } from '@/domains/contestAdministration/api';
 import {
@@ -88,7 +90,7 @@ function OperatorOperatorsContent({
 }) {
   const token = session.accessToken;
   const navigate = useNavigate();
-  const clearSessions = useSessionStore((state) => state.clearSessions);
+  const { confirm, dialog } = useConfirmation();
   const canManageStaff = hasContestPermission(
     session,
     contestId,
@@ -116,7 +118,10 @@ function OperatorOperatorsContent({
   const saveOperatorMutation = useMutation({
     mutationFn: (form: OperatorForm) =>
       form.editingEmail
-        ? updateContestOperator(contestId, form.editingEmail, token, {
+        ? (form.editingEmail.trim().toLowerCase() !==
+            form.email.trim().toLowerCase()
+            ? replaceContestOperatorAccount
+            : updateContestOperator)(contestId, form.editingEmail, token, {
             display_name: form.displayName.trim(),
             email: form.email.trim(),
             // The API preserves an existing owner's role for a master update.
@@ -133,7 +138,7 @@ function OperatorOperatorsContent({
       const emailChanged = Boolean(
         previousEmail && previousEmail !== nextEmail,
       );
-      // Reset the saved form before leaving, including any unsaved-form guard.
+      // Account replacement changes this contest's assignment, not login identity.
       flushSync(() => setOperatorForm(emptyOperatorForm));
       setOperatorFormError('');
       setEditorOpen(false);
@@ -141,13 +146,28 @@ function OperatorOperatorsContent({
         emailChanged &&
         previousEmail === session.staff.email.trim().toLowerCase()
       ) {
-        await queryClient.cancelQueries();
-        queryClient.clear();
-        navigate('/login?reason=email_changed', {
-          replace: true,
-          state: { emailChangedTo: nextEmail },
-        });
-        clearSessions();
+        const current = useSessionStore.getState().generalSession;
+        if (current?.operatorSession?.accessToken === token) {
+          const staff = current.operatorSession.staff;
+          const scopes = { ...staff.contest_scopes };
+          const roles = { ...staff.contest_roles };
+          delete scopes[contestId];
+          delete roles[contestId];
+          useSessionStore.getState().setGeneralSession({
+            ...current,
+            operatorContests: current.operatorContests.filter(
+              (item) => item.contest.contest_id !== contestId,
+            ),
+            operatorSession: {
+              ...current.operatorSession,
+              defaultRedirect: '/contests',
+              staff: { ...staff, contest_scopes: scopes, contest_roles: roles },
+            },
+          });
+        }
+        await queryClient.cancelQueries({ queryKey: ['operator'] });
+        queryClient.removeQueries({ queryKey: ['operator'] });
+        navigate('/contests', { replace: true });
         return;
       }
       const current = useSessionStore.getState().generalSession;
@@ -169,7 +189,7 @@ function OperatorOperatorsContent({
       }
       setSavedMessage(
         emailChanged
-          ? `${nextEmail} 주소로 변경했습니다. 해당 계정은 새 이메일로 다시 로그인해야 합니다.`
+          ? `${nextEmail} 계정으로 이 대회의 운영자 권한을 옮겼습니다. 기존 계정의 로그인 정보와 작성 기록은 유지됩니다.`
           : '운영자 정보를 저장했습니다.',
       );
       void queryClient.invalidateQueries({
@@ -245,7 +265,7 @@ function OperatorOperatorsContent({
     },
   });
 
-  function handleOperatorSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleOperatorSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveOperatorMutation.isPending || transferMutation.isPending) return;
     if (!canManageStaff) return;
@@ -259,6 +279,21 @@ function OperatorOperatorsContent({
     }
     setOperatorFormError('');
     setSavedMessage('');
+    if (
+      operatorForm.editingEmail &&
+      operatorForm.editingEmail.trim().toLowerCase() !==
+        operatorForm.email.trim().toLowerCase()
+    ) {
+      const accepted = await confirm(
+        `${operatorForm.editingEmail} 계정의 이 대회 운영자 권한을 ${operatorForm.email.trim()} 계정으로 옮깁니다. 다른 대회의 권한과 로그인 정보, 기존 작성 기록은 옮기지 않습니다. 이미 가입된 계정이면 기존 이름을 유지합니다.`,
+        {
+          title: '운영자 계정 변경',
+          confirmLabel: '권한 옮기기',
+          tone: 'primary',
+        },
+      );
+      if (!accepted) return;
+    }
     saveOperatorMutation.mutate(operatorForm);
   }
 
@@ -300,7 +335,7 @@ function OperatorOperatorsContent({
             operatorForm.displayName ||
             operatorForm.roles.length,
           )}
-          description="운영자의 이름, 이메일과 담당 권한을 지정하세요. 추가·수정·제거는 즉시 반영됩니다. 대회 총괄 권한은 별도의 위임으로만 변경할 수 있습니다."
+          description="운영자와 담당 권한을 관리합니다. 이메일을 바꾸면 이 대회의 운영자 권한을 다른 계정으로 옮깁니다. 대회 총괄은 별도의 위임 기능을 사용하세요."
           title={
             operatorForm.nameOnly
               ? '총괄 이름 수정'
@@ -320,7 +355,9 @@ function OperatorOperatorsContent({
                 helperText={
                   operatorForm.nameOnly
                     ? '총괄의 표시 이름을 수정합니다. 로그인 이메일은 유지됩니다.'
-                    : '이메일 변경은 이 계정이 속한 모든 대회에 적용되며, 변경 후 새 이메일로 다시 로그인해야 합니다.'
+                    : operatorForm.editingEmail
+                      ? '이미 가입된 이메일도 사용할 수 있습니다. 이 대회의 권한만 옮기며 양쪽 계정의 로그인 정보와 작성 기록은 유지합니다.'
+                      : '권한을 부여할 계정의 이메일을 입력하세요. 이미 가입된 계정도 추가할 수 있습니다.'
                 }
                 label="이메일 (필수)"
                 required
@@ -332,6 +369,13 @@ function OperatorOperatorsContent({
               />
               <TextInput
                 label="이름 (필수)"
+                helperText={
+                  operatorForm.editingEmail &&
+                  operatorForm.editingEmail.trim().toLowerCase() !==
+                    operatorForm.email.trim().toLowerCase()
+                    ? '이미 가입된 계정이면 해당 계정의 기존 이름을 사용합니다.'
+                    : undefined
+                }
                 required
                 disabled={
                   saveOperatorMutation.isPending || transferMutation.isPending
@@ -465,6 +509,7 @@ function OperatorOperatorsContent({
           operators={operators}
         />
       </OperatorPanel>
+      {dialog}
     </PageLayout>
   );
 }

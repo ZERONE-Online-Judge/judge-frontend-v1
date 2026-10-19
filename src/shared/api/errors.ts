@@ -132,6 +132,17 @@ function apiErrorUserMessage(error: ApiClientError) {
     return '이미 등록된 이메일입니다. 다른 이메일을 입력해 주세요.';
   }
 
+  if (
+    [
+      'operator_account_already_assigned',
+      'operator_account_participant',
+      'operator_account_unchanged',
+      'operator_account_changed',
+    ].includes(error.code)
+  ) {
+    return error.message;
+  }
+
   if (error.code === 'email_change_scope_denied') {
     return '이메일을 변경하려면 해당 계정이 속한 모든 대회에서 운영자 관리 권한이 필요합니다.';
   }

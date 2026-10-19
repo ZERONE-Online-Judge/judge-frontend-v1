@@ -159,6 +159,19 @@ export function updateContestOperator(
   );
 }
 
+export function replaceContestOperatorAccount(
+  contestId: string,
+  operatorEmail: string,
+  token: string,
+  body: { display_name: string; email: string; roles: ContestRole[] },
+) {
+  return apiRequest<StaffAccount>(
+    `/operator/contests/${contestId}/operators/${encodeURIComponent(operatorEmail)}/account:replace`,
+    token,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+}
+
 export function removeContestOperator(
   contestId: string,
   operatorEmail: string,

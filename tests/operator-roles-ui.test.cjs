@@ -10,6 +10,12 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   pretendToBeVisual: true,
 });
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.open = true;
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.open = false;
+};
 global.window = dom.window;
 global.document = dom.window.document;
 global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -24,7 +30,7 @@ const {
 } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 const h = React.createElement;
-let session, operators, reads, creates, updates, removals;
+let session, operators, reads, creates, updates, removals, replacements;
 let updateError, sessionClears, currentLocation, apiCalls;
 let contestOverrides, settingsChanges, transfers, transferError;
 let divisionCreates;
@@ -101,6 +107,18 @@ const mocks = {
       operators = operators.map((operator) =>
         operator.email === email ? { ...operator, ...result } : operator,
       );
+      return result;
+    },
+    replaceContestOperatorAccount: async (contestId, email, token, body) => {
+      replacements.push({ contestId, email, token, body });
+      if (updateError) throw updateError;
+      const result = {
+        ...staff(body.email.trim().toLowerCase(), body.roles),
+        display_name: 'Existing account',
+      };
+      operators = operators
+        .filter((operator) => operator.email !== email)
+        .concat(result);
       return result;
     },
     transferContestOwner: async (contestId, token, email) => {
@@ -199,7 +217,7 @@ const ParticipantsPage = source(
 ).default;
 const LoginPage = source('pages/auth/LoginPage.tsx').default;
 const { ApiClientError } = source('shared/api/errors.ts');
-const { updateContestOperator } = source(
+const { updateContestOperator, replaceContestOperatorAccount } = source(
   'domains/contestAdministration/api.ts',
 );
 let root, container, client;
@@ -246,6 +264,7 @@ beforeEach(() => {
   creates = [];
   updates = [];
   removals = [];
+  replacements = [];
   updateError = null;
   sessionClears = 0;
   apiCalls = [];
@@ -596,7 +615,7 @@ test('staff manager sees staff controls only and cannot assign or edit masters',
   );
 });
 
-test('editing submits old email in the route and new email, name and roles in the body while assigned masters allow only name editing', async () => {
+test('changing an operator email confirms a scoped account replacement', async () => {
   await render();
   assert.ok(button('이름 수정', operatorCard('assigned@example.test')));
   assert.equal(
@@ -614,7 +633,13 @@ test('editing submits old email in the route and new email, name and roles in th
   await input(inputByLabel('이름 (필수)'), '  출제 검수자  ');
   await click(role('출제진'));
   await click(button('변경사항 저장'));
-  assert.deepEqual(updates, [
+  assert.deepEqual(replacements, []);
+  assert.match(
+    document.body.textContent,
+    /다른 대회의 권한과 로그인 정보, 기존 작성 기록은 옮기지 않습니다/,
+  );
+  await click(button('권한 옮기기', document.body));
+  assert.deepEqual(replacements, [
     {
       contestId: 'contest',
       email: 'reviewer@example.test',
@@ -627,9 +652,17 @@ test('editing submits old email in the route and new email, name and roles in th
     },
   ]);
   assert.deepEqual(removals, []);
+  assert.deepEqual(updates, []);
   assert.equal(sessionClears, 0);
   assert.ok(operatorCard('new-reviewer@example.test'));
-  assert.match(container.textContent, /새 이메일로 다시 로그인해야 합니다/);
+  assert.match(
+    container.textContent,
+    /기존 계정의 로그인 정보와 작성 기록은 유지됩니다/,
+  );
+  assert.match(
+    operatorCard('new-reviewer@example.test').textContent,
+    /Existing account/,
+  );
 });
 
 test('operator update API encodes the old address and sends the new address in the PATCH body', async () => {
@@ -653,7 +686,41 @@ test('operator update API encodes the old address and sends the new address in t
   ]);
 });
 
-test('successful self email change clears sessions and cached data and opens login with the new address and success notice', async () => {
+test('operator replacement API scopes the account change to the contest', async () => {
+  const body = {
+    email: 'existing@example.test',
+    display_name: 'Existing',
+    roles: ['problem_reviewer'],
+  };
+  await replaceContestOperatorAccount(
+    'contest',
+    'old+review@example.test',
+    'token',
+    body,
+  );
+  assert.deepEqual(apiCalls, [
+    {
+      url: '/operator/contests/contest/operators/old%2Breview%40example.test/account:replace',
+      token: 'token',
+      init: { method: 'POST', body: JSON.stringify(body) },
+    },
+  ]);
+});
+
+test('canceling account replacement leaves the assignment and input intact', async () => {
+  await render();
+  await click(
+    button('이름·이메일·권한 수정', operatorCard('reviewer@example.test')),
+  );
+  await input(inputByLabel('이메일 (필수)'), 'existing@example.test');
+  await click(button('변경사항 저장'));
+  await click(button('취소', document.body));
+  assert.deepEqual(replacements, []);
+  assert.ok(operatorCard('reviewer@example.test'));
+  assert.equal(inputByLabel('이메일 (필수)').value, 'existing@example.test');
+});
+
+test('self replacement keeps login and private data while dropping only this contest access', async () => {
   operators = [staff('actor@example.test', ['master'])];
   await render();
   client.setQueryData(['private-old-account'], 'old account data');
@@ -662,18 +729,15 @@ test('successful self email change clears sessions and cached data and opens log
   );
   await input(inputByLabel('이메일 (필수)'), 'new-actor@example.test');
   await click(button('변경사항 저장'));
-  assert.equal(sessionClears, 1);
-  assert.equal(client.getQueryData(['private-old-account']), undefined);
-  assert.equal(currentLocation.pathname, '/login');
-  assert.equal(currentLocation.search, '?reason=email_changed');
+  await click(button('권한 옮기기', document.body));
+  assert.equal(sessionClears, 0);
   assert.equal(
-    container.querySelector('input[type="email"]').value,
-    'new-actor@example.test',
+    client.getQueryData(['private-old-account']),
+    'old account data',
   );
-  assert.match(
-    container.textContent,
-    /이메일을 변경했습니다. 새 이메일로 다시 로그인해 주세요/,
-  );
+  assert.equal(currentLocation.pathname, '/contests');
+  assert.equal(session.account.email, 'actor@example.test');
+  assert.equal(session.operatorSession.staff.contest_scopes.contest, undefined);
 });
 
 test('same normalized self email keeps the session while updating the name', async () => {
@@ -693,19 +757,19 @@ test('same normalized self email keeps the session while updating the name', asy
 });
 
 for (const [status, code, message] of [
-  [409, 'email_already_in_use', '이미 등록된 이메일'],
-  [403, 'email_change_scope_denied', '모든 대회에서 운영자 관리 권한'],
-  [409, 'assigned_master_email_immutable', '서비스 관리자만 변경'],
-  [409, 'email_change_participant_identity', '참가자 계정에도 연결된 이메일'],
+  [409, 'operator_account_already_assigned', '이미 이 대회의 운영자입니다'],
+  [422, 'operator_account_participant', '같은 대회에 참가 중인 계정'],
+  [409, 'operator_account_changed', '상태가 변경되었습니다'],
 ]) {
   test(`failed email edit (${code}) preserves the form and current session`, async () => {
-    updateError = new ApiClientError(status, code, 'server error');
+    updateError = new ApiClientError(status, code, message);
     await render();
     await click(
       button('이름·이메일·권한 수정', operatorCard('reviewer@example.test')),
     );
     await input(inputByLabel('이메일 (필수)'), 'blocked@example.test');
     await click(button('변경사항 저장'));
+    await click(button('권한 옮기기', document.body));
     assert.equal(sessionClears, 0);
     assert.equal(inputByLabel('이메일 (필수)').value, 'blocked@example.test');
     assert.equal(inputByLabel('이름 (필수)').value, 'reviewer');

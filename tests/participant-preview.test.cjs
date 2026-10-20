@@ -125,14 +125,32 @@ async function apiRequest(url, token, init) {
   if (url.endsWith('/problems/problem')) return problem;
   if (url.endsWith('/problems'))
     return [{ ...problem, division_id: serverDivision || 'a' }];
-  if (url.endsWith('/boards') && init?.method === 'POST')
-    return {
+  if (url.endsWith('/boards') && init?.method === 'POST') {
+    const question = {
       contest_question_id: 'preview-question',
-      title: JSON.parse(init.body).title,
-      body: JSON.parse(init.body).body,
+      ...JSON.parse(init.body),
+      author_name: '점검자',
+      author_email: 'preview@example.test',
       answers: [],
       created_at: new Date().toISOString(),
     };
+    questions.unshift(question);
+    return question;
+  }
+  if (url.endsWith('/answers') && init?.method === 'POST') {
+    const answer = {
+      contest_answer_id: 'reply',
+      ...JSON.parse(init.body),
+      created_by_role: 'participant',
+      created_by_name: '점검자',
+      created_at: new Date().toISOString(),
+    };
+    const questionId = url.split('/boards/')[1].split('/')[0];
+    questions
+      .find((question) => question.contest_question_id === questionId)
+      .answers.push(answer);
+    return answer;
+  }
   if (url.startsWith('/notifications'))
     return {
       items: notificationItems,
@@ -140,8 +158,8 @@ async function apiRequest(url, token, init) {
       unread_count: notificationItems.filter((item) => !item.read_at).length,
       total_count: notificationItems.length,
     };
-  if (url.endsWith('/notices')) return notices;
-  if (url.endsWith('/boards')) return questions;
+  if (url.endsWith('/notices')) return structuredClone(notices);
+  if (url.endsWith('/boards')) return structuredClone(questions);
   if (url.startsWith('/contests/contest/submissions')) return [];
   throw new Error(`Unexpected API ${url}`);
 }
@@ -603,4 +621,155 @@ test('ordinary participants retain the pre-start navigation and problem lock', a
   );
   assert.equal(button('문제집').disabled, true);
   assert.equal(container.textContent.includes('참가자 미리보기'), false);
+});
+
+test('question form keeps drafts on cancel, validates content and posts private questions', async () => {
+  state.participantSession = previewSession();
+  serverDivision = 'a';
+  await render('/contests/contest/board?preview=1');
+  await click(button('질문하기'));
+  assert.equal(
+    document.activeElement,
+    container.querySelector('input[placeholder="제목을 입력하세요."]'),
+  );
+  await click(button('등록'));
+  assert.match(
+    container.querySelector('[role="alert"]').textContent,
+    /질문 제목을 입력/,
+  );
+  await input(
+    container.querySelector('input[placeholder="제목을 입력하세요."]'),
+    '비공개 질문',
+  );
+  await input(
+    container.querySelector('textarea[placeholder="질문 내용을 입력하세요."]'),
+    '내용을 확인해 주세요.',
+  );
+  await click(container.querySelector('input[value="private"]'));
+  await click(button('취소'));
+  await click(button('질문하기'));
+  assert.equal(container.querySelector('input[value="private"]').checked, true);
+  assert.equal(
+    container.querySelector('textarea').value,
+    '내용을 확인해 주세요.',
+  );
+  await click(button('등록'));
+  assert.ok(
+    calls.some(
+      (call) =>
+        call.url.endsWith('/boards') &&
+        call.body?.visibility === 'private' &&
+        call.body?.title === '비공개 질문',
+    ),
+  );
+  assert.equal(container.querySelector('form[aria-label="질문 작성"]'), null);
+  assert.equal(
+    container
+      .querySelector('.contest-board-row[aria-expanded="true"]')
+      ?.textContent.includes('비공개 질문'),
+    true,
+  );
+});
+
+test('board distinguishes operator answers from follow-ups and preserves inline replies', async () => {
+  state.participantSession = previewSession();
+  serverDivision = 'a';
+  questions = [
+    {
+      contest_question_id: 'q1',
+      title: '공개 질문',
+      body: '질문 본문',
+      visibility: 'public',
+      created_at: '2026-10-20T01:00:00Z',
+      answers: [
+        {
+          contest_answer_id: 'a1',
+          body: '추가 설명',
+          created_by_role: 'participant',
+          created_at: '2026-10-20T01:01:00Z',
+        },
+      ],
+    },
+  ];
+  await render('/contests/contest/board?questionId=q1&preview=1');
+  assert.match(
+    container.querySelector('.contest-board-row').textContent,
+    /답변 대기/,
+  );
+  assert.match(container.textContent, /질문 본문/);
+  await input(
+    container.querySelector('textarea[placeholder="댓글을 입력하세요."]'),
+    '추가 문의입니다.',
+  );
+  await click(button('댓글 등록'));
+  assert.ok(
+    calls.some(
+      (call) =>
+        call.url.endsWith('/boards/q1/answers') &&
+        call.body.body === '추가 문의입니다.',
+    ),
+  );
+  assert.match(container.textContent, /추가 문의입니다./);
+  assert.match(
+    container.querySelector('.contest-board-row').textContent,
+    /답변 대기/,
+  );
+  questions[0].answers.push({
+    contest_answer_id: 'operator-answer',
+    body: '운영진 답변',
+    created_by_name: '운영자',
+    created_by_role: 'operator',
+    created_at: '2026-10-20T01:03:00Z',
+  });
+  await act(async () =>
+    client.invalidateQueries({ queryKey: ['contest-questions', 'contest'] }),
+  );
+  await flush();
+  assert.match(
+    container.querySelector('.contest-board-row').textContent,
+    /답변 완료/,
+  );
+  assert.match(
+    container.querySelector('[data-operator="true"]').textContent,
+    /운영진 답변/,
+  );
+});
+
+test('notice deep links select announcements and closing or paging stays in announcements', async () => {
+  state.participantSession = previewSession();
+  serverDivision = 'a';
+  notices = Array.from({ length: 6 }, (_, i) => ({
+    contest_notice_id: `n${i}`,
+    title: `공지 ${i}`,
+    body: `공지 내용 ${i}`,
+    pinned: false,
+    emergency: false,
+    published_at: `2026-10-20T01:0${i}:00Z`,
+  }));
+  await render('/contests/contest/board?noticeId=n0&preview=1');
+  assert.match(
+    container.querySelector('.contest-notice-body').textContent,
+    /공지 내용 0/,
+  );
+  assert.equal(
+    container.querySelector('.contest-board-pagination [aria-current="page"]')
+      .textContent,
+    '2',
+  );
+  await click(
+    container.querySelector('.contest-board-row[aria-expanded="true"]'),
+  );
+  assert.equal(container.querySelector('.contest-notice-body'), null);
+  assert.equal(
+    container
+      .querySelector('.contest-board-switch [aria-pressed="true"]')
+      .textContent.includes('공지사항'),
+    true,
+  );
+  await click(button('1'));
+  assert.equal(
+    container.querySelector('.contest-board-pagination [aria-current="page"]')
+      .textContent,
+    '1',
+  );
 });

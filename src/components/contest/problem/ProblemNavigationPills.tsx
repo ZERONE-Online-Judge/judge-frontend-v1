@@ -23,7 +23,7 @@ export default function ProblemNavigationPills({
   return (
     <nav
       aria-label={sharedUiText.problemDetailMenuAriaLabel}
-      className="min-w-0 overflow-x-auto pb-1"
+      className="zoj-problem-view-tabs min-w-0 overflow-x-auto pb-1"
     >
       <ul className="flex min-w-max items-center gap-2 sm:gap-3">
         {problemDetailNavText

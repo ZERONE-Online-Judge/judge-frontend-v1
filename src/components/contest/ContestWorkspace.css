@@ -1,9 +1,19 @@
-/* Participant workspace: the same restrained surfaces and typography as management. */
+/* Participant workspace: neutral surfaces, compact navigation and clear content hierarchy. */
 main:has(.zoj-contest-shell) {
-  background: #f7f8fb;
+  background: #f8fafc;
 }
 .zoj-participant {
-  color: #172033;
+  --zoj-surface: #ffffff;
+  --zoj-surface-raised: #f8fafc;
+  --zoj-surface-hover: #f1f5f9;
+  --zoj-border: #e2e8f0;
+  --zoj-border-selected: #c7d2fe;
+  --zoj-ink: #182230;
+  --zoj-muted: #64748b;
+  --zoj-radius-card: 0.75rem;
+  --zoj-radius-inset: 0.5rem;
+  --zoj-radius-control: 0.5rem;
+  color: var(--zoj-ink);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -21,7 +31,21 @@ main:has(.zoj-contest-shell) {
   font-weight: 500;
 }
 .zoj-participant > header {
-  gap: 0.5rem;
+  gap: 0.4rem;
+}
+.zoj-participant > header h1 {
+  font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -0.035em;
+}
+.zoj-participant > header > span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--zoj-muted);
+}
+.zoj-participant > header p {
+  font-size: 0.8125rem;
 }
 .zoj-participant > .mt-9 {
   margin-top: 1.5rem;
@@ -60,8 +84,101 @@ main:has(.zoj-contest-shell) {
   background: #fafbff;
 }
 .zoj-contest-tabs {
-  scrollbar-width: thin;
-  scroll-padding-inline: 0.5rem;
+  margin-top: 1.5rem;
+  border-bottom: 1px solid var(--zoj-border);
+}
+.zoj-contest-tabs ul {
+  display: flex;
+  gap: 1.25rem;
+}
+.zoj-contest-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.875rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--zoj-muted);
+  transition:
+    color 150ms,
+    border-color 150ms;
+}
+.zoj-contest-tab:hover {
+  color: var(--zoj-ink);
+}
+.zoj-contest-tab[aria-current='page'] {
+  color: var(--zoj-accent);
+  border-bottom-color: var(--zoj-accent);
+  font-weight: 650;
+}
+.zoj-contest-tab:disabled {
+  color: #a3adbd;
+  cursor: not-allowed;
+}
+.zoj-contest-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--zoj-muted);
+}
+.zoj-participant
+  :is(
+    .zoj-problems-surface,
+    .zoj-submissions-surface,
+    .zoj-problem-workspace,
+    .zoj-problem-document
+  ) {
+  background: #fff;
+}
+.zoj-participant .zoj-problem-view-tabs a {
+  min-height: 2.375rem;
+  height: auto;
+  border-radius: var(--zoj-radius-control);
+  font-size: 0.8125rem;
+}
+.zoj-participant .zoj-contest-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.zoj-participant .zoj-contest-filter > span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--zoj-muted);
+}
+.zoj-participant .zoj-contest-filter select {
+  max-width: 21rem;
+  background: #fff;
+}
+.zoj-participant .contest-progress-status__summary h2 {
+  font-size: 1.5rem;
+}
+.zoj-participant .contest-progress-status__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  animation: none;
+  box-shadow: none;
+}
+.zoj-participant .contest-progress-status__summary > p {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+.zoj-participant .zoj-overview-card > span {
+  width: 2.25rem;
+  height: 2.25rem;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 0.5rem;
+}
+.zoj-participant .zoj-overview-card svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 .zoj-overview-card > div {
   min-width: 0;
@@ -83,7 +200,7 @@ main:has(.zoj-contest-shell) {
 .zoj-problem-workspace {
   display: grid;
   min-width: 0;
-  background: var(--zoj-surface-raised);
+  background: var(--zoj-surface);
   border: 1px solid var(--zoj-border);
   border-radius: var(--zoj-radius-card);
   overflow: clip;
@@ -222,7 +339,7 @@ main:has(.zoj-contest-shell) {
     grid-template-columns: 12rem minmax(0, 1fr);
     border: 1px solid var(--zoj-border);
     border-radius: var(--zoj-radius-card);
-    background: var(--zoj-surface-raised);
+    background: var(--zoj-surface);
   }
   .zoj-problem-workspace.is-combined {
     grid-template-columns: 12rem minmax(0, 1.35fr) minmax(24rem, 1fr);
@@ -256,7 +373,7 @@ main:has(.zoj-contest-shell) {
   overflow-x: auto;
   border: 1px solid var(--zoj-border);
   border-radius: var(--zoj-radius-card);
-  background: var(--zoj-surface-raised);
+  background: var(--zoj-surface);
   scrollbar-width: thin;
 }
 .zoj-participant .zoj-problems-table {
@@ -333,50 +450,6 @@ main:has(.zoj-contest-shell) {
   overflow-wrap: anywhere;
 }
 
-.zoj-contest-board > section {
-  padding: var(--zoj-card-padding);
-  border: 1px solid var(--zoj-border);
-  background: var(--zoj-surface);
-  border-radius: var(--zoj-radius-card);
-}
-.zoj-contest-board :is(h2, h3) {
-  font-size: var(--zoj-card-title);
-  color: var(--zoj-ink);
-  font-weight: 600;
-  line-height: 1.5;
-}
-.zoj-contest-board :is(p, strong, span, time) {
-  overflow-wrap: anywhere;
-}
-.zoj-contest-board ul > li > button {
-  gap: 1rem;
-  padding: 1rem 0.5rem;
-}
-.zoj-contest-board ul > li > button > strong {
-  white-space: normal;
-  font-size: 0.875rem;
-}
-.zoj-contest-board ul > li > button > span:last-child {
-  max-width: 22rem;
-  min-width: 0;
-}
-.zoj-contest-board ul > li > button > span:last-child :is(span, strong) {
-  white-space: normal;
-  font-size: 0.8125rem;
-}
-.zoj-contest-board time {
-  font-size: 0.75rem;
-}
-.zoj-contest-board ul > li > article {
-  padding: 0 0 1rem;
-}
-.zoj-contest-board form {
-  gap: 1rem;
-}
-.zoj-contest-board .zoj-row-motion > *:hover {
-  transform: none;
-}
-
 @media (max-width: 1099px) {
   .zoj-participant .zoj-problems-table th {
     width: auto;
@@ -421,38 +494,12 @@ main:has(.zoj-contest-shell) {
   .zoj-participant .zoj-scoreboard-table td {
     font-size: 0.8125rem;
   }
-  .zoj-contest-board > section {
-    padding: var(--zoj-card-padding);
-    border: 1px solid var(--zoj-border);
-    border-radius: var(--zoj-radius-card);
-    background: var(--zoj-surface);
-  }
-  .zoj-contest-board ul > li > button {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-    padding: 1rem 0;
-  }
-  .zoj-contest-board ul > li > button > :is(span, time) {
-    justify-self: start;
-    max-width: 100%;
-    text-align: left;
-    align-items: start;
-  }
-  .zoj-contest-board form {
-    padding: 1rem;
-  }
-  .zoj-contest-board article :is(.pl-4, .pl-8) {
-    padding-left: 0;
-  }
-  .zoj-contest-board article .px-5 {
-    padding-inline: 0.875rem;
-  }
   .zoj-participant .zoj-problems-surface,
   .zoj-participant .zoj-submissions-surface {
     overflow: visible;
-    background: var(--zoj-surface-raised);
-    border: 1px solid var(--zoj-border);
-    border-radius: var(--zoj-radius-card);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
   }
   .zoj-participant :is(.zoj-problems-table, .zoj-submissions-table) {
     display: block;
@@ -576,14 +623,33 @@ main:has(.zoj-contest-shell) {
 .zoj-participant .zoj-problem-submit {
   background: var(--zoj-surface);
 }
-.zoj-contest-board ul > li {
-  border-color: var(--zoj-border);
-  border-radius: var(--zoj-radius-inset);
-  background: var(--zoj-surface-raised);
-}
 .zoj-overview-card h2,
 .zoj-overview-notices :is(h2, h3) {
   font-size: var(--zoj-card-title);
   font-weight: 600;
   line-height: 1.5;
+}
+
+.zoj-problem-view-toolbar {
+  margin-block: 1.25rem;
+}
+.zoj-participant .zoj-problem-submit > button {
+  border-radius: var(--zoj-radius-control);
+  font-weight: 600;
+}
+.zoj-participant .zoj-problem-submit > button:not(:disabled) {
+  background: var(--zoj-accent);
+}
+.zoj-participant .zoj-problem-submit > button:not(:disabled):hover {
+  background: var(--zoj-accent-hover);
+}
+
+.zoj-participant :is(.zoj-problems-table, .zoj-submissions-table) tbody tr {
+  background: #fff;
+}
+.zoj-participant
+  :is(.zoj-problems-table, .zoj-submissions-table)
+  tbody
+  tr:hover {
+  background: #fafbfe;
 }

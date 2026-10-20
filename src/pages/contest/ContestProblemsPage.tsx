@@ -168,8 +168,8 @@ function ContestProblemsContent({
   return (
     <ContestPageFrame>
       <PageHeading
+        eyebrow={contest.title}
         className="gap-4"
-        description="문제별 제한, 제출 여부, 최근 결과를 빠르게 확인합니다."
         title="문제집"
         variant="contest"
       />
@@ -275,7 +275,7 @@ function ContestProblemsContent({
         {canViewProblems &&
         !problemsQuery.isLoading &&
         problems.length === 0 ? (
-          <PageNotice message="표시할 문제가 없습니다." status="idle" />
+          <p className="zoj-contest-empty">표시할 문제가 없습니다.</p>
         ) : null}
       </div>
     </ContestPageFrame>
@@ -306,7 +306,7 @@ function DivisionSelect({
   value: string;
 }) {
   return (
-    <section className="mt-5 grid gap-2">
+    <section className="zoj-contest-filter mt-5 grid gap-2">
       <span className="text-sm font-black text-slate-700">유형 선택</span>
       <div className="flex flex-wrap gap-2">
         {divisions.map((division) => (

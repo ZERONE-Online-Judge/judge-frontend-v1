@@ -1,5 +1,7 @@
+import './ContestBoardPage.css';
 import NoticeCountdownText from '@/components/contest/NoticeCountdownText';
-import { ChoiceCard, SettingsCard } from '@/components/common/ManagementCards';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
+import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
 import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -127,6 +129,15 @@ function ContestBoardContent({
     !isEnded || canViewContestResource(contest, hasSessionAccess, noticeAccess);
   const canViewQuestions =
     !isEnded || canViewContestResource(contest, hasSessionAccess, boardAccess);
+  const activeBoardTab = requestedNoticeId
+    ? 'notices'
+    : requestedQuestionId
+      ? 'questions'
+      : searchParams.get('tab') === 'notices'
+        ? 'notices'
+        : canViewQuestions
+          ? 'questions'
+          : 'notices';
   const [expandedNoticeId, setExpandedNoticeId] = useState(requestedNoticeId);
   const [noticePage, setNoticePage] = useState(1);
   const [expandedQuestionId, setExpandedQuestionId] =
@@ -239,6 +250,7 @@ function ContestBoardContent({
       setFormError('');
       setIsWritingQuestion(false);
       setExpandedQuestionId(question.contest_question_id);
+      setSearchParams({ questionId: question.contest_question_id });
       void queryClient.invalidateQueries({
         queryKey: ['contest-questions', contestId],
       });
@@ -312,118 +324,142 @@ function ContestBoardContent({
   }
 
   function toggleNotice(noticeId: string) {
-    const nextNoticeId = expandedNoticeId === noticeId ? '' : noticeId;
+    const nextNoticeId = activeNoticeId === noticeId ? '' : noticeId;
     setExpandedNoticeId(nextNoticeId);
-    setSearchParams(nextNoticeId ? { noticeId: nextNoticeId } : {});
+    setSearchParams(
+      nextNoticeId ? { noticeId: nextNoticeId } : { tab: 'notices' },
+    );
   }
 
   function changeNoticePage(page: number) {
     setNoticePage(page);
     setExpandedNoticeId('');
-    setSearchParams({});
+    setSearchParams({ tab: 'notices' });
   }
 
   return (
     <ContestPageFrame>
       <PageHeading
         className="gap-4"
-        description={contestBoardText.pageDescription}
+        eyebrow={contest.title}
         title={contestBoardText.pageTitle}
         variant="contest"
       />
 
       <ContestPageNavigation contest={contest} contestId={contestId} />
 
-      <div className="zoj-contest-board mt-6 grid min-w-0 gap-5">
-        <section>
-          {canViewNotices ? (
-            <NoticePanel
-              contest={contest}
-              currentPage={currentNoticePage}
-              expandedNoticeId={activeNoticeId}
-              isError={noticesQuery.isError}
-              isLoading={noticesQuery.isPending}
-              notices={pagedNotices}
-              onChangePage={changeNoticePage}
-              onToggle={toggleNotice}
-              showPagination={notices.length > NOTICE_PAGE_SIZE}
-              totalPages={totalNoticePages}
-            />
-          ) : (
-            <PageNotice
-              message={contestResourceAccessMessage(
-                contest,
-                'notice',
-                hasSessionAccess,
-              )}
-              status="idle"
-            />
-          )}
-        </section>
+      <div className="zoj-contest-board">
+        <nav className="contest-board-switch" aria-label="게시판 보기">
+          <button
+            type="button"
+            aria-pressed={activeBoardTab === 'questions'}
+            disabled={!canViewQuestions}
+            onClick={() => setSearchParams({})}
+          >
+            질문과 답변 <span>{questions.length}</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeBoardTab === 'notices'}
+            disabled={!canViewNotices}
+            onClick={() => setSearchParams({ tab: 'notices' })}
+          >
+            공지사항 <span>{notices.length}</span>
+          </button>
+        </nav>
+        {activeBoardTab === 'notices' ? (
+          <section className="contest-board-panel">
+            {canViewNotices ? (
+              <NoticePanel
+                contest={contest}
+                currentPage={currentNoticePage}
+                expandedNoticeId={activeNoticeId}
+                isError={noticesQuery.isError}
+                isLoading={noticesQuery.isPending}
+                notices={pagedNotices}
+                onChangePage={changeNoticePage}
+                onToggle={toggleNotice}
+                showPagination={notices.length > NOTICE_PAGE_SIZE}
+                totalPages={totalNoticePages}
+              />
+            ) : (
+              <PageNotice
+                message={contestResourceAccessMessage(
+                  contest,
+                  'notice',
+                  hasSessionAccess,
+                )}
+                status="idle"
+              />
+            )}
+          </section>
+        ) : null}
 
-        <section>
-          {canViewQuestions ? (
-            <QuestionPanel
-              form={questionForm}
-              formError={formError}
-              isError={questionsQuery.isError}
-              isLoading={questionsQuery.isLoading}
-              isSubmitting={createQuestionMutation.isPending}
-              isSubmittingAnswer={createAnswerMutation.isPending}
-              submittingAnswerQuestionId={
-                createAnswerMutation.variables?.questionId ?? ''
-              }
-              isWriting={isWritingQuestion}
-              mutationError={createQuestionMutation.error}
-              answerMutationError={createAnswerMutation.error}
-              answerMutationQuestionId={
-                createAnswerMutation.variables?.questionId ?? ''
-              }
-              answerDrafts={answerDrafts}
-              answerErrors={answerErrors}
-              onCancelWrite={() => {
-                setIsWritingQuestion(false);
-                setFormError('');
-              }}
-              onChangeAnswer={(questionId, body) => {
-                setAnswerDrafts((current) => ({
-                  ...current,
-                  [questionId]: body,
-                }));
-                setAnswerErrors((current) => ({
-                  ...current,
-                  [questionId]: '',
-                }));
-              }}
-              onChangeForm={setQuestionForm}
-              expandedQuestionId={activeQuestionId}
-              onToggleQuestion={(questionId) => {
-                setExpandedQuestionId((current) =>
-                  current === questionId ? '' : questionId,
-                );
-                setSearchParams(
-                  activeQuestionId === questionId ? {} : { questionId },
-                );
-              }}
-              onStartWrite={() => {
-                setIsWritingQuestion(true);
-                setFormError('');
-              }}
-              onSubmit={submitQuestion}
-              onSubmitAnswer={submitAnswer}
-              questions={questions}
-            />
-          ) : (
-            <PageNotice
-              message={contestResourceAccessMessage(
-                contest,
-                'board',
-                hasSessionAccess,
-              )}
-              status="idle"
-            />
-          )}
-        </section>
+        {activeBoardTab === 'questions' ? (
+          <section className="contest-board-panel">
+            {canViewQuestions ? (
+              <QuestionPanel
+                form={questionForm}
+                formError={formError}
+                isError={questionsQuery.isError}
+                isLoading={questionsQuery.isLoading}
+                isSubmitting={createQuestionMutation.isPending}
+                isSubmittingAnswer={createAnswerMutation.isPending}
+                submittingAnswerQuestionId={
+                  createAnswerMutation.variables?.questionId ?? ''
+                }
+                isWriting={isWritingQuestion}
+                mutationError={createQuestionMutation.error}
+                answerMutationError={createAnswerMutation.error}
+                answerMutationQuestionId={
+                  createAnswerMutation.variables?.questionId ?? ''
+                }
+                answerDrafts={answerDrafts}
+                answerErrors={answerErrors}
+                onCancelWrite={() => {
+                  setIsWritingQuestion(false);
+                  setFormError('');
+                }}
+                onChangeAnswer={(questionId, body) => {
+                  setAnswerDrafts((current) => ({
+                    ...current,
+                    [questionId]: body,
+                  }));
+                  setAnswerErrors((current) => ({
+                    ...current,
+                    [questionId]: '',
+                  }));
+                }}
+                onChangeForm={setQuestionForm}
+                expandedQuestionId={activeQuestionId}
+                onToggleQuestion={(questionId) => {
+                  setExpandedQuestionId(
+                    activeQuestionId === questionId ? '' : questionId,
+                  );
+                  setSearchParams(
+                    activeQuestionId === questionId ? {} : { questionId },
+                  );
+                }}
+                onStartWrite={() => {
+                  setIsWritingQuestion(true);
+                  setFormError('');
+                }}
+                onSubmit={submitQuestion}
+                onSubmitAnswer={submitAnswer}
+                questions={questions}
+              />
+            ) : (
+              <PageNotice
+                message={contestResourceAccessMessage(
+                  contest,
+                  'board',
+                  hasSessionAccess,
+                )}
+                status="idle"
+              />
+            )}
+          </section>
+        ) : null}
       </div>
     </ContestPageFrame>
   );
@@ -453,60 +489,69 @@ function NoticePanel({
   totalPages: number;
 }) {
   return (
-    <section className="grid gap-6">
-      <h2 className="text-2xl font-black text-slate-950">
-        {contestBoardText.noticePanelTitle}
-      </h2>
-
+    <section className="contest-board-content">
+      <header className="contest-board-heading">
+        <h2>공지사항</h2>
+      </header>
       {isLoading ? (
         <PageNotice message={contestBoardText.noticeLoading} status="loading" />
       ) : null}
       {isError ? (
         <PageNotice message={contestBoardText.noticeLoadError} status="error" />
       ) : null}
-
-      <ul className="divide-y divide-slate-200 border-y border-slate-200">
+      <ul className="contest-board-list">
         {notices.map((notice) => {
-          const isExpanded = expandedNoticeId === notice.contest_notice_id;
-
+          const expanded = expandedNoticeId === notice.contest_notice_id;
           return (
             <li key={notice.contest_notice_id}>
               <button
-                aria-expanded={isExpanded}
-                className={[
-                  'grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 px-4 py-5 text-left transition hover:bg-slate-50',
-                  isExpanded ? 'bg-slate-50' : '',
-                ].join(' ')}
+                aria-expanded={expanded}
+                className="contest-board-row"
                 onClick={() => onToggle(notice.contest_notice_id)}
                 type="button"
               >
-                <NoticeBadge
-                  emergency={notice.emergency}
-                  pinned={notice.pinned}
+                <span className="contest-board-row__content">
+                  <span className="contest-board-row__title">
+                    <span
+                      className="contest-board-badge"
+                      data-tone={
+                        notice.emergency
+                          ? 'urgent'
+                          : notice.pinned
+                            ? 'accent'
+                            : undefined
+                      }
+                    >
+                      {notice.emergency
+                        ? '긴급'
+                        : notice.pinned
+                          ? '고정'
+                          : '공지'}
+                    </span>
+                    <strong>{notice.title}</strong>
+                  </span>
+                  <time dateTime={notice.published_at}>
+                    {formatDateTime(notice.published_at)}
+                  </time>
+                </span>
+                <InterfaceIcon
+                  name="chevronDown"
+                  className="contest-board-chevron"
                 />
-                <strong className="min-w-0 text-base font-black break-keep text-slate-950 sm:truncate">
-                  {notice.title}
-                </strong>
-                <time className="shrink-0 text-sm font-medium text-slate-500">
-                  {formatDateTime(notice.published_at)}
-                </time>
               </button>
-              {isExpanded ? (
-                <article className="bg-white px-4 pb-6">
-                  <p className="rounded border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 whitespace-pre-wrap text-slate-950">
-                    <NoticeCountdownText
-                      text={notice.body}
-                      template={notice.body_template}
-                      contest={contest}
-                    />
-                  </p>
+              {expanded ? (
+                <article className="contest-notice-body">
+                  <NoticeCountdownText
+                    text={notice.body}
+                    template={notice.body_template}
+                    contest={contest}
+                  />
                 </article>
               ) : null}
             </li>
           );
         })}
       </ul>
-
       {showPagination ? (
         <Pagination
           currentPage={currentPage}
@@ -514,9 +559,8 @@ function NoticePanel({
           totalPages={totalPages}
         />
       ) : null}
-
-      {!isLoading && notices.length === 0 ? (
-        <PageNotice message={contestBoardText.emptyNotices} status="idle" />
+      {!isLoading && !isError && notices.length === 0 ? (
+        <p className="zoj-contest-empty">{contestBoardText.emptyNotices}</p>
       ) : null}
     </section>
   );
@@ -532,51 +576,18 @@ function Pagination({
   totalPages: number;
 }) {
   return (
-    <nav className="flex flex-wrap items-center justify-center gap-2">
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-        (page) => (
-          <button
-            className={[
-              'h-9 min-w-9 rounded border px-3 text-sm font-black transition',
-              currentPage === page
-                ? 'border-slate-950 bg-slate-950 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-            ].join(' ')}
-            key={page}
-            onClick={() => onChange(page)}
-            type="button"
-          >
-            {page}
-          </button>
-        ),
-      )}
+    <nav className="contest-board-pagination" aria-label="공지사항 페이지">
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        <button
+          aria-current={currentPage === page ? 'page' : undefined}
+          key={page}
+          onClick={() => onChange(page)}
+          type="button"
+        >
+          {page}
+        </button>
+      ))}
     </nav>
-  );
-}
-
-function NoticeBadge({
-  emergency,
-  pinned,
-}: {
-  emergency: boolean;
-  pinned: boolean;
-}) {
-  const baseLabel = pinned
-    ? contestBoardText.pinnedBadge
-    : contestBoardText.tabNotices;
-  const label = emergency
-    ? `${baseLabel} · ${contestBoardText.emergencyBadge}`
-    : baseLabel;
-
-  return (
-    <span
-      className={[
-        'inline-flex h-7 min-w-12 items-center justify-center rounded-full px-3 text-xs font-black',
-        pinned ? 'bg-red-600 text-white' : 'bg-slate-950 text-white',
-      ].join(' ')}
-    >
-      {label}
-    </span>
   );
 }
 
@@ -628,18 +639,15 @@ function QuestionPanel({
   submittingAnswerQuestionId: string;
 }) {
   return (
-    <section className="grid gap-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-black text-slate-950">
-          {contestBoardText.questionListTitle}
-        </h2>
+    <section className="contest-board-content">
+      <header className="contest-board-heading">
+        <h2>{isWriting ? '질문 작성' : '질문과 답변'}</h2>
         {!isWriting ? (
-          <DarkButton onClick={onStartWrite}>
+          <PrimaryButton onClick={onStartWrite}>
             {contestBoardText.askButton}
-          </DarkButton>
+          </PrimaryButton>
         ) : null}
       </header>
-
       {isWriting ? (
         <QuestionForm
           form={form}
@@ -651,7 +659,6 @@ function QuestionPanel({
           onSubmit={onSubmit}
         />
       ) : null}
-
       {isLoading ? (
         <PageNotice
           message={contestBoardText.questionLoading}
@@ -664,23 +671,77 @@ function QuestionPanel({
           status="error"
         />
       ) : null}
-
-      <QuestionList
-        answerDrafts={answerDrafts}
-        answerErrors={answerErrors}
-        answerMutationError={answerMutationError}
-        answerMutationQuestionId={answerMutationQuestionId}
-        expandedQuestionId={expandedQuestionId}
-        isSubmittingAnswer={isSubmittingAnswer}
-        onChangeAnswer={onChangeAnswer}
-        onSubmitAnswer={onSubmitAnswer}
-        onToggleQuestion={onToggleQuestion}
-        questions={questions}
-        submittingAnswerQuestionId={submittingAnswerQuestionId}
-      />
-
-      {!isLoading && questions.length === 0 ? (
-        <PageNotice message={contestBoardText.emptyQuestions} status="idle" />
+      <ul className="contest-board-list">
+        {questions.map((question) => {
+          const expanded = expandedQuestionId === question.contest_question_id;
+          const answered = hasOperatorAnswer(question);
+          return (
+            <li key={question.contest_question_id}>
+              <button
+                aria-expanded={expanded}
+                className="contest-board-row"
+                onClick={() => onToggleQuestion(question.contest_question_id)}
+                type="button"
+              >
+                <span className="contest-board-row__content">
+                  <span className="contest-board-row__title">
+                    <span
+                      className="contest-board-badge"
+                      data-tone={answered ? 'answered' : undefined}
+                    >
+                      {answered ? '답변 완료' : '답변 대기'}
+                    </span>
+                    <strong>{question.title}</strong>
+                    {question.visibility === 'private' ? (
+                      <span className="contest-board-private">비공개</span>
+                    ) : null}
+                  </span>
+                  <span className="contest-board-row__meta">
+                    <span>{questionAuthorName(question)}</span>
+                    {questionAuthorContext(question) ? (
+                      <span>{questionAuthorContext(question)}</span>
+                    ) : null}
+                    <time dateTime={question.created_at}>
+                      {formatDateTime(question.created_at)}
+                    </time>
+                    {question.answers.length > 0 ? (
+                      <span>댓글 {question.answers.length}</span>
+                    ) : null}
+                  </span>
+                </span>
+                <InterfaceIcon
+                  name="chevronDown"
+                  className="contest-board-chevron"
+                />
+              </button>
+              {expanded ? (
+                <QuestionInlineDetail
+                  answerDraft={answerDrafts[question.contest_question_id] ?? ''}
+                  answerError={answerErrors[question.contest_question_id] ?? ''}
+                  answerMutationError={
+                    answerMutationQuestionId === question.contest_question_id
+                      ? answerMutationError
+                      : null
+                  }
+                  isSubmittingAnswer={
+                    isSubmittingAnswer &&
+                    submittingAnswerQuestionId === question.contest_question_id
+                  }
+                  onChangeAnswer={(body) =>
+                    onChangeAnswer(question.contest_question_id, body)
+                  }
+                  onSubmitAnswer={() =>
+                    onSubmitAnswer(question.contest_question_id)
+                  }
+                  question={question}
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {!isLoading && !isError && questions.length === 0 ? (
+        <p className="zoj-contest-empty">{contestBoardText.emptyQuestions}</p>
       ) : null}
     </section>
   );
@@ -704,49 +765,60 @@ function QuestionForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form className="zoj-inset grid gap-5" onSubmit={onSubmit}>
-      <div className="grid gap-5">
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          {contestBoardText.titleLabel}
+    <form
+      className="contest-question-form"
+      onSubmit={onSubmit}
+      aria-label="질문 작성"
+    >
+      <fieldset disabled={isSubmitting} className="contest-question-fields">
+        <label className="contest-field">
+          <span>{contestBoardText.titleLabel}</span>
           <input
-            className="h-11 rounded-full border border-slate-200 px-5 text-sm font-bold text-slate-950 transition outline-none focus:border-slate-400"
-            onChange={(event) =>
-              onChange({ ...form, title: event.target.value })
-            }
+            autoFocus
+            onChange={(e) => onChange({ ...form, title: e.target.value })}
             placeholder={contestBoardText.titlePlaceholder}
             value={form.title}
           />
         </label>
-      </div>
-      <SettingsCard
-        title={contestBoardText.visibilityLabel}
-        description="질문과 답변을 볼 수 있는 대상을 선택하세요."
-      >
-        <div className="zoj-settings-fields">
-          <ChoiceCard
-            checked={form.visibility === 'public'}
-            name="question_visibility"
-            value="public"
-            title={contestBoardText.visibilityPublicOption}
-            description="게시판을 볼 수 있는 다른 참가자도 함께 확인합니다."
-            onChange={() => onChange({ ...form, visibility: 'public' })}
+        <label className="contest-field">
+          <span>내용</span>
+          <textarea
+            onChange={(e) => onChange({ ...form, body: e.target.value })}
+            placeholder={contestBoardText.bodyPlaceholder}
+            value={form.body}
+            rows={7}
           />
-          <ChoiceCard
-            checked={form.visibility === 'private'}
-            name="question_visibility"
-            value="private"
-            title={contestBoardText.visibilityPrivateOption}
-            description="내 팀과 운영진만 확인할 수 있습니다."
-            onChange={() => onChange({ ...form, visibility: 'private' })}
-          />
-        </div>
-      </SettingsCard>
-      <textarea
-        className="min-h-56 resize-y rounded-md border border-slate-200 px-5 py-4 text-sm leading-7 text-slate-950 transition outline-none focus:border-slate-400"
-        onChange={(event) => onChange({ ...form, body: event.target.value })}
-        placeholder={contestBoardText.bodyPlaceholder}
-        value={form.body}
-      />
+        </label>
+        <fieldset className="contest-question-visibility">
+          <legend>공개 범위</legend>
+          <label>
+            <input
+              type="radio"
+              name="question_visibility"
+              value="public"
+              checked={form.visibility === 'public'}
+              onChange={() => onChange({ ...form, visibility: 'public' })}
+            />
+            <span>
+              <strong>공개</strong>
+              <small>게시판에 공개</small>
+            </span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="question_visibility"
+              value="private"
+              checked={form.visibility === 'private'}
+              onChange={() => onChange({ ...form, visibility: 'private' })}
+            />
+            <span>
+              <strong>비공개</strong>
+              <small>내 팀과 운영진</small>
+            </span>
+          </label>
+        </fieldset>
+      </fieldset>
       {formError || mutationError ? (
         <PageNotice
           message={
@@ -759,108 +831,20 @@ function QuestionForm({
           status="error"
         />
       ) : null}
-      <div className="flex justify-end gap-2">
+      <footer className="contest-form-actions">
         <button
-          className="h-9 rounded-md border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:border-slate-300"
+          className="contest-button"
+          disabled={isSubmitting}
           onClick={onCancel}
           type="button"
         >
-          {contestBoardText.cancelButton}
+          취소
         </button>
-        <DarkButton disabled={isSubmitting} type="submit">
-          {contestBoardText.questionSubmitButton}
-        </DarkButton>
-      </div>
+        <PrimaryButton disabled={isSubmitting} type="submit">
+          {isSubmitting ? '등록 중' : contestBoardText.questionSubmitButton}
+        </PrimaryButton>
+      </footer>
     </form>
-  );
-}
-
-function QuestionList({
-  answerDrafts,
-  answerErrors,
-  answerMutationError,
-  answerMutationQuestionId,
-  expandedQuestionId,
-  isSubmittingAnswer,
-  onChangeAnswer,
-  onSubmitAnswer,
-  onToggleQuestion,
-  questions,
-  submittingAnswerQuestionId,
-}: {
-  answerDrafts: Record<string, string>;
-  answerErrors: Record<string, string>;
-  answerMutationError: unknown;
-  answerMutationQuestionId: string;
-  expandedQuestionId: string;
-  isSubmittingAnswer: boolean;
-  onChangeAnswer: (questionId: string, body: string) => void;
-  onSubmitAnswer: (questionId: string) => void;
-  onToggleQuestion: (questionId: string) => void;
-  questions: ContestQuestion[];
-  submittingAnswerQuestionId: string;
-}) {
-  return (
-    <ul className="zoj-list-stagger zoj-row-motion divide-y divide-slate-200 border-y border-slate-200">
-      {questions.map((question) => {
-        const isExpanded = expandedQuestionId === question.contest_question_id;
-
-        return (
-          <li key={question.contest_question_id}>
-            <button
-              aria-expanded={isExpanded}
-              className={[
-                'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-5 px-4 py-5 text-left transition hover:bg-slate-50',
-                isExpanded ? 'bg-slate-50' : '',
-              ].join(' ')}
-              onClick={() => onToggleQuestion(question.contest_question_id)}
-              type="button"
-            >
-              <span className="flex min-w-0 flex-wrap items-center gap-3">
-                <VisibilityBadge visibility={question.visibility} />
-                <strong className="min-w-0 text-base font-black break-keep text-slate-950 sm:truncate">
-                  {question.title}
-                </strong>
-                <AnswerCountBadge count={question.answers.length} />
-              </span>
-              <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                <span className="text-sm font-black text-slate-700">
-                  {questionAuthorName(question)} ·{' '}
-                  {formatDateTime(question.created_at)}
-                </span>
-                {questionAuthorContext(question) ? (
-                  <span className="text-xs font-bold text-slate-500">
-                    {questionAuthorContext(question)}
-                  </span>
-                ) : null}
-              </span>
-            </button>
-            {isExpanded ? (
-              <QuestionInlineDetail
-                answerDraft={answerDrafts[question.contest_question_id] ?? ''}
-                answerError={answerErrors[question.contest_question_id] ?? ''}
-                answerMutationError={
-                  answerMutationQuestionId === question.contest_question_id
-                    ? answerMutationError
-                    : null
-                }
-                isSubmittingAnswer={
-                  isSubmittingAnswer &&
-                  submittingAnswerQuestionId === question.contest_question_id
-                }
-                onChangeAnswer={(body) =>
-                  onChangeAnswer(question.contest_question_id, body)
-                }
-                onSubmitAnswer={() =>
-                  onSubmitAnswer(question.contest_question_id)
-                }
-                question={question}
-              />
-            ) : null}
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -886,77 +870,49 @@ function QuestionInlineDetail({
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
       a.contest_answer_id.localeCompare(b.contest_answer_id),
   );
-
   return (
-    <article className="grid gap-5 bg-white px-4 pb-6">
-      <div className="rounded border border-slate-200 bg-white px-5 py-4">
-        <div className="mb-3 flex flex-wrap gap-2">
-          <InfoPill>{questionAuthorName(question)}</InfoPill>
-          {questionAuthorContext(question) ? (
-            <InfoPill>{questionAuthorContext(question)}</InfoPill>
-          ) : null}
-          <InfoPill>{formatDateTime(question.created_at)}</InfoPill>
-        </div>
-        <p className="text-sm leading-7 whitespace-pre-wrap text-slate-950">
-          {question.body}
-        </p>
-      </div>
-
-      {answers.length > 0 ? (
-        <section className="grid gap-3 pl-4 sm:pl-8">
-          {answers.map((answer) => (
-            <article
-              className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3"
-              key={answer.contest_answer_id}
-            >
-              <span className="pt-2 text-2xl leading-none font-black text-slate-300">
-                ㄴ
-              </span>
-              <div className="grid gap-3 rounded border border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="flex flex-wrap gap-2">
-                  <span
-                    className={[
-                      'rounded-full px-3 py-1 text-xs font-black',
-                      answer.created_by_role === 'operator'
-                        ? 'bg-violet-100 text-violet-700'
-                        : 'bg-slate-100 text-slate-700',
-                    ].join(' ')}
-                  >
-                    {answerAuthorLabel(question, answer)}
-                  </span>
-                  {answerAuthorContext(answer) ? (
-                    <InfoPill>{answerAuthorContext(answer)}</InfoPill>
-                  ) : null}
-                  <InfoPill>{formatDateTime(answer.created_at)}</InfoPill>
-                </div>
-                <p className="text-sm leading-7 whitespace-pre-wrap text-slate-950">
-                  {answer.body}
-                </p>
-              </div>
-            </article>
-          ))}
-        </section>
-      ) : (
-        <div className="pl-4 sm:pl-8">
-          <p className="rounded border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-500">
-            아직 답변이 없습니다.
-          </p>
-        </div>
-      )}
-
+    <article className="contest-question-detail">
+      <p className="contest-question-body">{question.body}</p>
+      <section className="contest-replies" aria-label="질문 답변">
+        {answers.map((answer) => (
+          <article
+            className="contest-reply"
+            data-operator={answer.created_by_role === 'operator'}
+            key={answer.contest_answer_id}
+          >
+            <header>
+              <strong>{answerAuthorLabel(question, answer)}</strong>
+              {answerAuthorContext(answer) ? (
+                <span>{answerAuthorContext(answer)}</span>
+              ) : null}
+              <time dateTime={answer.created_at}>
+                {formatDateTime(answer.created_at)}
+              </time>
+            </header>
+            <p>{answer.body}</p>
+          </article>
+        ))}
+        {answers.length === 0 ? (
+          <p className="contest-replies-empty">아직 답변이 없습니다.</p>
+        ) : null}
+      </section>
       <form
-        className="grid gap-3 pl-4 sm:pl-8"
+        className="contest-reply-form"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmitAnswer();
         }}
       >
-        <textarea
-          className="min-h-24 resize-y rounded-md border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-slate-400"
-          onChange={(event) => onChangeAnswer(event.target.value)}
-          placeholder={contestBoardText.answerPlaceholder}
-          value={answerDraft}
-        />
+        <label className="contest-field">
+          <span>댓글</span>
+          <textarea
+            disabled={isSubmittingAnswer}
+            onChange={(e) => onChangeAnswer(e.target.value)}
+            placeholder={contestBoardText.answerPlaceholder}
+            value={answerDraft}
+            rows={3}
+          />
+        </label>
         {answerError || answerMutationError ? (
           <PageNotice
             message={
@@ -969,54 +925,19 @@ function QuestionInlineDetail({
             status="error"
           />
         ) : null}
-        <div className="flex justify-end">
-          <DarkButton disabled={isSubmittingAnswer} type="submit">
-            {contestBoardText.answerSubmitButton}
-          </DarkButton>
+        <div className="contest-form-actions">
+          <PrimaryButton disabled={isSubmittingAnswer} type="submit">
+            {isSubmittingAnswer
+              ? '등록 중'
+              : contestBoardText.answerSubmitButton}
+          </PrimaryButton>
         </div>
       </form>
     </article>
   );
 }
 
-function AnswerCountBadge({ count }: { count: number }) {
-  return (
-    <span
-      className={[
-        'inline-flex h-7 items-center rounded-full px-3 text-xs font-black',
-        count > 0
-          ? 'bg-violet-100 text-violet-700'
-          : 'bg-amber-50 text-amber-700',
-      ].join(' ')}
-    >
-      {count > 0 ? `답변 ${count}건` : '답변 없음'}
-    </span>
-  );
-}
-
-function VisibilityBadge({
-  visibility,
-}: {
-  visibility: ContestQuestion['visibility'];
-}) {
-  return (
-    <span className="inline-flex h-7 min-w-12 items-center justify-center rounded-full bg-slate-100 px-3 text-xs font-black text-slate-700">
-      {visibility === 'private'
-        ? contestBoardText.privateLabel
-        : contestBoardText.publicLabel}
-    </span>
-  );
-}
-
-function InfoPill({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex h-7 items-center rounded-full bg-slate-100 px-3 text-xs font-black text-slate-600">
-      {children}
-    </span>
-  );
-}
-
-function DarkButton({
+function PrimaryButton({
   children,
   disabled,
   onClick,
@@ -1029,7 +950,7 @@ function DarkButton({
 }) {
   return (
     <button
-      className="h-9 rounded-md bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 disabled:bg-slate-300"
+      className="contest-button contest-button--primary"
       disabled={disabled}
       onClick={onClick}
       type={type}

@@ -20,7 +20,7 @@ export const contestBoardText = {
   noticePanelTitle: '공지사항',
   pageDescription:
     '서비스 공지는 홈에서, 대회 공지와 질문은 대회 단위로 분리합니다.',
-  pageTitle: '대회 공지와 질문 게시판',
+  pageTitle: '질문과 공지',
   pinnedBadge: '고정',
   privateLabel: '비공개',
   publicLabel: '공개',

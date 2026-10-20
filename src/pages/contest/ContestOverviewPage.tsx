@@ -155,7 +155,7 @@ function NoticePreview({
           !isLoading &&
           !isError &&
           notices.length === 0 ? (
-            <PageNotice message="표시할 공지사항이 없습니다." status="idle" />
+            <p className="zoj-contest-empty">표시할 공지사항이 없습니다.</p>
           ) : null}
         </div>
       ) : null}

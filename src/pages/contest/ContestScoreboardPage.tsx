@@ -190,6 +190,7 @@ function ContestScoreboardContent({
   return (
     <ContestPageFrame>
       <PageHeading
+        eyebrow={contest.title}
         className="gap-4"
         description={
           resolvedDivisionName
@@ -272,7 +273,7 @@ function ContestScoreboardContent({
         {canViewScoreboard &&
         !scoreboardQuery.isLoading &&
         rows.length === 0 ? (
-          <PageNotice message="표시할 스코어보드가 없습니다." status="idle" />
+          <p className="zoj-contest-empty">표시할 스코어보드가 없습니다.</p>
         ) : null}
       </div>
     </ContestPageFrame>
@@ -303,7 +304,7 @@ function DivisionSelect({
   value: string;
 }) {
   return (
-    <section className="mt-5 grid gap-2">
+    <section className="zoj-contest-filter mt-5 grid gap-2">
       <span className="text-sm font-black text-slate-700">유형 선택</span>
       <div className="flex flex-wrap gap-2">
         {divisions.map((division) => (

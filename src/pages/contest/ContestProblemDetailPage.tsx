@@ -721,21 +721,15 @@ function ContestProblemDetailContent({
   return (
     <ContestPageFrame>
       <PageHeading
+        eyebrow={contest.title}
         className="gap-4"
-        description="문제별 제한, 제출 여부, 최근 결과를 빠르게 확인합니다."
         title="문제집"
         variant="contest"
       />
 
       <ContestPageNavigation contest={contest} contestId={contestId} />
 
-      <section className="mt-5 mb-5 grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-black text-slate-800">문제 보기</span>
-          <span className="text-xs font-bold text-slate-400">
-            본문, 제출, 해설 화면을 전환합니다
-          </span>
-        </div>
+      <section className="zoj-problem-view-toolbar">
         <ProblemNavigationPills
           active={effectiveView}
           allowEditorial={canViewEditorial}

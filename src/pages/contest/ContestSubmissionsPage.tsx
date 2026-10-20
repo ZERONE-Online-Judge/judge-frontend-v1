@@ -231,6 +231,7 @@ function ContestSubmissionsContent({
   return (
     <ContestPageFrame>
       <PageHeading
+        eyebrow={contest.title}
         className="gap-4"
         description="대회 중에는 로그인한 참가팀의 제출만 확인합니다."
         title="채점현황"
@@ -337,7 +338,7 @@ function ContestSubmissionsContent({
         {canViewSubmissions &&
         !submissionsQuery.isLoading &&
         submissions.length === 0 ? (
-          <PageNotice message="표시할 제출이 없습니다." status="idle" />
+          <p className="zoj-contest-empty">표시할 제출이 없습니다.</p>
         ) : null}
       </div>
     </ContestPageFrame>
@@ -410,7 +411,7 @@ function ProblemFilterSelect({
   value: string;
 }) {
   return (
-    <section className="mt-5 grid gap-2">
+    <section className="zoj-contest-filter mt-5 grid gap-2">
       <span className="text-sm font-black text-slate-700">문제 선택</span>
       <select
         className="h-10 w-full max-w-md rounded border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
@@ -452,7 +453,7 @@ function DivisionSelect({
   value: string;
 }) {
   return (
-    <section className="mt-5 grid gap-2">
+    <section className="zoj-contest-filter mt-5 grid gap-2">
       <span className="text-sm font-black text-slate-700">유형 선택</span>
       <div className="flex flex-wrap gap-2">
         {divisions.map((division) => (

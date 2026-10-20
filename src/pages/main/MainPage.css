@@ -68,7 +68,8 @@
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 .home-news {
   display: block;
@@ -187,6 +188,11 @@
     border: 1px solid var(--zoj-border);
     border-radius: var(--zoj-radius-card);
     background: var(--zoj-surface);
+  }
+}
+@media (max-width: 900px) {
+  .home-contest-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 640px) {

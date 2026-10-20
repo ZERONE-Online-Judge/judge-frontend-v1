@@ -229,77 +229,101 @@
 }
 .contest-directory .directory-section > ul {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
   padding: 0;
   margin: 0;
   list-style: none;
 }
 .contest-directory .directory-card {
+  min-width: 0;
   border: 1px solid var(--zoj-border);
   border-radius: var(--zoj-radius-card);
-  box-shadow: none;
+  box-shadow: 0 2px 4px #252b3e03;
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
-  background: var(--zoj-surface);
+  background: var(--zoj-surface-raised);
 }
 .contest-directory .directory-card:hover {
   border-color: var(--zoj-border-selected);
-  box-shadow: var(--zoj-card-shadow);
+  box-shadow: 0 6px 20px #312e810a;
   transform: none;
   background: var(--zoj-surface-raised);
 }
 .contest-directory .directory-card > a,
 .contest-directory .directory-card > button {
-  padding: 26px;
+  display: flex;
+  height: 100%;
+  padding: 24px;
   width: 100%;
 }
 .contest-directory .directory-card-content {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 26px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 20px;
   text-align: left;
+}
+.contest-directory .directory-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.contest-directory .directory-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.contest-directory .directory-card-info {
+  min-width: 0;
 }
 .contest-directory .directory-card-date {
   display: grid;
-  gap: 6px;
+  flex-shrink: 0;
+  width: 58px;
+  gap: 3px;
   justify-items: center;
-  padding: 18px 8px;
-  border-radius: var(--zoj-radius-inset);
-  background: var(--zoj-surface-raised);
-  color: #7b8090;
-  font-size: 11px;
+  padding: 9px 6px;
+  border-radius: 10px;
+  background: var(--zoj-surface);
+  color: #767d8c;
+  font-size: 10px;
   font-weight: 500;
-  border: 1px solid var(--zoj-border);
+  border: 1px solid #e9ecf3;
 }
 .contest-directory .directory-card-date strong {
   color: #363e52;
-  font-size: 32px;
+  font-size: 25px;
   line-height: 1;
   font-weight: 650;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 .contest-directory .is-running .directory-card-date {
   background: #eff8f2;
+  border-color: #dceee2;
 }
 .contest-directory .is-upcoming .directory-card-date {
-  background: #f3f0ff;
+  background: #f5f3ff;
+  border-color: #e8e2fb;
 }
 .contest-directory .directory-card-labels {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 12px;
 }
 .contest-directory .directory-card-labels > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 5px;
+  font-weight: 550;
+  padding: 4px 9px;
+  border-radius: 6px;
   line-height: 1.4;
 }
 .contest-directory .directory-status {
@@ -323,66 +347,97 @@
   display: block;
   color: #747b8c;
   font-size: 12px;
+  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 .contest-directory .directory-card-info h3 {
-  margin: 5px 0 12px;
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1.5;
+  margin: 0 0 6px;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.4;
   letter-spacing: -0.025em;
   overflow-wrap: anywhere;
   word-break: keep-all;
   color: #242b3e;
 }
 .contest-directory .directory-card-schedule {
-  display: flex;
-  gap: 6px 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--zoj-surface);
   font-size: 12px;
   line-height: 1.6;
 }
 .contest-directory .directory-card-schedule > div {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  min-width: 0;
+  gap: 3px;
 }
 .contest-directory .directory-card-schedule dt {
-  color: #989da9;
+  color: #7c8393;
+  font-size: 11px;
 }
 .contest-directory .directory-card-schedule dd {
-  color: #656d7d;
+  color: #454e62;
   margin: 0;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .contest-directory .directory-schedule-tbd {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--zoj-surface);
   font-size: 12px;
   color: #818795;
+  line-height: 1.6;
+}
+.contest-directory .directory-card-footer {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin-top: auto;
+  border-top: 1px solid #edf0f6;
+  padding-top: 16px;
 }
 .contest-directory .directory-resources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 12px;
+  display: grid;
+  flex-basis: 100%;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
   font-size: 11px;
-  color: #557267;
+  line-height: 1.7;
+  color: #626d80;
+}
+.contest-directory .directory-resources > div {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+}
+.contest-directory .directory-resources dt {
+  color: #82899a;
+}
+.contest-directory .directory-resources dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .contest-directory .directory-card-action {
-  display: grid;
-  justify-items: end;
-  gap: 14px;
-  color: #515a70;
-}
-.contest-directory .directory-card-action > span:last-child {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  margin-left: auto;
+  color: #5149b7;
   font-size: 12px;
   font-weight: 600;
 }
 .contest-directory .directory-card-action svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   transition: transform 0.2s;
 }
 .contest-directory .directory-card:hover .directory-card-action svg {
@@ -390,7 +445,9 @@
 }
 .contest-directory .directory-countdown {
   font-size: 11px;
-  color: #7d718f;
+  font-weight: 600;
+  color: #6a5c9a;
+  font-variant-numeric: tabular-nums;
 }
 .contest-directory .directory-empty {
   text-align: center;
@@ -525,15 +582,8 @@
   }
 }
 @media (max-width: 900px) {
-  .contest-directory .directory-card-content {
-    grid-template-columns: 68px minmax(0, 1fr);
-    gap: 18px;
-  }
-  .contest-directory .directory-card-action {
-    grid-column: 2;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .contest-directory .directory-section > ul {
+    grid-template-columns: minmax(0, 1fr);
   }
   .contest-directory .directory-art {
     min-height: 320px;
@@ -597,26 +647,22 @@
     padding: 20px;
   }
   .contest-directory .directory-card-content {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+    gap: 18px;
   }
   .contest-directory .directory-card-date {
-    display: none;
-    border: 1px solid var(--zoj-border);
-    border-radius: var(--zoj-radius-inset);
-    background: var(--zoj-surface-raised);
+    width: 52px;
   }
   .contest-directory .directory-card-info h3 {
-    font-size: 18px;
+    font-size: 19px;
   }
   .contest-directory .directory-card-schedule {
-    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
   }
-  .contest-directory .directory-card-action {
-    grid-column: auto;
-    margin-top: 18px;
-    border-top: 1px solid #eeeff3;
-    padding-top: 14px;
+  .contest-directory .directory-card-schedule > div {
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 6px;
   }
   .contest-directory .directory-section > header h2 {
     font-size: 19px;

@@ -1,4 +1,3 @@
-import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { ExperienceArrow } from '@/components/common/PublicExperience';
 
 export type ContestDirectoryMeta = {
@@ -20,6 +19,23 @@ function moment(value: string) {
         hour12: false,
       }).format(date)
     : '일정 확인 중';
+}
+
+function resourceGroups(labels: string[]) {
+  const groups = new Map<string, string[]>();
+  for (const label of labels) {
+    const suffix = label.endsWith(' 비로그인 공개')
+      ? ' 비로그인 공개'
+      : label.endsWith(' 참가자 공개 유지')
+        ? ' 참가자 공개 유지'
+        : '';
+    const access =
+      suffix === ' 비로그인 공개' ? '공개' : suffix ? '참가자 공개' : '자료';
+    const names = groups.get(access) ?? [];
+    names.push(suffix ? label.slice(0, -suffix.length) : label);
+    groups.set(access, names);
+  }
+  return [...groups];
 }
 
 export default function ContestDirectoryCardContent({
@@ -50,14 +66,7 @@ export default function ContestDirectoryCardContent({
     : { running: '진행 중', upcoming: '시작 예정', ended: '종료' }[meta.phase];
   return (
     <div className={`directory-card-content is-${meta.phase}`}>
-      <div className="directory-card-date" aria-hidden="true">
-        <span>{hasDate ? `${start.getMonth() + 1}월` : 'COMING'}</span>
-        <strong>
-          {hasDate ? String(start.getDate()).padStart(2, '0') : '—'}
-        </strong>
-        <span>{hasDate ? start.getFullYear() : 'SOON'}</span>
-      </div>
-      <div className="directory-card-info">
+      <div className="directory-card-topline">
         <div className="directory-card-labels">
           <span className={`directory-status is-${meta.phase}`}>
             <i />
@@ -75,53 +84,56 @@ export default function ContestDirectoryCardContent({
             <span className="directory-private">비공개</span>
           ) : null}
         </div>
-        <span className="directory-organization">{organization || 'ZOJ'}</span>
-        <h3>{title}</h3>
-        {meta.scheduleTbd ? (
-          <p className="directory-schedule-tbd">
-            대회 일정이 정해지면 안내됩니다.
-          </p>
-        ) : (
-          <dl className="directory-card-schedule">
-            <div>
-              <dt>시작</dt>
-              <dd>
-                <time dateTime={meta.startAt}>{moment(meta.startAt)}</time>
-              </dd>
-            </div>
-            <div>
-              <dt>종료</dt>
-              <dd>
-                <time dateTime={meta.endAt}>{moment(meta.endAt)}</time>
-              </dd>
-            </div>
-          </dl>
-        )}
-        {publicLabels.length ? (
-          <div className="directory-resources">
-            {publicLabels.map((label) => (
-              <span key={label}>
-                <InterfaceIcon name="arrowUpRight" />{' '}
-                {label
-                  .replace('비로그인 공개', '공개')
-                  .replace('참가자 공개 유지', '참가자 공개')}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      <div className="directory-card-action">
         {countdown && !meta.scheduleTbd ? (
           <span className="directory-countdown">{countdown}</span>
         ) : null}
-        <span>
-          {preview
-            ? '미리보기'
-            : operator
-              ? '운영 화면'
-              : meta.phase === 'ended'
-                ? '대회 살펴보기'
-                : '대회 확인하기'}
+      </div>
+      <div className="directory-card-heading">
+        <div className="directory-card-date" aria-hidden="true">
+          <span>{hasDate ? `${start.getMonth() + 1}월` : '일정'}</span>
+          <strong>
+            {hasDate ? String(start.getDate()).padStart(2, '0') : '—'}
+          </strong>
+          <span>{hasDate ? start.getFullYear() : '미정'}</span>
+        </div>
+        <div className="directory-card-info">
+          <h3>{title}</h3>
+          <span className="directory-organization">
+            {organization || 'ZOJ'}
+          </span>
+        </div>
+      </div>
+      {meta.scheduleTbd ? (
+        <p className="directory-schedule-tbd">대회 일정 미정</p>
+      ) : (
+        <dl className="directory-card-schedule">
+          <div>
+            <dt>시작</dt>
+            <dd>
+              <time dateTime={meta.startAt}>{moment(meta.startAt)}</time>
+            </dd>
+          </div>
+          <div>
+            <dt>종료</dt>
+            <dd>
+              <time dateTime={meta.endAt}>{moment(meta.endAt)}</time>
+            </dd>
+          </div>
+        </dl>
+      )}
+      <div className="directory-card-footer">
+        {publicLabels.length ? (
+          <dl className="directory-resources" aria-label="자료 공개 범위">
+            {resourceGroups(publicLabels).map(([access, names]) => (
+              <div key={access}>
+                <dt>{access}</dt>
+                <dd>{names.join(' · ')}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        <span className="directory-card-action">
+          {preview ? '미리보기' : operator ? '운영 화면' : '대회 보기'}
           <ExperienceArrow />
         </span>
       </div>

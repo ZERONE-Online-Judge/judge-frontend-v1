@@ -135,12 +135,6 @@ main:has(.zoj-contest-shell) {
   ) {
   background: #fff;
 }
-.zoj-participant .zoj-problem-view-tabs a {
-  min-height: 2.375rem;
-  height: auto;
-  border-radius: var(--zoj-radius-control);
-  font-size: 0.8125rem;
-}
 .zoj-participant .zoj-contest-filter {
   display: flex;
   flex-wrap: wrap;
@@ -205,48 +199,6 @@ main:has(.zoj-contest-shell) {
   border-radius: var(--zoj-radius-card);
   overflow: clip;
   align-items: start;
-}
-.zoj-participant .zoj-problem-sidebar {
-  border-right: 0;
-  border-bottom: 1px solid #e2e8f0;
-  background: var(--zoj-surface);
-  align-self: stretch;
-}
-.zoj-participant .zoj-problem-sidebar nav {
-  padding: 1rem;
-}
-.zoj-participant .zoj-problem-sidebar ul {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  margin: 0;
-  padding: 0 0 0.25rem;
-}
-.zoj-participant .zoj-problem-sidebar li {
-  flex-shrink: 0;
-}
-.zoj-participant .zoj-problem-sidebar a {
-  display: flex;
-  height: 2.5rem;
-  max-width: 18rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.zoj-participant .zoj-problem-sidebar a[aria-current='page'] {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #4338ca;
-}
-.zoj-participant .zoj-problem-sidebar nav > div {
-  display: flex;
-}
-.zoj-participant .zoj-problem-sidebar nav > div > span:last-child {
-  display: inline;
 }
 .zoj-participant .zoj-problem-document {
   container-type: inline-size;
@@ -326,43 +278,14 @@ main:has(.zoj-contest-shell) {
   .zoj-problem-workspace.is-combined {
     grid-template-columns: minmax(0, 1.3fr) minmax(20rem, 1fr);
   }
-  .zoj-problem-workspace.is-combined > .zoj-problem-sidebar {
-    grid-column: 1 / -1;
-  }
   .zoj-participant .zoj-problem-submit {
     border-top: 0;
     border-left: 1px solid #e2e8f0;
   }
 }
 @media (min-width: 1600px) {
-  .zoj-problem-workspace {
-    grid-template-columns: 12rem minmax(0, 1fr);
-    border: 1px solid var(--zoj-border);
-    border-radius: var(--zoj-radius-card);
-    background: var(--zoj-surface);
-  }
   .zoj-problem-workspace.is-combined {
-    grid-template-columns: 12rem minmax(0, 1.35fr) minmax(24rem, 1fr);
-  }
-  .zoj-problem-workspace.is-submit-only {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .zoj-participant .zoj-problem-workspace > .zoj-problem-sidebar {
-    grid-column: auto;
-    border-bottom: 0;
-    border-right: 1px solid #e2e8f0;
-  }
-  .zoj-participant .zoj-problem-sidebar ul {
-    display: grid;
-    overflow: visible;
-  }
-  .zoj-participant .zoj-problem-sidebar a {
-    height: auto;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .zoj-participant .zoj-problem-sidebar nav > div > span:last-child {
-    display: none;
+    grid-template-columns: minmax(0, 1.35fr) minmax(24rem, 1fr);
   }
 }
 
@@ -630,9 +553,6 @@ main:has(.zoj-contest-shell) {
   line-height: 1.5;
 }
 
-.zoj-problem-view-toolbar {
-  margin-block: 1.25rem;
-}
 .zoj-participant .zoj-problem-submit > button {
   border-radius: var(--zoj-radius-control);
   font-weight: 600;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useLocation,
@@ -12,7 +12,9 @@ import ContestPageNavigation from '@/components/contest/ContestPageNavigation';
 import ContestPageShell from '@/components/contest/ContestPageShell';
 import ProblemEditorialPanel from '@/components/contest/problem/ProblemEditorialPanel';
 import ProblemNavigationPills from '@/components/contest/problem/ProblemNavigationPills';
-import ProblemSidebar from '@/components/contest/problem/ProblemSidebar';
+import ProblemSidebar, {
+  ProblemMenuButton,
+} from '@/components/contest/problem/ProblemSidebar';
 import ProblemStatementPanel from '@/components/contest/problem/ProblemStatementPanel';
 import ProblemSubmitPanel from '@/components/contest/problem/ProblemSubmitPanel';
 import {
@@ -183,6 +185,13 @@ function ContestProblemDetailContent({
   problemId: string;
   view: ProblemView;
 }) {
+  const [problemListOpen, setProblemListOpen] = useState(false);
+  const problemListId = useId();
+  const problemListTrigger = useRef<HTMLButtonElement>(null);
+  function closeProblemList() {
+    setProblemListOpen(false);
+    problemListTrigger.current?.focus({ preventScroll: true });
+  }
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -730,6 +739,15 @@ function ContestProblemDetailContent({
       <ContestPageNavigation contest={contest} contestId={contestId} />
 
       <section className="zoj-problem-view-toolbar">
+        {canViewProblem ? (
+          <ProblemMenuButton
+            buttonRef={problemListTrigger}
+            open={problemListOpen}
+            panelId={problemListId}
+            disabled={problems.length === 0 && !showDivisionSelectInSidebar}
+            onToggle={() => setProblemListOpen((value) => !value)}
+          />
+        ) : null}
         <ProblemNavigationPills
           active={effectiveView}
           allowEditorial={canViewEditorial}
@@ -763,9 +781,12 @@ function ContestProblemDetailContent({
         <PageNotice message="문제를 불러오지 못했습니다." status="error" />
       ) : null}
 
-      {problem && effectiveView === 'combined' && canShowSubmit ? (
-        <section className="zoj-problem-workspace is-combined">
+      {problem ? (
+        <div className="zoj-problem-layout" data-list-open={problemListOpen}>
           <ProblemSidebar
+            open={problemListOpen}
+            panelId={problemListId}
+            onClose={closeProblemList}
             activeProblemId={activeProblemId}
             contestId={contestId}
             divisions={divisions}
@@ -776,98 +797,94 @@ function ContestProblemDetailContent({
             }
             problems={problems}
             selectedDivisionId={selectedDivisionId}
+            targetView={effectiveView}
             search={location.search}
           />
-          <ProblemStatementPanel assets={problemAssets} problem={problem} />
-          <ProblemSubmitPanel
-            allowedLanguages={problem.allowed_languages}
-            isSubmitting={
-              submitMutation.isPending || mockSubmitMutation.isPending
-            }
-            language={activeLanguage}
-            message={submitFeedback.message}
-            messageStatus={submitFeedback.status}
-            onLanguageChange={handleLanguageChange}
-            onSourceCodeChange={handleSourceCodeChange}
-            onSubmit={submitActiveDraft}
-            problemCode={problem.problem_code}
-            problemTitle={problem.title}
-            sourceCode={activeSourceCode}
-            submitLabel={submitPanelButtonLabel}
-            submittingLabel={canMockJudge ? '채점 중' : '제출 중'}
-            title={submitPanelTitle}
-            footer={<MockJudgeResult result={mockResult} />}
-          />
-        </section>
-      ) : null}
+          {problemListOpen ? (
+            <button
+              className="zoj-problem-layout-scrim"
+              type="button"
+              aria-label="문제 목록 접기"
+              onClick={closeProblemList}
+            />
+          ) : null}
+          <div className="zoj-problem-layout__content">
+            {problem && effectiveView === 'combined' && canShowSubmit ? (
+              <section className="zoj-problem-workspace is-combined">
+                <ProblemStatementPanel
+                  assets={problemAssets}
+                  problem={problem}
+                />
+                <ProblemSubmitPanel
+                  allowedLanguages={problem.allowed_languages}
+                  isSubmitting={
+                    submitMutation.isPending || mockSubmitMutation.isPending
+                  }
+                  language={activeLanguage}
+                  message={submitFeedback.message}
+                  messageStatus={submitFeedback.status}
+                  onLanguageChange={handleLanguageChange}
+                  onSourceCodeChange={handleSourceCodeChange}
+                  onSubmit={submitActiveDraft}
+                  problemCode={problem.problem_code}
+                  problemTitle={problem.title}
+                  sourceCode={activeSourceCode}
+                  submitLabel={submitPanelButtonLabel}
+                  submittingLabel={canMockJudge ? '채점 중' : '제출 중'}
+                  title={submitPanelTitle}
+                  footer={<MockJudgeResult result={mockResult} />}
+                />
+              </section>
+            ) : null}
 
-      {problem &&
-      (effectiveView === 'problem' ||
-        (effectiveView === 'combined' && !canShowSubmit)) ? (
-        <section className="zoj-problem-workspace">
-          <ProblemSidebar
-            activeProblemId={activeProblemId}
-            contestId={contestId}
-            divisions={divisions}
-            onDivisionChange={
-              showDivisionSelectInSidebar
-                ? handleSidebarDivisionChange
-                : undefined
-            }
-            problems={problems}
-            selectedDivisionId={selectedDivisionId}
-            targetView="problem"
-            search={location.search}
-          />
-          <ProblemStatementPanel assets={problemAssets} problem={problem} />
-        </section>
-      ) : null}
+            {problem &&
+            (effectiveView === 'problem' ||
+              (effectiveView === 'combined' && !canShowSubmit)) ? (
+              <section className="zoj-problem-workspace">
+                <ProblemStatementPanel
+                  assets={problemAssets}
+                  problem={problem}
+                />
+              </section>
+            ) : null}
 
-      {problem && effectiveView === 'editorial' && canViewEditorial ? (
-        <section className="zoj-problem-workspace">
-          <ProblemSidebar
-            activeProblemId={activeProblemId}
-            contestId={contestId}
-            divisions={divisions}
-            onDivisionChange={
-              showDivisionSelectInSidebar
-                ? handleSidebarDivisionChange
-                : undefined
-            }
-            problems={problems}
-            selectedDivisionId={selectedDivisionId}
-            targetView="editorial"
-            search={location.search}
-          />
-          <ProblemEditorialPanel assets={problemAssets} problem={problem} />
-        </section>
-      ) : null}
+            {problem && effectiveView === 'editorial' && canViewEditorial ? (
+              <section className="zoj-problem-workspace">
+                <ProblemEditorialPanel
+                  assets={problemAssets}
+                  problem={problem}
+                />
+              </section>
+            ) : null}
 
-      {problem && effectiveView === 'submit' && canShowSubmit ? (
-        <section className="zoj-problem-workspace is-submit-only">
-          <ProblemSubmitPanel
-            allowedLanguages={problem.allowed_languages}
-            canSubmit={canSubmitActiveDraft}
-            editorHeight="clamp(280px, 55dvh, 640px)"
-            isSubmitting={
-              submitMutation.isPending || mockSubmitMutation.isPending
-            }
-            language={activeLanguage}
-            layout="standalone"
-            message={submitPanelMessage}
-            messageStatus={submitPanelMessageStatus}
-            onLanguageChange={handleLanguageChange}
-            onSourceCodeChange={handleSourceCodeChange}
-            onSubmit={submitActiveDraft}
-            problemCode={problem.problem_code}
-            problemTitle={problem.title}
-            sourceCode={activeSourceCode}
-            submitLabel={submitPanelButtonLabel}
-            submittingLabel={canMockJudge ? '채점 중' : '제출 중'}
-            title={submitPanelTitle}
-            footer={<MockJudgeResult result={mockResult} />}
-          />
-        </section>
+            {problem && effectiveView === 'submit' && canShowSubmit ? (
+              <section className="zoj-problem-workspace is-submit-only">
+                <ProblemSubmitPanel
+                  allowedLanguages={problem.allowed_languages}
+                  canSubmit={canSubmitActiveDraft}
+                  editorHeight="clamp(280px, 55dvh, 640px)"
+                  isSubmitting={
+                    submitMutation.isPending || mockSubmitMutation.isPending
+                  }
+                  language={activeLanguage}
+                  layout="standalone"
+                  message={submitPanelMessage}
+                  messageStatus={submitPanelMessageStatus}
+                  onLanguageChange={handleLanguageChange}
+                  onSourceCodeChange={handleSourceCodeChange}
+                  onSubmit={submitActiveDraft}
+                  problemCode={problem.problem_code}
+                  problemTitle={problem.title}
+                  sourceCode={activeSourceCode}
+                  submitLabel={submitPanelButtonLabel}
+                  submittingLabel={canMockJudge ? '채점 중' : '제출 중'}
+                  title={submitPanelTitle}
+                  footer={<MockJudgeResult result={mockResult} />}
+                />
+              </section>
+            ) : null}
+          </div>
+        </div>
       ) : null}
     </ContestPageFrame>
   );

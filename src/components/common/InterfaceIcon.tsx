@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react';
 
 const shapes = {
+  menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   asterisk: (
     <path
       stroke="none"

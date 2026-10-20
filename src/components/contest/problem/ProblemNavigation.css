@@ -1,0 +1,275 @@
+.zoj-problem-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 1.25rem;
+}
+.zoj-problem-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--zoj-border);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.zoj-problem-menu-trigger:hover {
+  background: #f1f5f9;
+}
+.zoj-problem-menu-trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.zoj-problem-view-tabs {
+  min-width: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--zoj-border);
+  border-radius: 0.625rem;
+  background: #eef1f6;
+}
+.zoj-problem-view-tabs ul {
+  display: flex;
+  align-items: stretch;
+  gap: 0.125rem;
+}
+.zoj-problem-view-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.375rem 1rem;
+  border-radius: 0.375rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    color 150ms,
+    background 150ms;
+}
+.zoj-problem-view-tab:hover {
+  color: #334155;
+  background: #ffffff80;
+}
+.zoj-problem-view-tab[aria-current='page'] {
+  background: #fff;
+  color: var(--zoj-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px #0f172a12;
+}
+/* The disclosure belongs to the problem workspace, not the page top layer. */
+.zoj-problem-layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  border: 1px solid var(--zoj-border);
+  border-radius: var(--zoj-radius-card);
+  background: #fff;
+  overflow: clip;
+}
+.zoj-problem-layout__content {
+  min-width: 0;
+}
+.zoj-problem-layout__content > .zoj-problem-workspace {
+  border: 0;
+  border-radius: 0;
+}
+.zoj-problem-layout-scrim {
+  display: none;
+}
+@media (min-width: 1000px) {
+  .zoj-problem-layout[data-list-open='true'] {
+    grid-template-columns: 16rem minmax(0, 1fr);
+  }
+}
+.zoj-problem-drawer {
+  min-width: 0;
+  align-self: stretch;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  z-index: 3;
+}
+.zoj-problem-drawer__inner {
+  position: sticky;
+  top: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - 6.5rem);
+}
+.zoj-problem-drawer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.zoj-problem-drawer h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #182230;
+}
+.zoj-problem-drawer h2 span {
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.zoj-problem-drawer header button {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  color: #64748b;
+}
+.zoj-problem-drawer header button:hover {
+  background: #f1f5f9;
+}
+.zoj-problem-drawer__division {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.zoj-problem-drawer select {
+  min-width: 0;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #334155;
+  font-size: 0.875rem;
+}
+.zoj-problem-drawer nav {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 0.75rem;
+}
+.zoj-problem-drawer ul {
+  display: grid;
+  gap: 0.25rem;
+}
+.zoj-problem-drawer nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem 0.625rem;
+  border-radius: 0.5rem;
+  color: #475569;
+}
+.zoj-problem-drawer nav a:hover {
+  background: #f8fafc;
+}
+.zoj-problem-drawer nav a[aria-current='page'] {
+  background: #eef2ff;
+  color: #4338ca;
+}
+.zoj-problem-drawer__code {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 2rem;
+  height: 2rem;
+  padding-inline: 0.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  background: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.zoj-problem-drawer nav a[aria-current='page'] .zoj-problem-drawer__code {
+  border-color: #c7d2fe;
+}
+.zoj-problem-drawer__title {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.zoj-problem-drawer :is(button, a, select):focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+@keyframes zoj-problem-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@media (max-width: 639px) {
+  .zoj-problem-view-toolbar {
+    gap: 0.5rem;
+  }
+  .zoj-problem-menu-trigger {
+    width: 2.625rem;
+    height: 2.625rem;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .zoj-problem-menu-trigger > span {
+    display: none;
+  }
+  .zoj-problem-view-tabs {
+    flex: 1;
+  }
+  .zoj-problem-view-tabs li {
+    min-width: 0;
+    flex: 1;
+  }
+  .zoj-problem-view-tab {
+    min-height: 2rem;
+    padding-inline: 0.375rem;
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 999px) {
+  .zoj-problem-drawer {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: min(17rem, calc(100% - 2rem));
+    box-shadow: 8px 0 24px #0f172a14;
+    animation: zoj-problem-drawer-in 160ms ease-out;
+  }
+  .zoj-problem-drawer__inner {
+    top: 0;
+    max-height: min(100%, calc(100dvh - 6rem));
+    height: 100%;
+  }
+  .zoj-problem-layout-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: #0f172a14;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoj-problem-drawer {
+    animation: none;
+  }
+}

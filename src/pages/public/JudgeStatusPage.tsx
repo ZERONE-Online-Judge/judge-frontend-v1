@@ -31,14 +31,14 @@ export default function JudgeStatusPage() {
         ? 'online'
         : 'offline';
   const title = unavailable
-    ? '잠시 연결을 확인하고 있어요.'
+    ? '연결 상태를 확인하지 못했습니다.'
     : !status
-      ? '채점 서버를 만나고 있어요.'
+      ? '채점 서버 연결 확인 중'
       : !connected
-        ? '채점 서버를 기다리고 있어요.'
-        : '채점 서버가 연결되어 있어요.';
+        ? '연결된 채점 서버 없음'
+        : '채점 서버 연결됨';
   const description = unavailable
-    ? '최신 상태를 가져오지 못했습니다. 잠시 후 자동으로 다시 확인할게요.'
+    ? '최신 상태를 가져오지 못했습니다. 잠시 후 자동으로 다시 확인합니다.'
     : !status
       ? '채점 서버의 연결 상태를 확인하고 있습니다.'
       : !connected
@@ -49,7 +49,7 @@ export default function JudgeStatusPage() {
       label: '연결된 채점 서버',
       value: status?.active_node_count,
       unit: '대',
-      description: '현재 연결을 확인한 서버예요.',
+      description: '현재 연결된 채점 서버 수입니다.',
       icon: 'list' as const,
     },
   ];
@@ -59,16 +59,10 @@ export default function JudgeStatusPage() {
       <PublicHero className="judge-hero">
         <div className="experience-hero-grid">
           <div className="experience-hero-copy">
-            <p className="experience-eyebrow">BEHIND EVERY ANSWER</p>
-            <h1>
-              당신의 코드가
-              <br />
-              답을 만나는 곳<span className="experience-lime">.</span>
-            </h1>
+            <p className="experience-eyebrow">ZOJ</p>
+            <h1>채점 안내</h1>
             <p className="experience-lead">
-              제출부터 결과까지, 코드를 살펴보는 채점 서버.
-              <br />
-              지금의 연결 상태부터 판정과 점수까지, 함께 알아봐요.
+              채점 서버의 연결 상태, 판정 기준과 점수 계산 방식을 확인합니다.
             </p>
             <a className="experience-button is-lime" href="#judge-now">
               지금 상태 살펴보기 <ExperienceArrow />
@@ -192,7 +186,7 @@ export default function JudgeStatusPage() {
                 aria-hidden="true"
               />
               {query.isFetching
-                ? '새로운 상태를 확인하고 있어요'
+                ? '상태를 갱신하는 중입니다'
                 : '이 화면이 열려 있는 동안 자동으로 갱신해요'}
             </span>
             <span>

@@ -8,21 +8,21 @@ import './AboutPage.css';
 const stages = [
   {
     label: '문제 준비',
-    title: '좋은 문제는, 꼼꼼한 검수에서.',
+    title: '문제와 테스트 검증',
     description:
-      '문제와 테스트케이스, 정답·오답 코드를 한곳에. 실제로 풀어보고 검증하며 대회를 준비합니다.',
+      '문제 지문, 테스트케이스, 정답·오답 코드를 등록하고 채점기로 검증합니다.',
   },
   {
     label: '대회 운영',
-    title: '시작부터 끝까지, 흐름이 끊기지 않게.',
+    title: '참가자와 제출 관리',
     description:
-      '이메일 인증부터 제출과 채점, 공지와 질문 답변까지. 참가자와 운영자가 하나의 공간에서 만납니다.',
+      '참가자 등록, 코드 제출과 채점, 공지와 질문 답변을 관리합니다.',
   },
   {
     label: '결과 공개',
-    title: '마지막 순간까지, 대회답게.',
+    title: '스코어보드와 결과 공개',
     description:
-      '제출 현황을 확인하고 스코어보드를 관리하세요. 순위를 공개하는 순간까지 운영 화면에서 함께합니다.',
+      '제출 현황, 스코어보드 프리즈, 순위 공개 시점과 방식을 설정합니다.',
   },
 ];
 
@@ -209,7 +209,7 @@ function ScorePreview() {
         </div>
       ))}
       <p className="about-demo-note">
-        프리즈부터 순위 공개까지, 운영자가 대회의 마지막 장면을 만듭니다.
+        운영자는 스코어보드 프리즈와 순위 공개를 설정할 수 있습니다.
       </p>
     </div>
   );
@@ -255,16 +255,11 @@ export default function AboutPage() {
       <PublicHero className="about-hero">
         <div className="experience-hero-grid">
           <div className="experience-hero-copy">
-            <p className="experience-eyebrow">FROM ZERO TO YOUR CONTEST</p>
-            <h1 id="about-heading">
-              좋은 문제에서,
-              <br />
-              멋진 대회까지<span className="experience-lime">.</span>
-            </h1>
+            <p className="experience-eyebrow">ZERONE ONLINE JUDGE</p>
+            <h1 id="about-heading">ZOJ 소개</h1>
             <p className="experience-lead">
-              준비하는 사람도, 도전하는 사람도.
-              <br />
-              대회에 집중할 수 있도록 ZOJ가 함께합니다.
+              ZOJ는 문제 등록, 코드 제출, 자동 채점과 스코어보드를 제공하는
+              프로그래밍 대회 플랫폼입니다.
             </p>
             <div className="experience-actions">
               <Link className="experience-button is-lime" to="/contests">
@@ -310,7 +305,7 @@ export default function AboutPage() {
               </span>
               <div>
                 <small>검증이 끝났습니다</small>
-                <strong>다음은, 당신의 대회.</strong>
+                <strong>테스트 5개 통과</strong>
               </div>
               <span className="about-result-spark" aria-hidden="true">
                 <InterfaceIcon name="asterisk" />
@@ -332,18 +327,10 @@ export default function AboutPage() {
       >
         <div className="about-container">
           <div className="about-section-heading" data-reveal>
-            <p className="about-eyebrow">01 / BUILT FROM EXPERIENCE</p>
+            <p className="about-eyebrow">01 / 운영 이력</p>
             <div>
-              <h2 id="about-experience-heading">
-                대회 현장에서 시작해,
-                <br />
-                실제로 쓰이는 플랫폼으로.
-              </h2>
-              <p>
-                대회를 한 달 앞두고 필요해진 새로운 운영 환경.
-                <br />
-                ZOJ는 그 문제를 풀기 위해 태어났습니다.
-              </p>
+              <h2 id="about-experience-heading">운영 이력</h2>
+              <p>ZOJ는 HEPC 2026에서 대회 운영과 채점에 사용됐습니다.</p>
             </div>
           </div>
           <div className="about-event-banner" data-reveal>
@@ -353,15 +340,15 @@ export default function AboutPage() {
               <span>Hanyang ERICA Programming Contest</span>
             </div>
             <p>
-              2026. 05. 28 <span>·</span> 2시간의 도전
+              2026. 05. 28 <span>·</span> 진행 시간 2시간
             </p>
           </div>
           <dl className="about-stats" data-reveal>
             {[
-              ['30', '참가팀', '51명이 함께한 대회'],
-              ['350', '코드 제출', '도전이 판정으로 이어지기까지'],
-              ['15', '문제', '다양한 생각을 만나는 출발점'],
-              ['728', '테스트케이스', '정답을 확인하는 꼼꼼한 기준'],
+              ['30', '참가팀', '참가자 51명'],
+              ['350', '코드 제출', '전체 제출 건수'],
+              ['15', '문제', '출제 문제 수'],
+              ['728', '테스트케이스', '등록된 테스트 수'],
             ].map(([value, label, text]) => (
               <div key={label}>
                 <dt>{label}</dt>
@@ -389,18 +376,10 @@ export default function AboutPage() {
       >
         <div className="about-container">
           <div className="about-section-heading" data-reveal>
-            <p className="about-eyebrow">02 / ONE CONNECTED EXPERIENCE</p>
+            <p className="about-eyebrow">02 / 주요 기능</p>
             <div>
-              <h2 id="about-workflow-heading">
-                대회의 모든 순간을,
-                <br />
-                하나의 흐름으로.
-              </h2>
-              <p>
-                여러 도구를 오가는 대신,
-                <br />
-                준비부터 결과 공개까지 ZOJ 안에서.
-              </p>
+              <h2 id="about-workflow-heading">대회 운영 기능</h2>
+              <p>문제 등록, 참가자 관리, 코드 채점, 결과 공개를 지원합니다.</p>
             </div>
           </div>
           <div className="about-workspace" data-reveal>
@@ -452,9 +431,9 @@ export default function AboutPage() {
                     <small>
                       {
                         [
-                          '만들고, 풀어보고, 검증하기',
-                          '참가자와 운영자를 연결하기',
-                          '모든 도전을 기록하기',
+                          '지문·테스트·검증 코드',
+                          '참가자·제출·공지 관리',
+                          '스코어보드·순위 공개',
                         ][i]
                       }
                     </small>
@@ -494,16 +473,10 @@ export default function AboutPage() {
       >
         <div className="about-container about-team-grid">
           <div data-reveal>
-            <p className="about-eyebrow">03 / A PLACE FOR EVERY ROLE</p>
-            <h2 id="about-team-heading">
-              각자의 역할에 집중해,
-              <br />
-              함께 만드는 대회.
-            </h2>
+            <p className="about-eyebrow">03 / 운영 권한</p>
+            <h2 id="about-team-heading">역할별 운영 권한</h2>
             <p className="about-section-copy">
-              출제부터 검수, 운영까지.
-              <br />
-              역할에 맞는 권한으로 필요한 도구를 나눕니다.
+              출제·검수·운영에 필요한 기능별로 접근 권한을 설정합니다.
             </p>
             <div className="about-team-chips">
               <span>대학</span>
@@ -514,14 +487,9 @@ export default function AboutPage() {
           <div className="about-role-board" data-reveal>
             {(
               [
-                ['01', '출제자', '문제와 테스트케이스를 다듬고', 'braces'],
-                ['02', '검수자', '직접 풀어보며 완성도를 높이고', 'check'],
-                [
-                  '03',
-                  '운영자',
-                  '참가자와 대회의 흐름을 살피고',
-                  'arrowUpRight',
-                ],
+                ['01', '출제자', '지문과 테스트케이스 작성', 'braces'],
+                ['02', '검수자', '풀이와 테스트 검증', 'check'],
+                ['03', '운영자', '참가자·공지·제출 관리', 'arrowUpRight'],
               ] as const
             ).map(([number, role, description, icon]) => (
               <div className="about-role-row" key={role}>
@@ -536,7 +504,7 @@ export default function AboutPage() {
               </div>
             ))}
             <div className="about-role-bottom">
-              <span className="about-dot" /> 각자의 도구, 하나의 대회
+              <span className="about-dot" /> 기능별 운영 권한 설정
             </div>
           </div>
         </div>
@@ -557,13 +525,9 @@ export default function AboutPage() {
           </div>
           <div>
             <p className="about-eyebrow">
-              WHAT’S NEXT <span className="about-planned">준비 중</span>
+              추가 기능 <span className="about-planned">준비 중</span>
             </p>
-            <h2 id="about-next-heading">
-              더 좋은 문제를 위한,
-              <br />
-              다음 가능성.
-            </h2>
+            <h2 id="about-next-heading">검수 보조 기능</h2>
             <p className="about-section-copy">
               모호한 지문과 테스트케이스의 빈틈을 살피는 AI 검수 보조.
               <br className="about-desktop-break" />
@@ -575,13 +539,9 @@ export default function AboutPage() {
 
       <section className="about-cta" aria-labelledby="about-cta-heading">
         <div className="about-container" data-reveal>
-          <p className="about-eyebrow">YOUR NEXT CONTEST STARTS HERE</p>
-          <h2 id="about-cta-heading">
-            다음 대회,
-            <br />
-            ZOJ에서 시작해 보세요.
-          </h2>
-          <p>문제와 도전에 집중하세요. 운영의 흐름은 함께 만듭니다.</p>
+          <p className="about-eyebrow">대회 운영</p>
+          <h2 id="about-cta-heading">대회 운영 문의</h2>
+          <p>대회 개설과 운영에 관한 문의를 접수합니다.</p>
           <div className="about-actions">
             <Link
               className="about-button about-button-lime"

@@ -17,16 +17,16 @@ export default function AboutTeaser() {
       <div className="relative flex flex-col items-start justify-between gap-7 sm:flex-row sm:items-center">
         <div>
           <p className="mb-3 text-xs font-semibold tracking-[0.16em] text-[#b8f28b]">
-            FROM ZERO TO YOUR CONTEST
+            ZERONE ONLINE JUDGE
           </p>
           <h2
             id="about-teaser-heading"
             className="text-2xl leading-snug font-bold tracking-tight sm:text-3xl"
           >
-            좋은 문제에서, 멋진 대회까지.
+            ZOJ 소개
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            대회 현장에서 시작한 ZOJ의 이야기를 만나보세요.
+            대회 운영 기능과 서비스 운영 이력을 확인합니다.
           </p>
         </div>
         <Link

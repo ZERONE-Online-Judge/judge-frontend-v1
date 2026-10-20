@@ -1,7 +1,7 @@
 export const SITE_ORIGIN = 'https://zoj.kr';
 export const SITE_TITLE = 'ZOJ · Zerone Online Judge | 프로그래밍 대회 플랫폼';
 export const SITE_DESCRIPTION =
-  'ZOJ는 문제 준비부터 코드 제출, 자동 채점, 스코어보드와 결과 공개까지 이어지는 프로그래밍 대회 플랫폼입니다. 대회를 만나고 새로운 도전을 시작하세요.';
+  'ZOJ는 프로그래밍 대회의 문제, 참가자, 코드 제출, 자동 채점과 스코어보드를 관리하는 플랫폼입니다.';
 
 export type PageMetadata = {
   path: string;
@@ -15,15 +15,15 @@ export type PageMetadata = {
 const PUBLIC_PAGES: Record<string, [string, string]> = {
   '/': [
     'ZOJ · Zerone Online Judge | 프로그래밍 대회 플랫폼',
-    'ZOJ는 문제 준비부터 코드 제출, 자동 채점, 스코어보드와 결과 공개까지 이어지는 프로그래밍 대회 플랫폼입니다. 대회를 만나고 새로운 도전을 시작하세요.',
+    'ZOJ는 프로그래밍 대회의 문제, 참가자, 코드 제출, 자동 채점과 스코어보드를 관리하는 플랫폼입니다.',
   ],
   '/about': [
     'ZOJ 소개 | 프로그래밍 대회의 준비부터 결과 공개까지',
-    'Zerone Online Judge를 소개합니다. 문제와 테스트케이스 검수, 참가자 관리, 격리된 자동 채점, 실시간 스코어보드와 순위 발표를 한곳에서 만나보세요.',
+    'ZOJ의 문제·테스트 검증, 참가자 관리, 자동 채점, 스코어보드와 결과 공개 기능을 소개합니다.',
   ],
   '/editor': [
-    'ZOJ Editor 소개 | 문제 제작과 ZOJ 대회를 잇는 공간',
-    'ZOJ Editor는 프로그래밍 대회 출제팀을 위한 문제 제작 플랫폼입니다. Polygon의 제작 흐름을 바탕으로 문제 자료와 검수 기록을 관리하고, ZOJ 실제 채점기에서의 검증과 대회 등록을 연결합니다.',
+    'ZOJ Editor 소개 | 문제 제작과 검증',
+    'ZOJ Editor는 지문·테스트·풀이와 검수 기록을 관리하는 문제 제작 도구입니다. ZOJ 채점기 검증, 대회 문제 등록과 패키지 내보내기를 지원합니다.',
   ],
   '/contests': [
     '프로그래밍 대회 목록 | ZOJ',
@@ -31,7 +31,7 @@ const PUBLIC_PAGES: Record<string, [string, string]> = {
   ],
   '/notices': [
     '공지사항 | ZOJ',
-    'ZOJ의 새로운 소식과 서비스 안내를 확인하세요. 서비스 업데이트, 점검과 긴급 안내 등 알아두면 좋은 공지사항을 한곳에 모았습니다.',
+    'ZOJ의 서비스 업데이트, 점검과 긴급 공지사항을 확인합니다.',
   ],
   '/judge-status': [
     '채점 서버 상태 | ZOJ',

@@ -71,7 +71,7 @@ const status = {
 
 test('unloaded judge status shows unknown counts instead of fabricated zeros or a connected state', () => {
   const html = render(undefined, { isFetching: true });
-  assert.match(html, /채점 서버를 만나고 있어요/);
+  assert.match(html, /채점 서버 연결 확인 중/);
   assert.equal((html.match(/<strong>—<\/strong>/g) || []).length, 1);
   assert.doesNotMatch(html, /서버 연결됨/);
 });
@@ -83,7 +83,7 @@ test('public judge status only presents server connectivity, even with cached wo
     total_queue_depth: 2,
     allocation_policy: 'internal claim FIFO',
   });
-  assert.match(html, /채점 서버가 연결되어 있어요/);
+  assert.match(html, /채점 서버 연결됨/);
   assert.match(html, /<strong>5<\/strong>/);
   assert.equal((html.match(/class="judge-metric"/g) || []).length, 1);
   assert.doesNotMatch(
@@ -95,7 +95,7 @@ test('public judge status only presents server connectivity, even with cached wo
 
 test('zero connected servers and stale data never claim a live connection', () => {
   const offline = render({ ...status, active_node_count: 0 });
-  assert.match(offline, /채점 서버를 기다리고 있어요/);
+  assert.match(offline, /연결된 채점 서버 없음/);
   assert.doesNotMatch(offline, /서버 연결됨/);
   const stale = render(status, { isError: true });
   assert.match(stale, /아래 수치는 마지막으로 확인한 상태/);

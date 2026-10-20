@@ -20,24 +20,24 @@ import './MainPage.css';
 const shortcuts = [
   {
     number: '01',
-    title: 'ZOJ가 궁금하다면',
-    description: '대회 현장에서 시작된 우리의 이야기.',
+    title: '서비스 소개',
+    description: 'ZOJ의 기능과 운영 이력입니다.',
     to: '/about',
     label: 'ZOJ 소개',
     symbol: 'asterisk',
   },
   {
     number: '02',
-    title: '첫 참가를 준비한다면',
-    description: '로그인부터 제출까지, 차근차근 함께해요.',
+    title: '참가 안내',
+    description: '로그인, 문제 제출, 결과 확인 방법입니다.',
     to: '/support',
     label: '참가 방법',
     symbol: 'arrowUpRight',
   },
   {
     number: '03',
-    title: '내 코드가 기다려진다면',
-    description: '서버 상태부터 판정과 점수 계산까지 알아보세요.',
+    title: '채점 안내',
+    description: '채점 서버 상태와 판정 기준을 확인합니다.',
     to: '/judge-status',
     label: '채점 안내',
     symbol: 'code',
@@ -114,8 +114,8 @@ export default function MainPage() {
       <section className="experience-container experience-section home-contests">
         <div className="experience-section-heading">
           <div>
-            <p className="experience-eyebrow">FIND YOUR NEXT CHALLENGE</p>
-            <h2>지금 만나는 대회</h2>
+            <p className="experience-eyebrow">CONTESTS</p>
+            <h2>대회 목록</h2>
           </div>
           <Link className="experience-text-link" to="/contests">
             전체 대회 보기 <ExperienceArrow />
@@ -123,12 +123,12 @@ export default function MainPage() {
         </div>
         {contestsQuery.isPending ? (
           <p className="home-feed-message" role="status">
-            대회 일정을 불러오고 있어요.
+            대회 일정을 불러오는 중입니다.
           </p>
         ) : null}
         {contestsQuery.isError ? (
           <div className="home-feed-message is-error" role="alert">
-            <p>대회 정보를 불러오지 못했어요.</p>
+            <p>대회 정보를 불러오지 못했습니다.</p>
             <button
               type="button"
               disabled={contestsQuery.isFetching}
@@ -166,25 +166,17 @@ export default function MainPage() {
             <span aria-hidden="true">
               <InterfaceIcon name="asterisk" />
             </span>
-            <h3>새로운 도전을 준비하고 있어요.</h3>
-            <p>대회가 공개되면 이곳에서 가장 먼저 만나보세요.</p>
+            <h3>공개된 대회가 없습니다.</h3>
+            <p>공개된 대회는 이 목록에 표시됩니다.</p>
           </div>
         ) : null}
       </section>
       <section className="experience-soft-section">
         <div className="experience-container experience-section home-news">
           <div>
-            <p className="experience-eyebrow">WHAT’S NEW</p>
-            <h2>
-              ZOJ의
-              <br />
-              새로운 이야기<span>.</span>
-            </h2>
-            <p>
-              참가 전에 알아두면 좋은 소식과
-              <br />
-              서비스의 변화를 전해 드려요.
-            </p>
+            <p className="experience-eyebrow">NOTICES</p>
+            <h2>공지사항</h2>
+            <p>서비스 업데이트와 점검 안내입니다.</p>
             <Link to="/notices" className="experience-text-link">
               공지사항 모두 보기 <ExperienceArrow />
             </Link>
@@ -192,12 +184,12 @@ export default function MainPage() {
           <div>
             {noticesQuery.isPending ? (
               <p className="home-feed-message" role="status">
-                새로운 소식을 불러오고 있어요.
+                공지사항을 불러오는 중입니다.
               </p>
             ) : null}
             {noticesQuery.isError ? (
               <div className="home-feed-message is-error" role="alert">
-                <p>공지사항을 불러오지 못했어요.</p>
+                <p>공지사항을 불러오지 못했습니다.</p>
                 <button
                   type="button"
                   disabled={noticesQuery.isFetching}
@@ -236,8 +228,8 @@ export default function MainPage() {
               </ul>
             ) : !noticesQuery.isPending && !noticesQuery.isError ? (
               <div className="home-feed-message">
-                <h3>새로운 소식을 준비하고 있어요.</h3>
-                <p>궁금한 점은 지원 안내에서 먼저 확인해 보세요.</p>
+                <h3>등록된 공지사항이 없습니다.</h3>
+                <p>이용 방법은 지원 안내에서 확인할 수 있습니다.</p>
                 <Link to="/support" className="experience-text-link">
                   지원 안내 <ExperienceArrow />
                 </Link>

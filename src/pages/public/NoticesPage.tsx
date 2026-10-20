@@ -146,16 +146,10 @@ export default function NoticesPage() {
       <PublicHero className="notices-hero">
         <div className="experience-hero-grid">
           <div className="experience-hero-copy">
-            <p className="experience-eyebrow">KEEP IN THE LOOP</p>
-            <h1>
-              새로운 소식,
-              <br />
-              놓치지 않도록<span className="experience-lime">.</span>
-            </h1>
+            <p className="experience-eyebrow">ZOJ</p>
+            <h1>공지사항</h1>
             <p className="experience-lead">
-              서비스 소식부터 꼭 알아둘 안내까지.
-              <br />
-              ZOJ의 이야기를 한곳에서 확인하세요.
+              서비스 업데이트, 점검과 긴급 안내를 확인합니다.
             </p>
             <a className="experience-text-link" href="#notice-list">
               공지사항 살펴보기 <ExperienceArrow />
@@ -177,17 +171,13 @@ export default function NoticesPage() {
                 <span />
                 <span />
               </div>
-              <div className="notices-art-stamp">
-                새로운 소식이
-                <br />
-                도착했어요.
-              </div>
+              <div className="notices-art-stamp">서비스 공지</div>
             </div>
             <div className="notices-art-tag">
               <span>
                 <InterfaceIcon name="asterisk" />
               </span>{' '}
-              알아두면 좋은 이야기
+              서비스 공지
             </div>
             <span className="notices-art-spark">
               <InterfaceIcon name="sparkle" />
@@ -202,13 +192,13 @@ export default function NoticesPage() {
       >
         <div className="experience-section-heading">
           <div>
-            <p className="experience-eyebrow">FROM ZOJ</p>
+            <p className="experience-eyebrow">NOTICES</p>
             <h2 id="notice-list-heading" tabIndex={-1}>
               공지사항
             </h2>
           </div>
           <p>
-            긴급한 안내를 먼저 보여드려요.
+            긴급 공지를 먼저 표시합니다.
             <br />
             제목을 누르면 자세한 내용을 읽을 수 있습니다.
           </p>
@@ -270,8 +260,8 @@ export default function NoticesPage() {
             <div>
               <strong>
                 {noticesQuery.data
-                  ? '새로운 소식을 확인하지 못했어요.'
-                  : '공지사항을 불러오지 못했어요.'}
+                  ? '공지사항을 불러오지 못했습니다.'
+                  : '공지사항을 불러오지 못했습니다.'}
               </strong>
               <p>
                 {noticesQuery.data
@@ -299,8 +289,8 @@ export default function NoticesPage() {
             <div>
               <strong>
                 {missingRequested
-                  ? '요청한 공지를 찾을 수 없어요.'
-                  : '선택한 공지가 검색 조건에 가려져 있어요.'}
+                  ? '요청한 공지가 없습니다.'
+                  : '선택한 공지가 검색 조건에 포함되지 않습니다.'}
               </strong>
               <p>
                 {missingRequested
@@ -315,7 +305,7 @@ export default function NoticesPage() {
         ) : null}
         {noticesQuery.isPending ? (
           <div className="notices-loading" role="status">
-            <span>새로운 소식을 불러오고 있어요.</span>
+            <span>공지사항을 불러오는 중입니다.</span>
             <div aria-hidden="true">
               {[0, 1, 2].map((i) => (
                 <div key={i}>
@@ -357,13 +347,13 @@ export default function NoticesPage() {
                 </span>
                 <h3>
                   {ordered.length
-                    ? '찾으시는 공지가 없어요.'
-                    : '아직 등록된 소식이 없어요.'}
+                    ? '조건에 맞는 공지가 없습니다.'
+                    : '등록된 공지사항이 없습니다.'}
                 </h3>
                 <p>
                   {ordered.length
                     ? '다른 검색어로 찾아보거나 전체 공지를 확인해 주세요.'
-                    : '새로운 소식이 등록되면 이곳에서 안내해 드릴게요.'}
+                    : '등록된 공지사항이 없습니다.'}
                 </p>
                 {ordered.length ? (
                   <button
@@ -396,12 +386,8 @@ export default function NoticesPage() {
         <div className="experience-container notices-bottom">
           <ExperienceReveal className="notices-bottom-grid">
             <div>
-              <p className="experience-eyebrow">LOOKING FOR SOMETHING?</p>
-              <h2>
-                대회 소식과 이용 안내도
-                <br />
-                가까이에 있어요.
-              </h2>
+              <p className="experience-eyebrow">관련 안내</p>
+              <h2>대회 공지와 이용안내</h2>
               <p>
                 대회별 공지와 문제 관련 질문은 해당 대회 게시판에서 확인해
                 주세요.

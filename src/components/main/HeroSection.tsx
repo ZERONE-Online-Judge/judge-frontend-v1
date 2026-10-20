@@ -11,7 +11,7 @@ export default function HeroSection({
 }: HeroSectionProps) {
   const typedDescription = useTypingText(description);
   const isTyping = typedDescription.length < description.length;
-  const displayDescription = keepHeroCopyPhrasesTogether(typedDescription);
+  const displayDescription = typedDescription;
 
   return (
     <section className="relative min-h-[26rem] w-full overflow-hidden sm:min-h-[30rem] lg:min-h-[38rem]">
@@ -79,13 +79,6 @@ function HeroTitle({ headline }: { headline: string }) {
         </span>
       </span>
     </h1>
-  );
-}
-
-function keepHeroCopyPhrasesTogether(text: string) {
-  return text.replace(
-    '완벽한 대회를 완성해보세요',
-    '완벽한\u00a0대회를\u00a0완성해보세요',
   );
 }
 

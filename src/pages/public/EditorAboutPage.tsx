@@ -110,7 +110,7 @@ function VerificationPreview() {
 function CollaborationPreview() {
   return (
     <div className="editor-about-window">
-      <WindowTitle title="리비전 / 함께 완성하는 문제" />
+      <WindowTitle title="리비전 / 변경 이력" />
       <div className="editor-about-demo-body">
         <div className="editor-about-revision">
           <span className="editor-about-avatar" aria-hidden="true">
@@ -199,7 +199,7 @@ const comparison = [
   {
     subject: '풀이 검증 환경',
     polygon: 'Polygon의 채점 환경',
-    editor: '제작용 격리 실행 또는 ZOJ 실제 채점기 선택',
+    editor: 'ZOJ 실제 채점기',
   },
   {
     subject: '완성한 문제의 전달',
@@ -221,15 +221,11 @@ export default function EditorAboutPage() {
             <p className="experience-eyebrow editor-about-eyebrow">
               <span className="editor-about-new">NEW</span> ZOJ EDITOR
             </p>
-            <h1>
-              문제 제작에서,
-              <br />
-              ZOJ 대회까지<span className="experience-lime">.</span>
-            </h1>
+            <h1>ZOJ Editor 소개</h1>
             <p className="experience-lead">
-              ZOJ Editor는 프로그래밍 대회 출제팀을 위한 문제 제작 플랫폼입니다.
-              문제를 준비하고 검수하는 과정이, 실제 ZOJ 대회로 이어지도록
-              만듭니다.
+              지문·테스트·풀이를 작성하고 ZOJ 채점기로 검증하는 문제 제작
+              도구입니다. 검증된 문제는 권한이 있는 ZOJ 대회에 등록할 수
+              있습니다.
             </p>
             <a className="editor-about-entry-card" href="https://editor.zoj.kr">
               <span className="editor-about-entry-icon" aria-hidden="true">
@@ -237,7 +233,7 @@ export default function EditorAboutPage() {
               </span>
               <span className="editor-about-entry-copy">
                 <strong>Editor 바로가기</strong>
-                <span>문제 제작과 검수를 시작하세요.</span>
+                <span>문제·테스트·풀이 관리</span>
               </span>
               <ExperienceArrow />
             </a>
@@ -251,7 +247,7 @@ export default function EditorAboutPage() {
           <div className="editor-about-hero-preview">
             <StatementPreview />
             <p className="editor-about-preview-caption">
-              대회가 시작되기 전, 출제팀의 작업 공간 · 설명용 예시
+              지문 편집 화면 · 설명용 예시
             </p>
           </div>
         </div>
@@ -264,14 +260,8 @@ export default function EditorAboutPage() {
         <ExperienceReveal>
           <div className="editor-about-feature">
             <div className="editor-about-feature-copy">
-              <p className="experience-eyebrow">
-                01 / A HOME FOR THE PROBLEM TEAM
-              </p>
-              <h2>
-                대회가 시작되기 전,
-                <br />
-                출제팀이 모이는 곳.
-              </h2>
+              <p className="experience-eyebrow">01 / 용도</p>
+              <h2>프로그래밍 대회 문제 제작</h2>
               <p>
                 대회에 낼 문제는 지문만으로 완성되지 않습니다. 어떤 입력을
                 허용할지, 무엇을 정답으로 판단할지, 시간과 메모리 제한은
@@ -313,14 +303,8 @@ export default function EditorAboutPage() {
         <div className="experience-container experience-section">
           <ExperienceReveal className="editor-about-feature is-reversed">
             <div className="editor-about-feature-copy">
-              <p className="experience-eyebrow">
-                02 / ONE PROBLEM, A SHARED REFERENCE
-              </p>
-              <h2>
-                팀이 같은 문제를,
-                <br />
-                같은 기준으로.
-              </h2>
+              <p className="experience-eyebrow">02 / 협업과 변경 이력</p>
+              <h2>문제 리비전과 검수 기록</h2>
               <p>
                 출제자가 수정한 지문과 검수자가 확인한 테스트가 서로 다른
                 버전이면, 검수를 마쳤어도 대회에 어떤 자료를 사용할지 다시
@@ -333,9 +317,7 @@ export default function EditorAboutPage() {
                 판단할 수 있습니다.
               </p>
               <div className="editor-about-purpose-note">
-                <strong>
-                  문제를 보관하는 곳이면서, 검수의 근거가 쌓이는 곳.
-                </strong>
+                <strong>리비전별 문제 자료와 실행 기록 보관</strong>
                 <p>출제와 검수가 같은 작업물을 바라보도록 연결합니다.</p>
               </div>
             </div>
@@ -346,14 +328,8 @@ export default function EditorAboutPage() {
 
       <section className="experience-container experience-section editor-about-comparison">
         <ExperienceReveal>
-          <p className="experience-eyebrow">
-            03 / FAMILIAR FOUNDATIONS, CONNECTED TO ZOJ
-          </p>
-          <h2>
-            익숙한 제작 방식에,
-            <br />
-            ZOJ로 이어지는 흐름.
-          </h2>
+          <p className="experience-eyebrow">03 / ZOJ 연동</p>
+          <h2>제작 기능과 ZOJ 연동</h2>
           <p className="editor-about-comparison-copy">
             Polygon처럼 지문·생성기·풀이·검증을 함께 관리하는 방식은 프로그래밍
             대회 문제 제작의 중요한 기반입니다. ZOJ Editor는 이 제작 흐름을
@@ -400,7 +376,7 @@ export default function EditorAboutPage() {
               <p>출제·검수·배포의 흐름을 한국어 화면에서 따라갑니다.</p>
             </article>
             <article>
-              <span>대회까지 이어지는 자료</span>
+              <span>대회 문제 등록</span>
               <p>
                 검증한 문제를 ZOJ의 참가 유형과 문제 번호에 맞춰 등록합니다.
               </p>
@@ -432,22 +408,16 @@ export default function EditorAboutPage() {
         <div className="experience-container experience-section">
           <ExperienceReveal className="editor-about-feature">
             <div className="editor-about-feature-copy">
-              <p className="experience-eyebrow">
-                04 / REVIEW WITH THE CONTEST IN MIND
-              </p>
-              <h2>
-                문제가 쓰일 환경에서,
-                <br />
-                미리 확인하는 검수.
-              </h2>
+              <p className="experience-eyebrow">04 / 풀이 검증</p>
+              <h2>ZOJ 채점기로 풀이 검증</h2>
               <p>
                 정답 풀이가 통과하는지와 함께, 틀려야 하는 풀이가 제대로
                 걸러지는지도 확인해야 합니다. 제한 시간과 메모리 역시 실제
                 대회의 채점 기준에 맞아야 합니다.
               </p>
               <p>
-                Editor에서 ZOJ 실제 채점기를 선택하면, 풀이 검증 작업이 ZOJ 채점
-                큐로 전달됩니다. 대회에 사용하는 채점 환경에서 나온 판정과
+                Editor의 풀이 검증과 스트레스 테스트는 ZOJ 실제 채점기에서
+                실행됩니다. 대회에 사용하는 채점 환경에서 나온 판정과
                 시간·메모리를 확인하며 문제의 기준을 다듬을 수 있습니다.
               </p>
               <p className="editor-about-caution">
@@ -463,14 +433,8 @@ export default function EditorAboutPage() {
 
       <section className="experience-container experience-section editor-about-publish">
         <ExperienceReveal>
-          <p className="experience-eyebrow">
-            05 / A HANDOFF THAT REACHES THE CONTEST
-          </p>
-          <h2>
-            준비한 자료가,
-            <br />
-            실제 대회 문제가 되도록.
-          </h2>
+          <p className="experience-eyebrow">05 / 문제 등록과 내보내기</p>
+          <h2>ZOJ 대회 등록과 패키지 내보내기</h2>
           <p className="editor-about-publish-copy">
             제작과 운영 사이에는 문제를 검증하고 전달하는 단계가 있습니다.
             Editor에서 공유한 리비전의 자료를 패키지로 만들고, ZOJ 대회의 문제로
@@ -500,13 +464,11 @@ export default function EditorAboutPage() {
               </span>
               <h3>제작한 문제를 ZOJ 대회로</h3>
               <p>
-                문제 소유자는 검증된 ZOJ 패키지를 업로드 권한이 있는 대회에 직접
-                등록할 수 있습니다. 대회·참가 유형·문제 번호를 선택해 참가자가
-                풀 문제로 연결합니다.
+                문제 전송 권한과 대회 문제 등록 권한이 있으면 검증된 ZOJ
+                패키지를 대회에 등록할 수 있습니다. 대회·참가 유형·문제 번호를
+                선택해 참가자가 풀 문제로 연결합니다.
               </p>
-              <span className="editor-about-pill">
-                대회 운영으로 이어지는 제작
-              </span>
+              <span className="editor-about-pill">ZOJ 대회에 직접 등록</span>
             </article>
             <article>
               <span className="editor-about-publish-symbol" aria-hidden="true">
@@ -518,7 +480,7 @@ export default function EditorAboutPage() {
                 Editor / Polygon 형식의 내보내기를 지원해, 작업 자료를 파일로
                 전달하거나 다시 가져올 수 있습니다.
               </p>
-              <span className="editor-about-pill">제작 자료의 보관과 전달</span>
+              <span className="editor-about-pill">ZIP 내보내기</span>
             </article>
           </div>
         </ExperienceReveal>
@@ -526,15 +488,9 @@ export default function EditorAboutPage() {
 
       <section className="editor-about-cta">
         <ExperienceReveal className="experience-container">
-          <p className="experience-eyebrow">YOUR PROBLEM, YOUR NEXT CONTEST</p>
-          <h2>
-            지금 준비하는 대회,
-            <br />
-            문제부터 함께 시작해요.
-          </h2>
-          <p>
-            출제와 검수는 ZOJ Editor에서. 준비한 문제는 ZOJ 대회로 이어집니다.
-          </p>
+          <p className="experience-eyebrow">ZOJ EDITOR</p>
+          <h2>ZOJ Editor</h2>
+          <p>ZOJ 계정으로 로그인해 문제를 제작하고 검증할 수 있습니다.</p>
           <a className="experience-button is-lime" href="https://editor.zoj.kr">
             ZOJ Editor로 이동 <ExperienceArrow />
           </a>

@@ -17,6 +17,6 @@ export const mainPageContent = {
     imageAlt: 'ZERONE Online Judge 메인 배너',
     headline: 'ZERONE ONLINE JUDGE',
     description:
-      '코딩 대회를 여는 스마트한 방법, 소규모 스터디부터 대회까지, 완벽한 대회를 완성해보세요',
+      '프로그래밍 대회의 문제, 참가자, 제출, 채점과 스코어보드를 관리합니다.',
   },
 } satisfies MainPageContent;

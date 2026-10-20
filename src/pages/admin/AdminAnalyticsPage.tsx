@@ -322,7 +322,7 @@ function AnalyticsContent({ token }: { token: string }) {
           <div className="analytics-note" role="note">
             {report.first_event_at
               ? `페이지 방문 통계는 ${koreaDate(new Date(report.first_event_at))}부터 남아 있는 기록으로 집계합니다.`
-              : '아직 수집된 방문 기록이 없습니다. 이 기능이 반영된 이후의 방문부터 차곡차곡 쌓입니다.'}{' '}
+              : '수집된 방문 기록이 없습니다. 통계 수집이 시작된 이후의 방문만 표시합니다.'}{' '}
             상세 기록은 {report.retention_days}일 보관합니다. 브라우저의 추적
             차단 등에 따라 실제 이용량과 차이가 있을 수 있습니다.
           </div>

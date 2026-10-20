@@ -120,7 +120,7 @@ export default function ContestPublicOverview({
     resourceCards.push({
       path: 'problems',
       title: '문제집',
-      description: '대회에서 출제된 문제를 만나보세요.',
+      description: '대회에 출제된 문제를 확인합니다.',
       icon: 'book',
     });
   }
@@ -199,14 +199,14 @@ export default function ContestPublicOverview({
             <h1 id="contest-public-title">{contest.title}</h1>
             <p className="contest-public-intro">
               {ended
-                ? '함께 도전했던 시간, 대회의 이야기를 만나보세요.'
+                ? '종료된 대회입니다. 자료 공개 범위는 대회 설정을 따릅니다.'
                 : phase === 'running'
-                  ? '지금, 각자의 생각이 정답을 향하고 있습니다.'
-                  : '새로운 도전을 준비하는 당신을 기다립니다.'}
+                  ? '대회가 진행 중입니다.'
+                  : '시작 예정인 대회입니다.'}
             </p>
           </div>
           <div className="contest-public-hero-bottom">
-            <span>{ended ? 'CONTEST ARCHIVE' : 'YOUR NEXT CHALLENGE'}</span>
+            <span>{ended ? 'CONTEST ARCHIVE' : 'CONTEST'}</span>
             <span className="contest-public-host-label">
               주최 · {contest.organization_name || '미정'}
             </span>
@@ -254,7 +254,7 @@ export default function ContestPublicOverview({
           <div className="contest-public-stat">
             <span className="contest-public-fact-label">
               <OverviewIcon name="people" />
-              {ended ? '함께한 참가자' : '등록된 참가자'}
+              {ended ? '참가자' : '등록된 참가자'}
             </span>
             <strong>
               {isKnownCount(participantCount) ? (
@@ -281,7 +281,7 @@ export default function ContestPublicOverview({
           >
             <p className="contest-public-section-label">ABOUT THE CONTEST</p>
             <h2 id="contest-public-about">
-              대회를 소개합니다<span aria-hidden="true">.</span>
+              대회 소개<span aria-hidden="true">.</span>
             </h2>
             {contest.overview?.trim() ? (
               <MarkdownPreview statement={contest.overview} />

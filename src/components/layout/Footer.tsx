@@ -16,7 +16,7 @@ const footerGroups = [
     ],
   },
   {
-    title: '도움이 필요할 때',
+    title: '지원',
     links: [
       { label: '이용안내', href: '/support' },
       { label: '자주 묻는 질문', href: '/support/help' },
@@ -72,11 +72,7 @@ export default function Footer() {
                 ZOJ<span>Zerone Online Judge</span>
               </span>
             </Link>
-            <p>
-              도전하는 순간부터,
-              <br />
-              정답을 만나는 순간까지<span>.</span>
-            </p>
+            <p>프로그래밍 대회 운영 플랫폼</p>
             <a
               className="zoj-footer-contact"
               href="mailto:zoj.service@gmail.com"
@@ -108,7 +104,7 @@ export default function Footer() {
         <details className="zoj-footer-team">
           <summary>
             <span>
-              함께 만든 사람들 <span>TEAM ZERONE</span>
+              제작진 <span>TEAM ZERONE</span>
             </span>
             <span className="zoj-footer-plus" aria-hidden="true">
               +

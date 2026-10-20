@@ -86,16 +86,10 @@ export default function SupportGuidePage() {
       <PublicHero className="support-hero">
         <div className="experience-hero-grid">
           <div className="experience-hero-copy">
-            <p className="experience-eyebrow">HERE FOR YOUR NEXT STEP</p>
-            <h1>
-              도전은 가볍게.
-              <br />
-              도움은 가까이<span className="experience-lime">.</span>
-            </h1>
+            <p className="experience-eyebrow">ZOJ</p>
+            <h1>지원 안내</h1>
             <p className="experience-lead">
-              첫 로그인부터 마지막 제출까지.
-              <br />
-              당신의 대회가 편안하게 이어지도록.
+              이용 방법, 참가 규정, 자주 묻는 질문과 문의 양식을 제공합니다.
             </p>
             <a className="experience-text-link" href="#support-content">
               필요한 안내 찾아보기 <ExperienceArrow />
@@ -111,8 +105,8 @@ export default function SupportGuidePage() {
             </div>
             <div className="support-art-card front">
               <span className="support-art-mark">?</span>
-              <strong>혼자 고민하지 마세요.</strong>
-              <p>다음 한 걸음, 함께 찾아요.</p>
+              <strong>이용안내</strong>
+              <p>로그인·대회 참가·코드 제출</p>
               <div>
                 <span>로그인</span>
                 <span>대회 참여</span>

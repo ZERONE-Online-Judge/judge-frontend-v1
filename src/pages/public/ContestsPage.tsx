@@ -39,17 +39,17 @@ type ContestSection = {
 
 const contestSections: Omit<ContestSection, 'contests'>[] = [
   {
-    description: '지금, 새로운 답을 찾아가고 있어요.',
+    description: '현재 진행 중인 대회입니다.',
     key: 'running',
     title: '진행 중인 대회',
   },
   {
-    description: '다음 도전을 미리 살펴보세요.',
+    description: '시작 예정인 대회입니다.',
     key: 'upcoming',
     title: '시작을 기다리는 대회',
   },
   {
-    description: '지난 도전의 기록을 만나보세요. 공개 범위는 대회마다 달라요.',
+    description: '종료된 대회입니다. 자료 공개 범위는 대회 설정을 따릅니다.',
     key: 'ended',
     title: '종료된 대회',
   },
@@ -202,16 +202,10 @@ export default function ContestsPage() {
       <PublicHero className="directory-hero">
         <div className="experience-hero-grid">
           <div className="experience-hero-copy">
-            <p className="experience-eyebrow">YOUR NEXT CHALLENGE</p>
-            <h1>
-              다음 도전이
-              <br />
-              시작되는 곳<span className="experience-lime">.</span>
-            </h1>
+            <p className="experience-eyebrow">CONTESTS</p>
+            <h1>대회 목록</h1>
             <p className="experience-lead">
-              새로운 문제, 함께하는 몰입의 시간.
-              <br />
-              당신의 다음 대회를 만나보세요.
+              진행 중인 대회, 예정된 대회와 종료된 대회를 조회합니다.
             </p>
             <a className="experience-text-link" href="#contest-directory">
               대회 둘러보기 <ExperienceArrow />
@@ -234,7 +228,7 @@ export default function ContestsPage() {
                 <strong>CODE.</strong>
               </p>
               <div className="directory-art-ticket-bottom">
-                <span>YOUR NEXT CHALLENGE</span>
+                <span>CONTESTS</span>
                 <i />
               </div>
             </div>
@@ -243,7 +237,7 @@ export default function ContestsPage() {
               <span>
                 <InterfaceIcon name="asterisk" />
               </span>{' '}
-              새로운 도전을 기다리며
+              대회 일정
             </div>
           </div>
         </div>
@@ -254,13 +248,13 @@ export default function ContestsPage() {
       >
         <div className="experience-section-heading">
           <div>
-            <p className="experience-eyebrow">FIND YOUR CONTEST</p>
-            <h2>어떤 도전을 해볼까요?</h2>
+            <p className="experience-eyebrow">대회 검색</p>
+            <h2>대회 목록</h2>
           </div>
           <p>
             참가하거나 운영하는 대회는
             <br />
-            ‘내 대회’에서 모아볼 수 있어요.
+            ‘내 대회’에서 모아볼 수 있습니다.
           </p>
         </div>
         <div className="directory-toolbar">
@@ -375,10 +369,10 @@ export default function ContestsPage() {
             <span aria-hidden="true">
               <InterfaceIcon name="arrowUpRight" />
             </span>
-            <h3>내 대회, 로그인하고 만나세요.</h3>
+            <h3>내 대회 조회</h3>
             <p>
               등록된 이메일로 로그인하면 참가 중인 대회와 운영하는 대회를 확인할
-              수 있어요.
+              수 있습니다.
             </p>
             <Link
               className="experience-button is-dark"
@@ -391,7 +385,7 @@ export default function ContestsPage() {
           <>
             {waiting && !contests.length ? (
               <div className="directory-loading" role="status">
-                <p>대회 일정을 불러오고 있어요.</p>
+                <p>대회 일정을 불러오는 중입니다.</p>
                 <div aria-hidden="true">
                   {[0, 1, 2].map((i) => (
                     <div key={i}>
@@ -463,17 +457,17 @@ export default function ContestsPage() {
                 </span>
                 <h3>
                   {search || phaseFilter !== 'all'
-                    ? '조건에 맞는 대회가 없어요.'
+                    ? '조건에 맞는 대회가 없습니다.'
                     : filter === 'mine'
-                      ? '아직 연결된 대회가 없어요.'
-                      : '새로운 대회를 준비하고 있어요.'}
+                      ? '등록된 대회가 없습니다.'
+                      : '공개된 대회가 없습니다.'}
                 </h3>
                 <p>
                   {search || phaseFilter !== 'all'
                     ? '다른 검색어나 일정으로 다시 찾아보세요.'
                     : filter === 'mine'
                       ? '참가 등록에 사용한 이메일이 맞는지 확인해 주세요.'
-                      : '대회가 공개되면 이곳에서 안내해 드릴게요.'}
+                      : '공개된 대회는 이 목록에 표시됩니다.'}
                 </p>
                 {search || phaseFilter !== 'all' ? (
                   <button
@@ -501,12 +495,11 @@ export default function ContestsPage() {
         <div className="experience-container directory-guide">
           <ExperienceReveal className="directory-guide-inner">
             <div>
-              <p className="experience-eyebrow">READY WHEN YOU ARE</p>
-              <h2>첫 대회라도, 괜찮아요.</h2>
+              <p className="experience-eyebrow">참가 안내</p>
+              <h2>대회 참가 방법</h2>
               <p>
-                로그인부터 코드 제출, 결과 확인까지.
-                <br />
-                이용안내에서 차근차근 살펴보세요.
+                로그인, 코드 제출, 결과 확인 방법은 이용안내에서 확인할 수
+                있습니다.
               </p>
             </div>
             <Link className="experience-button is-dark" to="/support">

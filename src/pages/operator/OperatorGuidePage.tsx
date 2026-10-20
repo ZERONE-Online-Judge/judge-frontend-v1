@@ -413,7 +413,7 @@ function GuideContent({
         <footer className="og-footer">
           <GuideIcon />
           <div>
-            <strong>운영은 함께, 확인은 차근차근.</strong>
+            <strong>설정 변경 시 확인 사항</strong>
             <p>
               설정 변경 전 영향 범위를 확인하고, 필요한 안내를 담당 운영진과
               공유하세요.

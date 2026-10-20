@@ -671,7 +671,7 @@ export const operatorGuideCategories: GuideCategory[] = [
   {
     id: 'submissions',
     label: '제출 · 채점 결과',
-    title: '제출 한 건의 여정을 따라가기',
+    title: '제출 처리 과정',
     route: 'submissions',
     permission: 'contest.submission.view',
     description:

@@ -2,59 +2,79 @@ import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import '@/pages/public/PublicExperience.css';
 import './HomeHero.css';
+import HomeSecrets from './HomeSecrets';
+import { useHomeSecrets } from './useHomeSecrets';
 
 export default function HomeHero() {
+  const { secret, tap, close } = useHomeSecrets();
   return (
     <section className="home-launch" aria-labelledby="home-launch-title">
       <div className="home-launch-aurora" aria-hidden="true" />
       <div className="experience-container">
         <div className="home-launch-heading">
-          <p>상상이 코드가 되고, 코드가 가능성이 되는 곳</p>
-          <h1 id="home-launch-title">
-            당신의 다음 정답은,
-            <br />
-            <span>여기서 시작됩니다.</span>
-          </h1>
+          <p>ZERONE ONLINE JUDGE</p>
+          <h1 id="home-launch-title">프로그래밍 대회 플랫폼</h1>
+          <p className="home-launch-description">
+            대회 참가, 코드 제출과 자동 채점
+          </p>
         </div>
-        <div className="home-universe" aria-hidden="true">
-          <div className="home-universe-halo" />
-          <div className="home-orbit home-orbit-one">
+        <div className="home-universe">
+          <div className="home-universe-halo" aria-hidden="true" />
+          <div className="home-orbit home-orbit-one" aria-hidden="true">
             <i />
           </div>
-          <div className="home-orbit home-orbit-two">
+          <div className="home-orbit home-orbit-two" aria-hidden="true">
             <i />
           </div>
           <div className="home-monogram">
-            Z<span>O</span>J<span className="home-monogram-dot">.</span>
+            Z<span>O</span>J
+            <button
+              type="button"
+              className="home-monogram-dot home-secret-trigger"
+              aria-label="ZOJ 마침표"
+              onClick={() => tap('binary')}
+            >
+              .
+            </button>
           </div>
-          <div className="home-satellite is-code">
+          <button
+            type="button"
+            className="home-satellite is-code home-secret-trigger"
+            onClick={() => tap('reaction')}
+            aria-label="예제 코드"
+          >
             <span>
               <InterfaceIcon name="code" />
             </span>
-            <div>
-              <small>YOUR IDEA</small>
-              <strong>Hello, possibility.</strong>
-            </div>
-          </div>
+            <span className="home-satellite-copy">
+              <small>C++17</small>
+              <strong>int main() {'{ return 0; }'}</strong>
+            </span>
+          </button>
           <div className="home-satellite is-result">
             <span>
               <InterfaceIcon name="check" />
             </span>
             <div>
-              <small>YOUR NEXT STEP</small>
-              <strong>한 번 더, 한 걸음 더.</strong>
+              <small>판정 예시</small>
+              <strong>Accepted</strong>
             </div>
           </div>
-          <span className="home-star is-first">
+          <button
+            type="button"
+            className="home-star is-first home-secret-trigger"
+            aria-label="별"
+            onClick={() => tap('lights')}
+          >
             <InterfaceIcon name="asterisk" />
-          </span>
-          <span className="home-star is-second">
+          </button>
+          <span className="home-star is-second" aria-hidden="true">
             <InterfaceIcon name="sparkle" />
           </span>
-          <span className="home-universe-coordinate">
-            FROM ZERO
+          <span className="home-universe-coordinate" aria-hidden="true">
+            ZERONE
             <br />
-            TO YOUR NEXT CHALLENGE
+            ONLINE JUDGE
           </span>
         </div>
         <div className="home-launch-bottom">
@@ -68,6 +88,7 @@ export default function HomeHero() {
           </div>
         </div>
       </div>
+      {secret && <HomeSecrets secret={secret} onClose={close} />}
     </section>
   );
 }

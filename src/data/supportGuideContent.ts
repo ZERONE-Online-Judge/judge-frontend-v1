@@ -12,10 +12,9 @@ export const supportSections: SupportSection[] = [
   {
     id: 'guide',
     label: '이용안내',
-    eyebrow: 'YOUR FIRST CONTEST',
-    title: '첫 대회도, 익숙한 대회처럼.',
-    description:
-      '대회에 들어가는 순간부터 결과를 확인할 때까지. 필요한 순서대로 함께 살펴볼게요.',
+    eyebrow: '이용안내',
+    title: '대회 참가 방법',
+    description: '로그인, 대회 참가, 코드 제출과 결과 확인 순서입니다.',
     groups: [
       {
         title: '내 대회에 들어가기',
@@ -43,10 +42,9 @@ export const supportSections: SupportSection[] = [
   {
     id: 'rules',
     label: '규정',
-    eyebrow: 'PLAY TOGETHER',
-    title: '같은 출발선, 함께 지키는 기준.',
-    description:
-      '대회 화면이 언제 열리는지, 기록은 어떻게 보이는지. 참여 전에 알아두면 좋은 서비스 기준입니다.',
+    eyebrow: '규정',
+    title: '대회 참가 규정',
+    description: '참가 권한, 채점 결과와 대회 자료의 공개 기준입니다.',
     groups: [
       {
         title: '참가 유형과 접근 범위',
@@ -74,10 +72,9 @@ export const supportSections: SupportSection[] = [
   {
     id: 'help',
     label: '도움말',
-    eyebrow: 'A LITTLE HELP',
-    title: '막히는 순간엔, 여기부터.',
-    description:
-      '로그인부터 채점 결과까지, 자주 궁금해하는 내용을 모았어요. 질문을 누르면 답변이 열립니다.',
+    eyebrow: '도움말',
+    title: '자주 묻는 질문',
+    description: '로그인, 대회 접근, 채점 결과에 관한 질문과 답변입니다.',
     groups: [
       {
         title: '로그인했는데 내 대회가 보이지 않아요.',
@@ -135,8 +132,8 @@ export const supportSections: SupportSection[] = [
   {
     id: 'contact',
     label: '문의',
-    eyebrow: 'WE’RE LISTENING',
-    title: '당신의 이야기를 들려주세요.',
+    eyebrow: '문의',
+    title: '서비스 문의',
     description:
       '이용 중 불편했던 점이나 궁금한 점을 남겨 주세요. 답변은 입력한 이메일로 보내드립니다.',
     groups: [],
@@ -144,8 +141,8 @@ export const supportSections: SupportSection[] = [
   {
     id: 'privacy',
     label: '개인정보처리방침',
-    eyebrow: 'YOUR INFORMATION',
-    title: '소중한 정보, 어떻게 다루나요?',
+    eyebrow: '개인정보',
+    title: '개인정보처리방침',
     description:
       'Zerone Online Judge의 개인정보 처리 기준을 안내합니다. 아래에서 수집 항목과 이용 목적, 보관 기준을 확인할 수 있습니다.',
     groups: [
@@ -188,17 +185,17 @@ export const supportSections: SupportSection[] = [
 
 export const operatorGuideSteps = [
   {
-    title: '대회 개설을 요청해요',
+    title: '대회 개설 요청',
     description:
       '서비스 문의나 이메일로 대회 개설을 요청해 주세요. 대회가 생성되면 운영 화면에서 일정과 공개 범위를 설정하고, 참가자와 운영진을 등록할 수 있어요.',
   },
   {
-    title: '문제와 테스트를 확인해요',
+    title: '문제와 테스트 확인',
     description:
       '문제 본문·채점 파일·테스트케이스를 준비하고, 검증 코드와 문제 모아보기로 검수합니다.',
   },
   {
-    title: '운영부터 결과 공개까지',
+    title: '대회 운영과 결과 공개',
     description:
       '공지와 질문에 응답하고 제출을 확인하세요. 스코어보드 상태와 순위 공개는 운영 화면에서 관리합니다.',
   },

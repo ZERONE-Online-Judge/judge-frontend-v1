@@ -153,7 +153,7 @@ test('body search and emergency filters work together and clamp invalid pages', 
 
 test('a requested notice hidden by a search can be recovered without losing its link', async () => {
   await render('/notices?q=missing&noticeId=n24');
-  assert.match(host.textContent, /검색 조건에 가려져/);
+  assert.match(host.textContent, /검색 조건에 포함되지/);
   await click(
     [...host.querySelectorAll('button')].find(
       (button) => button.textContent === '검색 초기화',
@@ -195,7 +195,7 @@ test('failed notice loading is not represented as an empty collection', async ()
   await render();
   assert.match(
     host.querySelector('[role="alert"]').textContent,
-    /불러오지 못했어요/,
+    /불러오지 못했습니다/,
   );
   assert.equal(host.querySelector('.notices-empty'), null);
 });

@@ -4,16 +4,16 @@ import './CodingTestIntroduction.css';
 
 const skills = [
   [
-    '문제를 이해하는 힘',
+    '문제 이해',
     '무엇을 구해야 할지, 어떤 조건을 지켜야 할지 읽고 복잡한 문제를 작은 단계로 나눠 봅니다.',
   ],
   [
-    '효율적인 방법을 찾는 힘',
+    '실행 효율',
     '같은 답을 내더라도 방법에 따라 걸리는 시간과 필요한 메모리가 달라집니다. 자료가 많아져도 작동하는 방법을 고민합니다.',
   ],
   [
-    '확인하고 고치는 힘',
-    '한 번 맞는 답을 냈어도 다른 상황에서는 틀릴 수 있어요. 여러 입력으로 확인하고, 결과를 바탕으로 풀이를 다듬습니다.',
+    '오류 확인과 수정',
+    '한 번 맞는 답을 냈어도 다른 상황에서는 틀릴 수 있습니다. 여러 입력으로 확인하고, 결과를 바탕으로 풀이를 다듬습니다.',
   ],
 ];
 const uses = [
@@ -45,25 +45,21 @@ export default function CodingTestIntroduction() {
         <div className="about-container">
           <div className="about-learn-grid">
             <div className="about-learn-copy" data-reveal>
-              <p className="about-eyebrow">START WITH THE IDEA</p>
-              <h2 id="about-learn-heading">
-                코딩 테스트는,
-                <br />
-                문제를 푸는 방법을
-                <br /> 확인하는 일이에요.
-              </h2>
+              <p className="about-eyebrow">코딩 테스트</p>
+              <h2 id="about-learn-heading">코딩 테스트란?</h2>
               <p>
                 <strong>코딩은 컴퓨터가 할 일을 순서대로 적는 일입니다.</strong>{' '}
-                사람의 생각을 컴퓨터가 이해할 수 있는 언어로 옮긴 것이 코드예요.
+                사람의 생각을 컴퓨터가 이해할 수 있는 언어로 옮긴 것이
+                코드입니다.
               </p>
               <p>
                 코딩 테스트에서는 주어진 문제를 해결하는 코드를 작성합니다. 그
                 코드가 여러 상황에서 원하는 답을 내는지, 정해진 시간과 컴퓨터의
-                작업 공간(메모리) 안에서 동작하는지 확인해요.
+                작업 공간(메모리) 안에서 동작하는지 확인합니다.
               </p>
               <p className="about-learn-note">
                 문제를 이해하고 해결 방법을 생각한 뒤, 코드로 옮겨 확인하는
-                과정을 직접 경험하는 거예요.
+                과정을 직접 경험합니다.
               </p>
             </div>
             <article
@@ -99,8 +95,8 @@ export default function CodingTestIntroduction() {
                 <li>
                   <span aria-hidden="true">02</span>
                   <div>
-                    <strong>가장 큰 수를 찾아요</strong>
-                    <p>컴퓨터에도 이 순서를 알려주는 거예요.</p>
+                    <strong>가장 큰 수 확인</strong>
+                    <p>이 과정을 코드로 작성합니다.</p>
                   </div>
                 </li>
               </ol>
@@ -117,8 +113,8 @@ export default function CodingTestIntroduction() {
             </article>
           </div>
           <div className="about-learn-why" data-reveal>
-            <p className="about-eyebrow">WHY WE TRY</p>
-            <h3>답을 찾는 동안, 이런 힘을 길러요.</h3>
+            <p className="about-eyebrow">평가 항목</p>
+            <h3>코딩 테스트에서 확인하는 항목</h3>
             <div className="about-skill-grid">
               {skills.map(([title, description], index) => (
                 <article key={title}>
@@ -138,17 +134,12 @@ export default function CodingTestIntroduction() {
       >
         <div className="about-container">
           <div className="about-section-heading" data-reveal>
-            <p className="about-eyebrow">FROM PRACTICE TO POSSIBILITY</p>
+            <p className="about-eyebrow">활용 분야</p>
             <div>
-              <h2 id="about-purpose-heading">
-                배우는 순간에도,
-                <br />
-                도전하는 순간에도.
-              </h2>
+              <h2 id="about-purpose-heading">코딩 테스트의 활용 분야</h2>
               <p>
-                코딩 테스트는 쓰이는 곳에 따라
-                <br className="about-desktop-break" /> 연습이 되기도, 도전과
-                평가가 되기도 합니다.
+                코딩 테스트는 학습, 프로그래밍 대회와 일부 개발자 채용에
+                사용됩니다.
               </p>
             </div>
           </div>
@@ -163,8 +154,8 @@ export default function CodingTestIntroduction() {
           </div>
           <div className="about-contribution" data-reveal>
             <div>
-              <p className="about-eyebrow">WHERE ZOJ COMES IN</p>
-              <h3>ZOJ는 배움과 도전의 무대를 만듭니다.</h3>
+              <p className="about-eyebrow">ZOJ의 역할</p>
+              <h3>대회 운영과 자동 채점</h3>
             </div>
             <div className="about-contribution-copy">
               <p>
@@ -172,9 +163,9 @@ export default function CodingTestIntroduction() {
                 관리부터 코드 제출·자동 채점·결과 공개까지 연결합니다.
               </p>
               <p>
-                운영진은 문제와 대회 운영에, 참가자는 풀이에 집중할 수 있어요.
-                제출한 코드는 대회가 정한 테스트 자료와 시간·메모리 기준으로
-                채점되며, 그 결과와 기록은 다음 도전의 출발점이 됩니다.
+                운영진은 문제의 테스트 자료와 실행 제한을 설정합니다. 제출한
+                코드는 대회가 정한 테스트 자료와 시간·메모리 기준으로 채점되며,
+                참가자는 결과와 제출 기록을 확인할 수 있습니다.
               </p>
               <div className="about-contribution-links">
                 <Link to="/contests">

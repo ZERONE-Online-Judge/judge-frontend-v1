@@ -277,7 +277,7 @@ export default function HeaderNotifications() {
           title="알림"
           label="NOTIFICATIONS"
           icon="bell"
-          description="대회 소식부터 내 질문의 답변, 채점 결과까지. 계정에 저장된 알림입니다."
+          description="계정에 저장된 대회 공지, 질문 답변과 채점 결과입니다."
           onClose={() => setIsPanelOpen(false)}
         >
           {query.isError && token ? (
@@ -370,11 +370,7 @@ export default function HeaderNotifications() {
                   ? '아직 도착한 알림이 없어요.'
                   : '로그인하면 내 알림을 확인할 수 있어요.'}
               </strong>
-              <p>
-                새로운 소식이 생기면
-                <br />
-                이곳에 차곡차곡 모아 드릴게요.
-              </p>
+              <p>대회 공지, 질문 답변과 채점 결과 알림이 표시됩니다.</p>
             </div>
           ) : null}
         </HeaderPanel>

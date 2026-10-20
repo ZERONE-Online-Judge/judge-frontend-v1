@@ -15,10 +15,10 @@ const verdicts = [
   {
     status: 'accepted',
     short: 'AC',
-    title: '준비된 테스트를 모두 통과했어요.',
+    title: '등록된 테스트를 모두 통과했습니다.',
     description:
       '문제의 출력 조건과 자원 제한을 만족했습니다. 등록된 테스트에 대한 정답 판정이에요.',
-    next: '다음 문제에 도전해 볼까요?',
+    next: '다른 문제를 선택해 제출할 수 있습니다.',
     visual: [
       { text: '테스트 01  ', icon: 'check' },
       { text: '테스트 02  ', icon: 'check' },
@@ -37,7 +37,7 @@ const verdicts = [
   {
     status: 'compile_error',
     short: 'CE',
-    title: '실행 파일을 만들지 못했어요.',
+    title: '컴파일에 실패했습니다.',
     description:
       '컴파일 단계의 오류입니다. 선택한 언어와 문법, 라이브러리 사용을 확인해 주세요.',
     next: '제출 상세의 컴파일 메시지에서 오류 위치를 확인하세요.',
@@ -46,7 +46,7 @@ const verdicts = [
   {
     status: 'runtime_error',
     short: 'RE',
-    title: '실행 도중 프로그램이 종료됐어요.',
+    title: '실행 도중 프로그램이 비정상 종료됐습니다.',
     description:
       '배열 범위 초과, 0으로 나누기, 처리하지 않은 예외 등을 확인해 보세요.',
     next: '최소·최대 입력에서도 정상 종료하는지 살펴보세요.',
@@ -59,7 +59,7 @@ const verdicts = [
   {
     status: 'time_limit_exceeded',
     short: 'TLE',
-    title: '허용된 실행 시간을 넘었어요.',
+    title: '실행 시간 제한을 초과했습니다.',
     description:
       '입력이 커질 때 반복 횟수가 얼마나 늘어나는지 확인해요. 무한 반복이나 느린 입출력도 원인이 됩니다.',
     next: '문제와 언어에 적용되는 시간 제한을 확인하세요.',
@@ -72,7 +72,7 @@ const verdicts = [
   {
     status: 'memory_limit_exceeded',
     short: 'MLE',
-    title: '사용할 수 있는 메모리를 넘었어요.',
+    title: '메모리 제한을 초과했습니다.',
     description:
       '큰 배열, 너무 많은 객체, 깊은 재귀처럼 메모리가 늘어나는 부분을 찾아보세요.',
     next: '최대 입력 기준으로 자료구조 크기를 계산해 보세요.',
@@ -107,7 +107,7 @@ const verdicts = [
   {
     status: 'system_error',
     short: 'SYSTEM',
-    title: '채점 과정에 문제가 생겼어요.',
+    title: '채점 시스템 오류가 발생했습니다.',
     description:
       '풀이가 틀렸다는 뜻은 아닙니다. 채점 환경이나 문제 자료를 운영자가 확인해야 해요.',
     next: '제출 번호와 오류 메시지를 대회 운영자에게 알려 주세요.',
@@ -136,8 +136,8 @@ function Verdicts() {
         <ExperienceReveal>
           <div className="experience-section-heading">
             <div>
-              <p className="experience-eyebrow">READ YOUR RESULT</p>
-              <h2>결과 한 줄에 담긴 이야기.</h2>
+              <p className="experience-eyebrow">판정 확인</p>
+              <h2>채점 판정의 의미</h2>
             </div>
             <p>판정을 고르면 의미와 다음에 확인할 것이 보여요.</p>
           </div>
@@ -198,7 +198,7 @@ function Verdicts() {
                     ))}
                   </code>
                 </pre>
-                <span className="judge-small-label">다음 한 걸음</span>
+                <span className="judge-small-label">확인 사항</span>
                 <p className="judge-verdict-next">{verdict.next}</p>
               </div>
               <p className="judge-card-caption">
@@ -240,7 +240,7 @@ function Scoreboard() {
                 <span>01</span>
                 <div>
                   <h3>더 많이 풀수록 앞에</h3>
-                  <p>맞힌 문제 수가 많은 팀이 높은 순위예요.</p>
+                  <p>맞힌 문제 수가 많은 팀이 높은 순위입니다.</p>
                 </div>
               </li>
               <li>
@@ -259,7 +259,7 @@ function Scoreboard() {
                   <h3>총시간까지 같다면</h3>
                   <p>
                     못 푼 문제에서 집계된 실패 횟수가 적은 팀이 앞서요. 이것도
-                    같으면 공동 순위예요.
+                    같으면 공동 순위입니다.
                   </p>
                 </div>
               </li>
@@ -386,7 +386,7 @@ function Scoreboard() {
               </p>
               <p>
                 총시간 표시 여부도 대회 화면의 공개 설정에 따릅니다. 위 표는
-                계산 방법을 보여주는 예시예요.
+                계산 방법을 보여주는 예시입니다.
               </p>
             </div>
           </details>

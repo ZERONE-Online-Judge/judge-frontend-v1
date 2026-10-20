@@ -147,7 +147,7 @@ export default function HeaderAuthControls({
           title="내 정보"
           label="MY ACCOUNT"
           icon="user"
-          description="내 계정과 참가 중인 대회를 한곳에서 확인하세요."
+          description="계정 정보와 참가 중인 대회를 확인합니다."
           onClose={() => setIsAccountPanelOpen(false)}
           footer={
             <ModalButton
@@ -264,11 +264,7 @@ export default function HeaderAuthControls({
                   <HeaderIcon name="contest" />
                 </span>
                 <strong>참가 중인 대회가 없습니다.</strong>
-                <p>
-                  새로운 도전이 시작되면
-                  <br />
-                  이곳에서 바로 이어갈 수 있어요.
-                </p>
+                <p>대회에 참가자로 등록되면 여기에 표시됩니다.</p>
               </div>
             ) : null}
           </section>

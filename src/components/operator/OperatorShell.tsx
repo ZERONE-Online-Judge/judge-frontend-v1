@@ -13,6 +13,7 @@ import { accessText, operatorNavText } from '@/data/uiText';
 import { contestRoleTitleForAccount } from '@/domains/identityAccess/contestRoles';
 import {
   hasContestPermission,
+  hasContestAccess,
   isServiceMaster,
   operatorHomePermissions,
   type ContestPermissionCode,
@@ -176,6 +177,28 @@ export function OperatorAccessGate({
   const generalSession = useSessionStore((state) => state.generalSession);
   const staffSession = staffSessionFromGeneralSession(generalSession);
 
+  const needsProblemStatus = Boolean(
+    contestId &&
+    hasContestAccess(generalSession, contestId) &&
+    (Array.isArray(permission)
+      ? permission.includes('contest.problem.view')
+      : permission === 'contest.problem.view') &&
+    !hasContestPermission(generalSession, contestId, permission),
+  );
+  const contestQuery = useQuery({
+    enabled: needsProblemStatus && Boolean(staffSession?.accessToken),
+    queryKey: [
+      'operator',
+      'dashboard',
+      contestId ?? null,
+      'read-access',
+      staffSession?.accessToken,
+    ],
+    queryFn: () =>
+      getOperatorContestDashboard(contestId!, staffSession!.accessToken),
+    refetchInterval: 15_000,
+  });
+
   if (!staffSession) {
     return (
       <PageLayout
@@ -195,8 +218,19 @@ export function OperatorAccessGate({
 
   if (
     contestId &&
-    !hasContestPermission(generalSession, contestId, permission)
+    !hasContestPermission(
+      generalSession,
+      contestId,
+      permission,
+      contestQuery.data?.contest?.status,
+    )
   ) {
+    if (needsProblemStatus && contestQuery.isPending)
+      return (
+        <PageLayout variant="management" title="문제 모아보기">
+          <p role="status">대회 상태를 확인하고 있습니다.</p>
+        </PageLayout>
+      );
     return (
       <PageLayout
         variant="management"
@@ -233,12 +267,10 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
   const generalSession = useSessionStore((state) => state.generalSession);
   const staffSession = staffSessionFromGeneralSession(generalSession);
   const token = staffSession?.accessToken;
-  const canViewParticipants = Boolean(
-    contestId &&
-    hasContestPermission(generalSession, contestId, 'contest.participant.view'),
-  );
   const dashboardQuery = useQuery({
-    enabled: Boolean(contestId && token && canViewParticipants),
+    enabled: Boolean(
+      contestId && token && hasContestAccess(generalSession, contestId),
+    ),
     queryKey: ['operator', 'dashboard', contestId ?? null, 'tab-count', token],
     queryFn: () => getOperatorContestDashboard(contestId!, token!),
     refetchInterval: 15_000,
@@ -326,7 +358,12 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       >
         {operatorTabs
           .filter((tab) =>
-            hasContestPermission(generalSession, contestId, tab.permission),
+            hasContestPermission(
+              generalSession,
+              contestId,
+              tab.permission,
+              dashboardQuery.data?.contest?.status,
+            ),
           )
           .map((tab) => {
             const Icon = tab.icon;

@@ -206,3 +206,37 @@ test('multipart upload retains its file and does not mutate the original FormDat
   assert.equal(retried.body.get('file').size, 16);
   assert.deepEqual(JSON.parse(retried.body.get('_change_notice')), approved);
 });
+
+test('notice preview shows the final reason without saving and retains all edited fields', async () => {
+  let result;
+  await act(async () => {
+    result = notice.requestChangeNotice(draft);
+  });
+  await setReason('현장 사정으로 연장');
+  const preview = [...document.querySelectorAll('button')].find(
+    (el) => el.textContent === '공지 미리보기',
+  );
+  await act(async () => preview.click());
+  assert.match(document.querySelector('article').textContent, /대회 일정 변경/);
+  assert.match(
+    document.querySelector('article').textContent,
+    /종료 시간이 17시에서 18시로 변경되었습니다/,
+  );
+  assert.match(
+    document.querySelector('article').textContent,
+    /변경 사유: 현장 사정으로 연장/,
+  );
+  assert.equal(document.querySelector('input'), null);
+  assert.equal(notice.currentChangeNotice().draft.fingerprint, 'initial');
+  await act(async () =>
+    [...document.querySelectorAll('button')]
+      .find((el) => el.textContent === '편집')
+      .click(),
+  );
+  assert.equal(
+    document.querySelectorAll('textarea')[1].value,
+    '현장 사정으로 연장',
+  );
+  await submit();
+  assert.equal((await result).reason, '현장 사정으로 연장');
+});

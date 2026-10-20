@@ -19,6 +19,7 @@ import {
 } from '@/components/operator/OperatorShell';
 import { getOperatorContestDashboard } from '@/domains/contestAdministration/api';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
+import { hasContestPermission } from '@/domains/identityAccess/permissions';
 import {
   createContestAnswer,
   deleteContestAnswer,
@@ -67,6 +68,11 @@ export default function OperatorBoardPage() {
           <OperatorBoardContent
             contestId={contestId}
             token={session.accessToken}
+            canManage={hasContestPermission(
+              session,
+              contestId,
+              'contest.board.question.manage',
+            )}
           />
         ) : (
           <PageLayout
@@ -84,9 +90,11 @@ export default function OperatorBoardPage() {
 function OperatorBoardContent({
   contestId,
   token,
+  canManage,
 }: {
   contestId: string;
   token: string;
+  canManage: boolean;
 }) {
   const { confirm: confirmAction, dialog: confirmationDialog } =
     useConfirmation();
@@ -309,7 +317,11 @@ function OperatorBoardContent({
   return (
     <PageLayout
       variant="management"
-      description="참가자가 남긴 질문을 확인하고 운영자 답변을 등록합니다."
+      description={
+        canManage
+          ? '참가자가 남긴 질문을 확인하고 운영자 답변을 등록합니다.'
+          : '참가자 질문과 답변을 확인합니다.'
+      }
       eyebrow="Operator"
       title={`${dashboardQuery.data?.contest.title ?? '대회'} 게시판`}
       width="full"
@@ -469,6 +481,7 @@ function OperatorBoardContent({
 
                 {isExpanded ? (
                   <QuestionInlineDetail
+                    canManage={canManage}
                     answerForm={answerForm}
                     answerMutationError={answerMutation.error}
                     deleteError={deleteQuestionMutation.error}

@@ -135,14 +135,25 @@ export function hasContestPermission(
   session: PermissionSession,
   contestId: string,
   permission?: ContestPermissionCode | readonly ContestPermissionCode[],
+  contestStatus?: string,
 ): boolean {
   if (!permission) return hasContestAccess(session, contestId);
   if (Array.isArray(permission)) {
     return permission.some((entry) =>
-      hasContestPermission(session, contestId, entry),
+      hasContestPermission(session, contestId, entry, contestStatus),
     );
   }
   if (isServiceMaster(session)) return true;
+
+  if (hasContestAccess(session, contestId)) {
+    if (
+      permission === 'contest.notice.view' ||
+      permission === 'contest.board.question.view'
+    )
+      return true;
+    if (permission === 'contest.problem.view' && contestStatus === 'running')
+      return true;
+  }
 
   return contestScopesFor(session, contestId).some(
     (scope) =>

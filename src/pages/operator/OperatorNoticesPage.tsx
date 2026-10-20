@@ -21,6 +21,7 @@ import {
 } from '@/domains/contestAdministration/api';
 import type { OperatorDashboard } from '@/domains/contestAdministration/types';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
+import { hasContestPermission } from '@/domains/identityAccess/permissions';
 import {
   createContestNotice,
   deleteContestNotice,
@@ -54,6 +55,11 @@ export default function OperatorNoticesPage() {
           <OperatorNoticesContent
             contestId={contestId}
             token={session.accessToken}
+            canManage={hasContestPermission(
+              session,
+              contestId,
+              'contest.notice.manage',
+            )}
           />
         ) : (
           <PageLayout
@@ -71,9 +77,11 @@ export default function OperatorNoticesPage() {
 function OperatorNoticesContent({
   contestId,
   token,
+  canManage,
 }: {
   contestId: string;
   token: string;
+  canManage: boolean;
 }) {
   const { confirm: confirmAction, dialog: confirmationDialog } =
     useConfirmation();
@@ -257,7 +265,7 @@ function OperatorNoticesContent({
   return (
     <PageLayout
       variant="management"
-      description="대회 참가자에게 보이는 공지와 긴급 공지를 관리합니다."
+      description="대회 공지와 긴급공지를 확인합니다."
       eyebrow="Operator"
       title={`${contest?.title ?? '대회'} 공지`}
       width="full"
@@ -274,157 +282,162 @@ function OperatorNoticesContent({
       ) : null}
 
       <div className="grid gap-6">
-        <OperatorPanel
-          actions={
-            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-              <button
-                className={[
-                  'h-9 rounded-lg px-4 text-sm font-semibold transition',
-                  editorMode === 'notice'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-white hover:text-slate-950',
-                ].join(' ')}
-                onClick={() => setEditorMode('notice')}
-                type="button"
-              >
-                공지 작성
-              </button>
-              <button
-                className={[
-                  'h-9 rounded-lg px-4 text-sm font-semibold transition',
-                  editorMode === 'emergency'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-white hover:text-slate-950',
-                ].join(' ')}
-                onClick={() => setEditorMode('emergency')}
-                type="button"
-              >
-                긴급공지 관리
-              </button>
-            </div>
-          }
-          description={
-            editorMode === 'notice'
-              ? '새 공지를 작성하거나 기존 공지를 수정합니다.'
-              : '전광판에 표시되는 현재 긴급공지 문구를 따로 관리합니다.'
-          }
-          title={editorMode === 'notice' ? '공지 작성' : '긴급공지 관리'}
-        >
-          {editorMode === 'notice' ? (
-            <form className="grid gap-4" onSubmit={handleSubmit}>
-              <NoticeEditorFields
-                form={form}
-                setForm={setForm}
-                contest={contest}
-                pending={saveNoticeMutation.isPending}
-              />
-              {formError || saveNoticeMutation.error ? (
-                <ErrorBox
-                  error={saveNoticeMutation.error}
-                  fallback={formError || '공지 저장에 실패했습니다'}
+        {canManage ? (
+          <OperatorPanel
+            actions={
+              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <button
+                  className={[
+                    'h-9 rounded-lg px-4 text-sm font-semibold transition',
+                    editorMode === 'notice'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-white hover:text-slate-950',
+                  ].join(' ')}
+                  onClick={() => setEditorMode('notice')}
+                  type="button"
+                >
+                  공지 작성
+                </button>
+                <button
+                  className={[
+                    'h-9 rounded-lg px-4 text-sm font-semibold transition',
+                    editorMode === 'emergency'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-white hover:text-slate-950',
+                  ].join(' ')}
+                  onClick={() => setEditorMode('emergency')}
+                  type="button"
+                >
+                  긴급공지 관리
+                </button>
+              </div>
+            }
+            description={
+              editorMode === 'notice'
+                ? '새 공지를 작성하거나 기존 공지를 수정합니다.'
+                : '전광판에 표시되는 현재 긴급공지 문구를 따로 관리합니다.'
+            }
+            title={editorMode === 'notice' ? '공지 작성' : '긴급공지 관리'}
+          >
+            {editorMode === 'notice' ? (
+              <form className="grid gap-4" onSubmit={handleSubmit}>
+                <NoticeEditorFields
+                  form={form}
+                  setForm={setForm}
+                  contest={contest}
+                  pending={saveNoticeMutation.isPending}
                 />
-              ) : null}
-            </form>
-          ) : (
-            <div className="grid gap-4">
-              {contest?.emergency_notice ? (
-                <div className="grid gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-rose-600 uppercase">
-                      현재 표시 중
-                    </span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-600">
-                      전광판 노출
-                    </span>
-                  </div>
-                  <p className="text-sm leading-6 font-medium whitespace-pre-wrap text-rose-700">
-                    <NoticeCountdownText
-                      text={contest.emergency_notice}
-                      template={contest.emergency_notice_template}
-                      contest={contest}
-                    />
-                  </p>
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-medium text-slate-500">
-                  현재 표시 중인 긴급공지 문구가 없습니다.
-                </p>
-              )}
-              <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 font-medium text-slate-500">
-                일반 공지를 긴급 공지로 저장하면 이 문구가 해당 공지 본문으로
-                자동 교체됩니다. 이후 문구 수정과 내리기는 이 관리 창에서 따로
-                처리할 수 있습니다.
-              </p>
-              <form
-                className="grid gap-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  saveEmergencyMutation.mutate(emergencyNotice);
-                }}
-              >
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  긴급공지 문구
-                  <textarea
-                    className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 font-medium text-slate-950 transition outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
-                    onChange={(event) => setEmergencyNotice(event.target.value)}
-                    placeholder="전광판에 표시할 긴급공지 문구를 입력하세요."
-                    value={emergencyNotice}
+                {formError || saveNoticeMutation.error ? (
+                  <ErrorBox
+                    error={saveNoticeMutation.error}
+                    fallback={formError || '공지 저장에 실패했습니다'}
                   />
-                </label>
-                <NoticeCountdownCommands
-                  onInsert={(command) =>
-                    setEmergencyNotice(
-                      [emergencyNotice.trimEnd(), command]
-                        .filter(Boolean)
-                        .join('\n'),
-                    )
-                  }
-                />
-                {emergencyNotice.includes('{{countdown:') ? (
-                  <div className="rounded-lg border border-rose-100 bg-rose-50/50 px-4 py-3">
-                    <p className="mb-1 text-xs font-semibold text-rose-600">
-                      참가자에게 보이는 문구
-                    </p>
-                    <p className="text-sm leading-6 whitespace-pre-wrap text-slate-700">
+                ) : null}
+              </form>
+            ) : (
+              <div className="grid gap-4">
+                {contest?.emergency_notice ? (
+                  <div className="grid gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-rose-600 uppercase">
+                        현재 표시 중
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-600">
+                        전광판 노출
+                      </span>
+                    </div>
+                    <p className="text-sm leading-6 font-medium whitespace-pre-wrap text-rose-700">
                       <NoticeCountdownText
-                        text={emergencyNotice}
+                        text={contest.emergency_notice}
+                        template={contest.emergency_notice_template}
                         contest={contest}
                       />
                     </p>
                   </div>
-                ) : null}
-                {saveEmergencyMutation.error ? (
-                  <ErrorBox
-                    error={saveEmergencyMutation.error}
-                    fallback="긴급공지 저장에 실패했습니다"
+                ) : (
+                  <p className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-medium text-slate-500">
+                    현재 표시 중인 긴급공지 문구가 없습니다.
+                  </p>
+                )}
+                <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 font-medium text-slate-500">
+                  일반 공지를 긴급 공지로 저장하면 이 문구가 해당 공지 본문으로
+                  자동 교체됩니다. 이후 문구 수정과 내리기는 이 관리 창에서 따로
+                  처리할 수 있습니다.
+                </p>
+                <form
+                  className="grid gap-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    saveEmergencyMutation.mutate(emergencyNotice);
+                  }}
+                >
+                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                    긴급공지 문구
+                    <textarea
+                      className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 font-medium text-slate-950 transition outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                      onChange={(event) =>
+                        setEmergencyNotice(event.target.value)
+                      }
+                      placeholder="전광판에 표시할 긴급공지 문구를 입력하세요."
+                      value={emergencyNotice}
+                    />
+                  </label>
+                  <NoticeCountdownCommands
+                    onInsert={(command) =>
+                      setEmergencyNotice(
+                        [emergencyNotice.trimEnd(), command]
+                          .filter(Boolean)
+                          .join('\n'),
+                      )
+                    }
                   />
-                ) : null}
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button
-                    className="h-10 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:text-slate-300"
-                    disabled={
-                      saveEmergencyMutation.isPending ||
-                      !contest?.emergency_notice
-                    }
-                    onClick={() => saveEmergencyMutation.mutate(null)}
-                    type="button"
-                  >
-                    긴급공지 내리기
-                  </button>
-                  <button
-                    className="h-10 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:bg-slate-300"
-                    disabled={
-                      saveEmergencyMutation.isPending || !emergencyNotice.trim()
-                    }
-                    type="submit"
-                  >
-                    긴급공지 띄우기/수정
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </OperatorPanel>
+                  {emergencyNotice.includes('{{countdown:') ? (
+                    <div className="rounded-lg border border-rose-100 bg-rose-50/50 px-4 py-3">
+                      <p className="mb-1 text-xs font-semibold text-rose-600">
+                        참가자에게 보이는 문구
+                      </p>
+                      <p className="text-sm leading-6 whitespace-pre-wrap text-slate-700">
+                        <NoticeCountdownText
+                          text={emergencyNotice}
+                          contest={contest}
+                        />
+                      </p>
+                    </div>
+                  ) : null}
+                  {saveEmergencyMutation.error ? (
+                    <ErrorBox
+                      error={saveEmergencyMutation.error}
+                      fallback="긴급공지 저장에 실패했습니다"
+                    />
+                  ) : null}
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      className="h-10 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:text-slate-300"
+                      disabled={
+                        saveEmergencyMutation.isPending ||
+                        !contest?.emergency_notice
+                      }
+                      onClick={() => saveEmergencyMutation.mutate(null)}
+                      type="button"
+                    >
+                      긴급공지 내리기
+                    </button>
+                    <button
+                      className="h-10 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:bg-slate-300"
+                      disabled={
+                        saveEmergencyMutation.isPending ||
+                        !emergencyNotice.trim()
+                      }
+                      type="submit"
+                    >
+                      긴급공지 띄우기/수정
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </OperatorPanel>
+        ) : null}
 
         <OperatorPanel
           description="참가자 화면 상단에 표시될 대회 공지입니다."
@@ -478,21 +491,25 @@ function OperatorNoticesContent({
                         {notice.title}
                       </strong>
                     </button>
-                    <button
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                      onClick={() => editNotice(notice)}
-                      type="button"
-                    >
-                      수정
-                    </button>
-                    <button
-                      className="h-9 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:text-slate-300"
-                      disabled={deleteNoticeMutation.isPending}
-                      onClick={() => removeNotice(notice)}
-                      type="button"
-                    >
-                      삭제
-                    </button>
+                    {canManage ? (
+                      <>
+                        <button
+                          className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                          onClick={() => editNotice(notice)}
+                          type="button"
+                        >
+                          수정
+                        </button>
+                        <button
+                          className="h-9 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:text-slate-300"
+                          disabled={deleteNoticeMutation.isPending}
+                          onClick={() => removeNotice(notice)}
+                          type="button"
+                        >
+                          삭제
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                   {expandedNoticeId === notice.contest_notice_id ? (
                     <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 whitespace-pre-wrap text-slate-700">

@@ -1,5 +1,6 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import ProblemLanguageSettings from '@/components/operator/ProblemLanguageSettings';
+import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
 import './OperatorSettingsPage.css';
 import useConfirmation from '@/shared/ui/useConfirmation';
@@ -360,6 +361,7 @@ function OperatorSettingsContent({
     >
       {dialog}
       <OperatorTabs contestId={contestId} />
+      <RecentChangeNotice contestId={contestId} token={token} />
 
       {dashboardQuery.error ? (
         <ErrorBox

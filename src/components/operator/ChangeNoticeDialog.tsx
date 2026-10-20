@@ -2,10 +2,12 @@ import { useId, useState, useSyncExternalStore } from 'react';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import {
   currentChangeNotice,
+  changeNoticeBody,
   finishChangeNotice,
   subscribeChangeNotice,
   type ChangeNoticeDraft,
 } from '@/shared/api/changeNotice';
+import ChangeNoticeContent from '@/components/operator/ChangeNoticeContent';
 
 export default function ChangeNoticeDialog() {
   const pending = useSyncExternalStore(
@@ -22,6 +24,7 @@ function NoticeForm({ id, draft }: { id: number; draft: ChangeNoticeDraft }) {
   const [title, setTitle] = useState(draft.title);
   const [body, setBody] = useState(draft.body);
   const [reason, setReason] = useState(draft.reason ?? '');
+  const [preview, setPreview] = useState(false);
   const formId = useId();
   const cancel = () => finishChangeNotice(id, null);
   return (
@@ -59,40 +62,67 @@ function NoticeForm({ id, draft }: { id: number; draft: ChangeNoticeDraft }) {
             });
         }}
       >
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          공지 제목
-          <input
-            autoFocus
-            required
-            maxLength={200}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal"
+        <div className="flex gap-2 border-b border-slate-200 pb-3">
+          {(
+            [
+              [false, '편집'],
+              [true, '공지 미리보기'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              type="button"
+              key={String(value)}
+              aria-pressed={preview === value}
+              onClick={() => setPreview(value)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${preview === value ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {preview ? (
+          <ChangeNoticeContent
+            title={title.trim()}
+            body={changeNoticeBody(body, reason)}
           />
-        </label>
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          변경 내용
-          <textarea
-            required
-            maxLength={20000}
-            rows={5}
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 leading-6 font-normal"
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          변경 사유
-          <textarea
-            required
-            maxLength={2000}
-            rows={2}
-            placeholder="변경한 이유를 입력하세요."
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 leading-6 font-normal"
-          />
-        </label>
+        ) : (
+          <>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              공지 제목
+              <input
+                autoFocus
+                required
+                maxLength={200}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              변경 내용
+              <textarea
+                required
+                maxLength={20000}
+                rows={5}
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 leading-6 font-normal"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              변경 사유
+              <textarea
+                required
+                maxLength={2000}
+                rows={2}
+                placeholder="변경한 이유를 입력하세요."
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 leading-6 font-normal"
+              />
+            </label>
+          </>
+        )}
       </form>
     </ModalDialog>
   );

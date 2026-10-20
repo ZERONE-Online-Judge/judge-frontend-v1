@@ -60,9 +60,6 @@ function OperatorHomeContent({
   session: StaffSession;
 }) {
   const token = session.accessToken;
-  const can = (
-    permission: ContestPermissionCode | readonly ContestPermissionCode[],
-  ) => hasContestPermission(session, contestId, permission);
   const queryIdentity = tokenQueryIdentity(token);
   const dashboardQuery = useQuery({
     queryKey: ['operator', 'dashboard', contestId, queryIdentity],
@@ -71,6 +68,9 @@ function OperatorHomeContent({
   });
   const dashboard = dashboardQuery.data;
   const contest = dashboard?.contest;
+  const can = (
+    permission: ContestPermissionCode | readonly ContestPermissionCode[],
+  ) => hasContestPermission(session, contestId, permission, contest?.status);
 
   return (
     <PageLayout
@@ -194,14 +194,18 @@ function OperatorHomeContent({
             {can('contest.notice.view') ? (
               <OperatorQuickLink
                 icon={<SettingsIcon />}
-                label="공지 관리"
+                label={can('contest.notice.manage') ? '공지 관리' : '공지'}
                 to={`/operator/contests/${contestId}/notices`}
               />
             ) : null}
             {can('contest.board.question.view') ? (
               <OperatorQuickLink
                 icon={<SettingsIcon />}
-                label="게시글 관리"
+                label={
+                  can('contest.board.question.manage')
+                    ? '게시글 관리'
+                    : '게시판'
+                }
                 to={`/operator/contests/${contestId}/board`}
               />
             ) : null}

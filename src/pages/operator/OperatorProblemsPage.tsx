@@ -1,4 +1,5 @@
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
+import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import useConfirmation from '@/shared/ui/useConfirmation';
@@ -1612,6 +1613,7 @@ function OperatorProblemsContent({
       {confirmationDialog}
 
       <OperatorTabs contestId={contestId} />
+      <RecentChangeNotice contestId={contestId} token={token} />
 
       {dashboardQuery.error || problemsQuery.error ? (
         <ErrorBox

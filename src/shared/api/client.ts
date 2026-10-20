@@ -1,9 +1,12 @@
 import { ApiClientError, toApiError } from '@/shared/api/errors';
 import {
   changeNoticeRequestInit,
+  recordSavedChangeNotice,
   requestChangeNotice,
   type ChangeNoticeDraft,
+  type SavedChangeNotice,
 } from '@/shared/api/changeNotice';
+import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import type {
   ApiPageMeta,
   ApiPagePayload,
@@ -613,7 +616,15 @@ export async function apiRequest<T>(
     throw toApiError(result.response, result.payload);
   }
 
-  return (result.payload as DataEnvelope<T>).data as T;
+  const payload = result.payload as DataEnvelope<T> & {
+    change_notice?: SavedChangeNotice;
+  };
+  if (path.startsWith('/operator/') && payload.change_notice?.contest_notice_id)
+    recordSavedChangeNotice(
+      tokenQueryIdentity(currentToken),
+      payload.change_notice,
+    );
+  return payload.data as T;
 }
 
 /** Download protected binary data with the same session refresh as JSON APIs. */

@@ -56,7 +56,13 @@ const submission = {
   memory_kb: 1024,
   failed_testcase_order: 2,
 };
-let session, reads, location, submissionItems, detailOverrides;
+let session,
+  reads,
+  location,
+  submissionItems,
+  detailOverrides,
+  noticeItems,
+  questionItems;
 function withScopes(scopes) {
   return {
     account: { email: 'staff@test' },
@@ -136,11 +142,11 @@ const mocks = {
   '@/domains/serviceCommunication/api': {
     listOperatorContestNotices: async () => {
       record('notices');
-      return [];
+      return noticeItems;
     },
     listOperatorContestQuestions: async () => {
       record('questions');
-      return [];
+      return questionItems;
     },
   },
   '@/domains/submissionScoreboard/api': {
@@ -290,6 +296,8 @@ const SubmissionsPage = source(
 const AuditPage = source('pages/operator/OperatorAuditLogsPage.tsx').default;
 const AdminAuditPage = source('pages/admin/AdminAuditLogsPage.tsx').default;
 const HomePage = source('pages/operator/OperatorHomePage.tsx').default;
+const NoticesPage = source('pages/operator/OperatorNoticesPage.tsx').default;
+const BoardPage = source('pages/operator/OperatorBoardPage.tsx').default;
 let root, container, client;
 beforeEach(() => {
   session = withScopes([
@@ -299,6 +307,8 @@ beforeEach(() => {
   reads = [];
   submissionItems = [submission];
   detailOverrides = {};
+  noticeItems = [];
+  questionItems = [];
   location = '';
   document.body.innerHTML = '';
   window.localStorage.clear();
@@ -589,15 +599,17 @@ test('audit viewers can switch between operation and access logs without unrelat
   assert.equal(requests('access').length, 1);
   assert.equal(requests('access-stats').length, 1);
   assert.equal(requests('participants').length, 0);
-  assert.equal(requests('dashboard').length, 0);
+  assert.equal(requests('dashboard').length, 1);
 });
 
-test('reviewer-only home redirects straight to problem review without requesting dashboard or unrelated data', async () => {
+test('reviewer home includes shared notice and board links', async () => {
   session = withScopes(['contest.problem.review', 'contest.problem.test']);
   await render(HomePage, '');
-  assert.equal(location, '/operator/contests/contest/problem-review');
-  assert.match(container.textContent, /검수 페이지/);
-  assert.deepEqual(reads, []);
+  assert.equal(location, '/operator/contests/contest');
+  for (const suffix of ['notices', 'board', 'problem-review'])
+    assert.ok(container.querySelector(`a[href$="/${suffix}"]`));
+  assert.equal(requests('participants').length, 0);
+  assert.equal(requests('dashboard').length, 2);
 });
 
 test('reviewer and submission roles share a home with only their authorized quick links and statistics', async () => {
@@ -628,7 +640,10 @@ test('reviewer and submission roles share a home with only their authorized quic
   assert.doesNotMatch(container.textContent, /전체 참가팀/);
   assert.deepEqual(reads.map((request) => request.kind).sort(), [
     'dashboard',
+    'dashboard',
+    'notices',
     'problems',
+    'questions',
   ]);
 });
 
@@ -838,4 +853,80 @@ test('saved submission kind restores without requesting other submission kinds',
     ),
   );
   assert.equal(button('검수·테스트 제출').getAttribute('aria-pressed'), 'true');
+});
+
+test('every operator reads notices without notice creation, emergency or mutation controls', async () => {
+  session = withScopes([]);
+  noticeItems = [
+    {
+      contest_notice_id: 'notice',
+      contest_id: 'contest',
+      title: '일정 변경 안내',
+      body: '종료 18시로 변경\n\n변경 사유: 장비 점검',
+      emergency: true,
+      pinned: true,
+      visibility: 'participants',
+      published_at: '2026-10-20T00:00:00Z',
+    },
+  ];
+  await render(NoticesPage, '/notices');
+  assert.ok(button('일정 변경 안내'));
+  await click(button('일정 변경 안내'));
+  assert.match(container.textContent, /장비 점검/);
+  for (const label of [
+    '공지 작성',
+    '긴급공지 관리',
+    '수정',
+    '삭제',
+    '공지 등록',
+  ])
+    assert.equal(button(label), undefined, label);
+  assert.equal(container.querySelector('form'), null);
+});
+
+test('every operator reads questions and answers while board management remains separate', async () => {
+  session = withScopes([]);
+  questionItems = [
+    {
+      contest_question_id: 'q',
+      contest_id: 'contest',
+      title: '제한 질문',
+      body: '입력 제한이 궁금합니다.',
+      author_name: '참가자',
+      visibility: 'private',
+      created_at: '2026-10-20T00:00:00Z',
+      answers: [
+        {
+          contest_answer_id: 'a',
+          body: '제한은 100입니다.',
+          visibility: 'questioner',
+          created_by_role: 'operator',
+          created_by_name: '운영자',
+          created_at: '2026-10-20T00:01:00Z',
+        },
+      ],
+    },
+  ];
+  await render(BoardPage, '/board');
+  const question = [...container.querySelectorAll('button')].find((el) =>
+    el.textContent.includes('제한 질문'),
+  );
+  await click(question);
+  assert.match(container.textContent, /입력 제한이 궁금합니다/);
+  assert.match(container.textContent, /제한은 100입니다/);
+  for (const label of [
+    '답변 작성',
+    '공개 전환',
+    '비공개 전환',
+    '삭제',
+    '답변 등록',
+  ])
+    assert.equal(button(label), undefined, label);
+  assert.equal(container.querySelector('textarea'), null);
+  // A board manager keeps the same controls after a role change.
+  session = withScopes(['contest.board.question.manage']);
+  await render(BoardPage, '/board');
+  assert.ok(button('답변 작성'));
+  await click(button('답변 작성'));
+  assert.ok(container.querySelector('textarea'));
 });

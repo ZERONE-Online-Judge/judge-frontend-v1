@@ -54,6 +54,7 @@ function answerAuthorContext(answer: ContestAnswer) {
 }
 
 export default function QuestionInlineDetail({
+  canManage,
   answerActionError,
   answerActionPending,
   answerForm,
@@ -74,6 +75,7 @@ export default function QuestionInlineDetail({
   updateError,
   updatePending,
 }: {
+  canManage: boolean;
   answerActionError: unknown;
   answerActionPending: boolean;
   answerForm: AnswerForm;
@@ -106,33 +108,35 @@ export default function QuestionInlineDetail({
       <div className="operator-board-question">
         <QuestionMeta question={question} />
         <p className="operator-board-body">{question.body}</p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white disabled:bg-slate-300"
-            disabled={isAnswerSubmitting}
-            onClick={onStartAnswer}
-            type="button"
-          >
-            <NoticeIcon />
-            {isAnswerFormOpen ? '답변 작성 중' : '답변 작성'}
-          </button>
-          <button
-            className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
-            disabled={updatePending}
-            onClick={onToggleVisibility}
-            type="button"
-          >
-            {question.visibility === 'public' ? '비공개 전환' : '공개 전환'}
-          </button>
-          <button
-            className="h-9 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:text-slate-300"
-            disabled={deletePending}
-            onClick={onDelete}
-            type="button"
-          >
-            삭제
-          </button>
-        </div>
+        {canManage ? (
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white disabled:bg-slate-300"
+              disabled={isAnswerSubmitting}
+              onClick={onStartAnswer}
+              type="button"
+            >
+              <NoticeIcon />
+              {isAnswerFormOpen ? '답변 작성 중' : '답변 작성'}
+            </button>
+            <button
+              className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
+              disabled={updatePending}
+              onClick={onToggleVisibility}
+              type="button"
+            >
+              {question.visibility === 'public' ? '비공개 전환' : '공개 전환'}
+            </button>
+            <button
+              className="h-9 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:text-slate-300"
+              disabled={deletePending}
+              onClick={onDelete}
+              type="button"
+            >
+              삭제
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {updateError || deleteError ? (
@@ -142,7 +146,7 @@ export default function QuestionInlineDetail({
         />
       ) : null}
 
-      {isAnswerFormOpen ? (
+      {canManage && isAnswerFormOpen ? (
         <form className="operator-board-composer" onSubmit={onSubmitAnswer}>
           <label className="grid gap-2 text-sm font-semibold text-slate-700">
             공개 범위
@@ -240,24 +244,28 @@ export default function QuestionInlineDetail({
                 </span>
               </div>
               <p className="operator-board-body">{answer.body}</p>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button
-                  className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
-                  disabled={answerActionPending}
-                  onClick={() => onToggleAnswerVisibility(answer)}
-                  type="button"
-                >
-                  {answer.visibility === 'public' ? '비공개 전환' : '공개 전환'}
-                </button>
-                <button
-                  className="h-8 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:text-slate-300"
-                  disabled={answerActionPending}
-                  onClick={() => onDeleteAnswer(answer)}
-                  type="button"
-                >
-                  삭제
-                </button>
-              </div>
+              {canManage ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
+                    disabled={answerActionPending}
+                    onClick={() => onToggleAnswerVisibility(answer)}
+                    type="button"
+                  >
+                    {answer.visibility === 'public'
+                      ? '비공개 전환'
+                      : '공개 전환'}
+                  </button>
+                  <button
+                    className="h-8 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:text-slate-300"
+                    disabled={answerActionPending}
+                    onClick={() => onDeleteAnswer(answer)}
+                    type="button"
+                  >
+                    삭제
+                  </button>
+                </div>
+              ) : null}
             </div>
           </article>
         ))}

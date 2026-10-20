@@ -102,7 +102,7 @@ const roleTabs = {
   problem_reviewer: ['problem-review'],
   participant_preview: [''],
 };
-let session, reads;
+let session, reads, contestStatus;
 function staffWith(scopes, contestId = 'contest') {
   return {
     email: 'staff@test',
@@ -133,7 +133,7 @@ const mocks = {
   '@/domains/contestAdministration/api': {
     getOperatorContestDashboard: async () => {
       reads.push('dashboard');
-      return { participant_count: 0 };
+      return { participant_count: 0, contest: { status: contestStatus } };
     },
   },
   '@/domains/problemManagement/api': {
@@ -211,6 +211,7 @@ let root, container, client;
 beforeEach(() => {
   session = null;
   reads = [];
+  contestStatus = 'draft';
   document.body.innerHTML = '';
   window.localStorage.clear();
   window.sessionStorage.clear();
@@ -343,21 +344,35 @@ for (const [role, expectedTabs] of Object.entries(roleTabs)) {
   test(`${role} exposes only its authorized tabs and badge requests`, async () => {
     session = forRoles(role);
     await render();
-    assert.deepEqual(tabs(), [...expectedTabs, 'guide']);
-    const expectedReads =
-      role === 'participants_manager'
-        ? ['dashboard']
-        : role === 'posts_manager'
-          ? ['questions']
-          : role === 'notices_manager'
-            ? ['notices']
-            : [
-                  'problem_author',
-                  'problem_reviewer',
-                  'problems_viewer',
-                ].includes(role)
-              ? ['problems']
-              : [];
+    assert.deepEqual(tabs(), [
+      '',
+      ...[
+        'settings',
+        'operators',
+        'notices',
+        'board',
+        'participants',
+        'problems',
+        'problem-review',
+        'submissions',
+        'scoreboard',
+        'audit-logs',
+      ].filter(
+        (tab) =>
+          ['notices', 'board'].includes(tab) || expectedTabs.includes(tab),
+      ),
+      'guide',
+    ]);
+    const expectedReads = [
+      'dashboard',
+      'notices',
+      'questions',
+      ...(['problem_author', 'problem_reviewer', 'problems_viewer'].includes(
+        role,
+      )
+        ? ['problems']
+        : []),
+    ];
     assert.deepEqual(reads.sort(), expectedReads.sort());
     for (const permission of [
       'contest.settings.manage',
@@ -406,13 +421,20 @@ test('multiple roles combine permissions and navigation without granting unrelat
   await render();
   assert.deepEqual(tabs(), [
     '',
+    'notices',
+    'board',
     'participants',
     'problem-review',
     'scoreboard',
     'audit-logs',
     'guide',
   ]);
-  assert.deepEqual(reads.sort(), ['dashboard', 'problems']);
+  assert.deepEqual(reads.sort(), [
+    'dashboard',
+    'notices',
+    'problems',
+    'questions',
+  ]);
   assert.equal(
     hasContestPermission(session, 'contest', 'contest.problem.test'),
     true,
@@ -441,7 +463,7 @@ test('preview grants an operator entry and a new-tab link without granting other
   assert.equal(link.getAttribute('href'), '/contests/contest?preview=1');
   assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
   assert.match(link.textContent, /참가자 화면 미리보기/);
-  assert.deepEqual(reads, []);
+  assert.deepEqual(reads.sort(), ['dashboard', 'notices', 'questions']);
   for (const permission of ['contest.problem.review', 'contest.staff.manage']) {
     assert.equal(hasContestPermission(session, 'contest', permission), false);
     await render(
@@ -462,7 +484,7 @@ test('board and notice roles combine independent tabs without granting staff or 
   session = forRoles('posts_manager', 'notices_manager');
   await render();
   assert.deepEqual(tabs(), ['', 'notices', 'board', 'guide']);
-  assert.deepEqual(reads.sort(), ['notices', 'questions']);
+  assert.deepEqual(reads.sort(), ['dashboard', 'notices', 'questions']);
   assert.equal(
     hasContestPermission(session, 'contest', 'contest.staff.manage'),
     false,
@@ -476,8 +498,15 @@ test('board and notice roles combine independent tabs without granting staff or 
 test('settings and staff roles expose separate tabs with operators immediately after settings', async () => {
   session = forRoles('settings_manager', 'staff_manager');
   await render();
-  assert.deepEqual(tabs(), ['', 'settings', 'operators', 'guide']);
-  assert.deepEqual(reads, []);
+  assert.deepEqual(tabs(), [
+    '',
+    'settings',
+    'operators',
+    'notices',
+    'board',
+    'guide',
+  ]);
+  assert.deepEqual(reads.sort(), ['dashboard', 'notices', 'questions']);
   const links = [
     ...container.querySelectorAll('nav[aria-label="운영자 메뉴"] a'),
   ];
@@ -850,4 +879,56 @@ test('owner scopes preserve full master access with a separate owner title', () 
     '총괄',
   );
   assert.equal(contestRoleTitleForAccount(account, 'contest'), '총괄');
+});
+
+test('running operators read problem statements without review, test or edit powers', async () => {
+  session = forRoles('settings_manager');
+  for (const status of ['draft', 'open', 'running', 'ended', 'archived']) {
+    contestStatus = status;
+    client.clear();
+    await render(
+      h(
+        OperatorAccessGate,
+        {
+          contestId: 'contest',
+          permission: ['contest.problem.view', 'contest.problem.review'],
+        },
+        () => h('p', { 'data-problems': true }, '문제 본문'),
+      ),
+    );
+    assert.equal(
+      Boolean(container.querySelector('[data-problems]')),
+      status === 'running',
+      status,
+    );
+    assert.equal(
+      hasContestPermission(session, 'contest', 'contest.problem.view', status),
+      status === 'running',
+    );
+    for (const scope of [
+      'contest.problem.manage',
+      'contest.problem.test',
+      'contest.problem.review',
+      'contest.problem.resource.view',
+      'contest.notice.manage',
+      'contest.board.question.manage',
+    ])
+      assert.equal(
+        hasContestPermission(session, 'contest', scope, status),
+        false,
+        scope,
+      );
+    for (const scope of [
+      'contest.problem.view',
+      'contest.notice.view',
+      'contest.board.question.view',
+    ])
+      assert.equal(
+        hasContestPermission(session, 'other', scope, status),
+        false,
+      );
+    await render();
+    assert.equal(tabs().includes('problem-review'), status === 'running');
+    assert.ok(tabs().includes('notices') && tabs().includes('board'));
+  }
 });

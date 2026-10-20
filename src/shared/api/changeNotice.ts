@@ -6,6 +6,14 @@ export type ChangeNoticeDraft = {
 };
 
 export type ChangeNoticeApproval = ChangeNoticeDraft & { reason: string };
+export type SavedChangeNotice = {
+  contest_notice_id: string;
+  contest_id: string;
+  title: string;
+  body: string;
+  published_at: string;
+};
+let saved: { identity: string; notice: SavedChangeNotice } | null = null;
 type PendingChange = {
   id: number;
   draft: ChangeNoticeDraft;
@@ -23,6 +31,19 @@ export function subscribeChangeNotice(listener: () => void) {
 }
 export function currentChangeNotice() {
   return pending[0] ?? null;
+}
+export function currentSavedChangeNotice() {
+  return saved;
+}
+export function recordSavedChangeNotice(
+  identity: string,
+  notice: SavedChangeNotice,
+) {
+  saved = { identity, notice };
+  listeners.forEach((listener) => listener());
+}
+export function changeNoticeBody(body: string, reason: string) {
+  return body.trim() + (reason.trim() ? `\n\n변경 사유: ${reason.trim()}` : '');
 }
 export function requestChangeNotice(draft: ChangeNoticeDraft) {
   return new Promise<ChangeNoticeApproval | null>((resolve) => {

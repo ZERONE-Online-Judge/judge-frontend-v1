@@ -13,7 +13,10 @@ global.document = dom.window.document;
 global.IS_REACT_ACT_ENVIRONMENT = true;
 global.requestAnimationFrame = (callback) => global.setTimeout(callback, 0);
 global.cancelAnimationFrame = (id) => global.clearTimeout(id);
-dom.window.HTMLElement.prototype.scrollIntoView = function () {};
+let scrolled;
+dom.window.HTMLElement.prototype.scrollIntoView = function () {
+  scrolled.push(this.id);
+};
 const React = require('react');
 const { act } = React;
 const h = React.createElement;
@@ -83,6 +86,7 @@ function Observer() {
   return null;
 }
 beforeEach(() => {
+  scrolled = [];
   visible = true;
   query = {
     data: notices,
@@ -219,4 +223,33 @@ test('notice titles are not repeated as identical summaries', async () => {
   await click(toggle('n1'));
   assert.equal(host.querySelector('.notices-summary'), null);
   assert.match(host.querySelector('.notices-body-text').textContent, /본문 1/);
+});
+
+async function flushScroll() {
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+}
+
+test('expanding and collapsing notices in the list preserve the scroll position', async () => {
+  await render();
+  await click(toggle('n1'));
+  await flushScroll();
+  assert.equal(toggle('n1').getAttribute('aria-expanded'), 'true');
+  assert.deepEqual(scrolled, []);
+  await click(toggle('n1'));
+  await click(toggle('n2'));
+  await flushScroll();
+  assert.equal(toggle('n2').getAttribute('aria-expanded'), 'true');
+  assert.deepEqual(scrolled, []);
+});
+
+test('direct links and entries without the list scroll state still reveal the notice', async () => {
+  await render('/notices/n24');
+  await flushScroll();
+  assert.deepEqual(scrolled, ['notice-toggle-n24']);
+  await click(toggle('n23'));
+  await flushScroll();
+  assert.deepEqual(scrolled, ['notice-toggle-n24']);
+  await act(async () => navigate('/notices/n3'));
+  await flushScroll();
+  assert.deepEqual(scrolled, ['notice-toggle-n24', 'notice-toggle-n3']);
 });

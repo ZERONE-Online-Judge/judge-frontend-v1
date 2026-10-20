@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useMemo } from 'react';
 import {
   Link,
+  useLocation,
   useNavigate,
   useParams,
   useSearchParams,
@@ -21,6 +22,8 @@ export default function NoticesPage() {
   const [params] = useSearchParams();
   const { noticeId } = useParams<{ noticeId: string }>();
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const preserveNoticeScroll = state?.preserveNoticeScroll === true;
   const visible = useDocumentVisibility();
   const requestedId = noticeId ?? params.get('noticeId') ?? '';
   const search = params.get('q') ?? '';
@@ -81,14 +84,14 @@ export default function NoticesPage() {
   const emergencyCount = ordered.filter((notice) => notice.emergency).length;
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || preserveNoticeScroll) return;
     const frame = requestAnimationFrame(() => {
       const button = document.getElementById(`notice-toggle-${selectedId}`);
       button?.scrollIntoView({ block: 'start' });
       button?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedId]);
+  }, [selectedId, preserveNoticeScroll]);
 
   function updateFilter(key: 'q' | 'filter', value: string) {
     const next = new URLSearchParams(params);
@@ -370,6 +373,7 @@ function NoticeRow({
           aria-expanded={expanded}
           aria-controls={`notice-body-${id}`}
           to={to}
+          state={{ preserveNoticeScroll: true }}
           preventScrollReset
           onClick={(event) => {
             if (

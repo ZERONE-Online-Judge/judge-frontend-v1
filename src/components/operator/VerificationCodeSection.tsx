@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -666,7 +667,7 @@ function VerificationLogBlock({
   return (
     <div className="grid min-w-0 content-start gap-2">
       <p className="text-xs font-medium text-slate-600">{label}</p>
-      <pre
+      <BoundedText
         aria-label={label}
         tabIndex={0}
         className="max-h-48 min-w-0 overflow-auto rounded-md border border-slate-200 bg-white p-3 font-mono text-xs leading-6 font-normal text-slate-800 focus-visible:outline-2 focus-visible:outline-indigo-400"
@@ -676,7 +677,7 @@ function VerificationLogBlock({
         ) : (
           text
         )}
-      </pre>
+      </BoundedText>
     </div>
   );
 }

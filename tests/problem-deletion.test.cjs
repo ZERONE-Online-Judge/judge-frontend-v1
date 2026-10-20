@@ -33,6 +33,7 @@ test('problem deletion only requests rejudging cancellation after explicit opt-i
       apiRequest: async (...args) => requests.push(args),
     },
     '@/shared/lib/files': {},
+    '@/shared/lib/largeText': {},
   });
   await api.deleteOperatorProblem('contest', 'problem', 'token');
   await api.deleteOperatorProblem('contest', 'problem', 'token', true);

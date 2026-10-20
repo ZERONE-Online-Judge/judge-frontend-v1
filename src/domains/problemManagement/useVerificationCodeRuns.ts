@@ -1,3 +1,4 @@
+import { sourceFileText } from '@/shared/lib/largeText';
 import { useEffect, useRef, useState } from 'react';
 import type { VerificationExecution } from './verificationExecution';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -175,11 +176,6 @@ export default function useVerificationCodeRuns({
           '지원하지 않는 코드 파일입니다. .c, .cc, .cpp, .cxx, .py, .kt, .java 파일을 사용해 주세요.',
         );
       }
-      const sourceCode = file
-        ? await file.text()
-        : await getStorageObjectText(run.asset!.storage_key, token);
-      if (!isActive()) return;
-
       let verificationAsset = run.asset;
       if (file) {
         const asset = await uploadProblemAsset(
@@ -207,6 +203,11 @@ export default function useVerificationCodeRuns({
           ],
         );
       }
+
+      const sourceCode = file
+        ? await sourceFileText(file)
+        : await getStorageObjectText(run.asset!.storage_key, token);
+      if (!isActive()) return;
 
       updateRun(run.id, { stage: 'submitting' });
       let submission = await createOperatorTestSubmission(

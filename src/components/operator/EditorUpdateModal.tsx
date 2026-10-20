@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -159,9 +160,9 @@ export default function EditorUpdateModal({
                               <p className="mb-1 text-xs text-slate-500">
                                 {label}
                               </p>
-                              <pre className="max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 text-xs break-words whitespace-pre-wrap">
+                              <BoundedText className="max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 text-xs break-words whitespace-pre-wrap">
                                 {text}
-                              </pre>
+                              </BoundedText>
                             </div>
                           ))}
                         </div>

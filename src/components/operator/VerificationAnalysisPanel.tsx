@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import VerificationAgentEvidence from '@/components/operator/VerificationAgentEvidence';
@@ -520,13 +521,13 @@ function Code({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
       <p className="text-xs font-semibold text-slate-600">{label}</p>
-      <pre
+      <BoundedText
         aria-label={label}
         tabIndex={0}
         className="max-h-64 min-w-0 overflow-auto rounded-lg bg-slate-900 p-3 font-mono text-xs leading-6 text-slate-100"
       >
         {value || '(빈 내용)'}
-      </pre>
+      </BoundedText>
     </div>
   );
 }

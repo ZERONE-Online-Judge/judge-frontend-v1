@@ -1,3 +1,4 @@
+import { responsePreview } from '@/shared/lib/largeText';
 import type {
   MatchedTestcaseUploadProgress,
   MatchedTestcaseUploadResult,
@@ -172,17 +173,46 @@ export async function uploadToPresignedUrl(
   }
 }
 
-export async function getStorageObjectText(storageKey: string, token: string) {
+export async function getStorageObjectPreview(
+  storageKey: string,
+  token: string,
+  signal?: AbortSignal,
+  limit = 262144,
+  clipLines = true,
+) {
   const response = await fetch(
     `${API_BASE_URL}/storage/objects/${encodeStorageKey(storageKey)}`,
-    { credentials: 'include', headers: { Authorization: `Bearer ${token}` } },
+    {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${token}`, Range: `bytes=0-${limit}` },
+      signal,
+    },
   );
-
-  if (!response.ok) {
-    throw new Error(`storage object fetch failed: HTTP ${response.status}`);
-  }
-
-  return response.text();
+  return responsePreview(response, limit, clipLines);
+}
+export async function getStorageObjectText(storageKey: string, token: string) {
+  const preview = await getStorageObjectPreview(
+    storageKey,
+    token,
+    undefined,
+    512 * 1024,
+    false,
+  );
+  if (preview.truncated || preview.binary)
+    throw new Error('512KiB 이하의 텍스트 소스 코드를 사용하세요.');
+  return preview.text;
+}
+export async function downloadStorageObject(storageKey: string, token: string) {
+  const value = await apiRequest<{ download_url: string }>(
+    `/storage/download-url?storage_key=${encodeURIComponent(storageKey)}`,
+    token,
+  );
+  const link = document.createElement('a');
+  link.href = value.download_url;
+  link.download = storageKey.split('/').pop() || 'file';
+  document.body.append(link);
+  link.click();
+  link.remove();
 }
 
 export async function uploadProblemAsset(

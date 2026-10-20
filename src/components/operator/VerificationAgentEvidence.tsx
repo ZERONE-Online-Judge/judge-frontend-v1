@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import { useState } from 'react';
 import VerificationMarkdown from '@/components/operator/VerificationMarkdown';
 import type { VerificationAnalysis } from '@/domains/problemManagement/verificationAi';
@@ -155,15 +156,15 @@ export default function VerificationAgentEvidence({
                         {check.reference_id || '미확보'}
                       </p>
                       <p className="mt-2 leading-6">{check.note}</p>
-                      <pre
+                      <BoundedText
                         tabIndex={0}
                         className="mt-2 max-h-60 overflow-auto rounded bg-slate-900 p-3 text-slate-100"
-                      >{`입력\n${check.input}\n제안 기대 출력\n${check.expected_output}`}</pre>
+                      >{`입력\n${check.input}\n제안 기대 출력\n${check.expected_output}`}</BoundedText>
                       {check.details?.reference?.output != null ? (
-                        <pre
+                        <BoundedText
                           tabIndex={0}
                           className="mt-2 max-h-40 overflow-auto rounded bg-slate-100 p-2"
-                        >{`참조 풀이 실제 출력\n${check.details.reference.output}`}</pre>
+                        >{`참조 풀이 실제 출력\n${check.details.reference.output}`}</BoundedText>
                       ) : null}
                       <p className="mt-2 break-all text-slate-500">
                         근거: probe-check:{check.check_id} · experiment:
@@ -195,20 +196,20 @@ export default function VerificationAgentEvidence({
                           : `종료 코드 ${run.exit_code}`}{' '}
                         · {(run.wall_ms / 1000).toFixed(2)}초
                       </summary>
-                      <pre
+                      <BoundedText
                         aria-label={`실험 ${index + 1} 명령`}
                         tabIndex={0}
                         className="my-2 max-h-32 min-w-0 overflow-auto rounded bg-slate-100 p-2"
                       >
                         {run.command}
-                      </pre>
-                      <pre
+                      </BoundedText>
+                      <BoundedText
                         aria-label={`실험 ${index + 1} 출력`}
                         tabIndex={0}
                         className="max-h-60 min-w-0 overflow-auto rounded bg-slate-900 p-3 leading-6 text-slate-100"
                       >
                         {run.stdout || '(출력 없음)'}
-                      </pre>
+                      </BoundedText>
                       {run.output_truncated ? (
                         <p className="mt-2 text-amber-800">
                           출력이 길어 일부만 보관했습니다.
@@ -291,18 +292,18 @@ export default function VerificationAgentEvidence({
                                 validator·참조 풀이 실행 여부는 반례 교차 검증
                                 기록에서 확인하세요.
                               </p>
-                              <pre className="max-h-40 overflow-auto">{`입력\n${run.probe.input}\n제안 기대 출력\n${run.probe.expected_output}`}</pre>
+                              <BoundedText className="max-h-40 overflow-auto">{`입력\n${run.probe.input}\n제안 기대 출력\n${run.probe.expected_output}`}</BoundedText>
                             </div>
                           ) : null}
                           {run.compile_message || run.judge_message ? (
-                            <pre
+                            <BoundedText
                               tabIndex={0}
                               className="max-h-60 min-w-0 overflow-auto rounded bg-slate-900 p-3 text-xs text-slate-100"
                             >
                               {[run.compile_message, run.judge_message]
                                 .filter(Boolean)
                                 .join('\n')}
-                            </pre>
+                            </BoundedText>
                           ) : null}
                         </div>
                       </details>
@@ -361,13 +362,13 @@ export default function VerificationAgentEvidence({
                       ? '대조 코드 다운로드'
                       : '수정 후보 다운로드'}
                   </a>
-                  <pre
+                  <BoundedText
                     aria-label={`${name(item.artifact_id)} 코드`}
                     tabIndex={0}
                     className="max-h-80 min-w-0 overflow-auto rounded bg-slate-900 p-3 leading-6 text-slate-100"
                   >
                     {item.source}
-                  </pre>
+                  </BoundedText>
                 </details>
               ))}
 

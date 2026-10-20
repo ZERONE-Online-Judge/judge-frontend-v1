@@ -1,3 +1,7 @@
+import BoundedTextarea from '@/shared/ui/BoundedTextarea';
+import StorageFileContent from '@/components/operator/StorageFileContent';
+import type { TextPreview } from '@/shared/lib/largeText';
+import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
@@ -40,7 +44,7 @@ import {
   copyOperatorProblem,
   createOperatorProblem,
   deleteOperatorProblem,
-  getStorageObjectText,
+  getStorageObjectPreview,
   getOperatorProblems,
   getProblemAssets,
   getProblemPackageStatus,
@@ -989,10 +993,15 @@ function OperatorProblemsContent({
       testcaseFileStorageKey,
       queryIdentity,
     ],
-    queryFn: async () => ({
+    queryFn: async ({ signal }) => ({
       storageKey: testcaseFileStorageKey,
-      text: await getStorageObjectText(testcaseFileStorageKey, token),
+      preview: await getStorageObjectPreview(
+        testcaseFileStorageKey,
+        token,
+        signal,
+      ),
     }),
+    gcTime: 30000,
   });
   const isTestcaseFileSettled =
     testcaseFileQuery.data?.storageKey === testcaseFileStorageKey;
@@ -1008,7 +1017,9 @@ function OperatorProblemsContent({
       supportFilePreview?.storageKey ?? '',
       queryIdentity,
     ],
-    queryFn: () => getStorageObjectText(supportFilePreview!.storageKey, token),
+    queryFn: ({ signal }) =>
+      getStorageObjectPreview(supportFilePreview!.storageKey, token, signal),
+    gcTime: 30000,
   });
 
   const saveProblemMutation = useMutation({
@@ -2177,7 +2188,7 @@ function OperatorProblemsContent({
                         />
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           문제 본문
-                          <textarea
+                          <BoundedTextarea
                             className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             onChange={(event) =>
                               setForm((prev) => ({
@@ -2191,7 +2202,7 @@ function OperatorProblemsContent({
                         <div className="grid gap-3 md:grid-cols-2">
                           <label className="grid gap-2 text-sm font-semibold text-slate-700">
                             입력 설명
-                            <textarea
+                            <BoundedTextarea
                               className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                               onChange={(event) =>
                                 setForm((prev) => ({
@@ -2204,7 +2215,7 @@ function OperatorProblemsContent({
                           </label>
                           <label className="grid gap-2 text-sm font-semibold text-slate-700">
                             출력 설명
-                            <textarea
+                            <BoundedTextarea
                               className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                               onChange={(event) =>
                                 setForm((prev) => ({
@@ -2218,7 +2229,7 @@ function OperatorProblemsContent({
                         </div>
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           노트
-                          <textarea
+                          <BoundedTextarea
                             className="min-h-24 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             onChange={(event) =>
                               setForm((prev) => ({
@@ -2267,7 +2278,7 @@ function OperatorProblemsContent({
                               <div className="grid gap-3 md:grid-cols-2">
                                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                                   예제 입력
-                                  <textarea
+                                  <BoundedTextarea
                                     className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                                     onChange={(event) =>
                                       updateExample(index, {
@@ -2279,7 +2290,7 @@ function OperatorProblemsContent({
                                 </label>
                                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                                   예제 출력
-                                  <textarea
+                                  <BoundedTextarea
                                     className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                                     onChange={(event) =>
                                       updateExample(index, {
@@ -2292,7 +2303,7 @@ function OperatorProblemsContent({
                               </div>
                               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                                 예제 설명
-                                <textarea
+                                <BoundedTextarea
                                   className="min-h-20 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                                   onChange={(event) =>
                                     updateExample(index, {
@@ -2366,7 +2377,7 @@ function OperatorProblemsContent({
                       <>
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           해설 본문
-                          <textarea
+                          <BoundedTextarea
                             className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             onChange={(event) =>
                               setForm((prev) => ({
@@ -2905,10 +2916,11 @@ function OperatorProblemsContent({
 
       {isTestcaseModalOpen && latestTestcaseSet ? (
         <TestcaseSetModal
+          token={token}
           fileError={isTestcaseFileLoading ? null : testcaseFileQuery.error}
           filePreview={testcaseFilePreview}
           fileText={
-            isTestcaseFileSettled ? testcaseFileQuery.data?.text : undefined
+            isTestcaseFileSettled ? testcaseFileQuery.data?.preview : undefined
           }
           isFileLoading={isTestcaseFileLoading}
           onClose={() => {
@@ -2937,6 +2949,7 @@ function OperatorProblemsContent({
       ) : null}
       {supportFilePreview ? (
         <FileContentModal
+          token={token}
           fileError={supportFileQuery.error}
           filePreview={supportFilePreview}
           fileText={supportFileQuery.data}
@@ -2997,6 +3010,7 @@ function OperatorProblemsContent({
 
 function TestcaseSetModal({
   deletingTestcaseId,
+  token,
   fileError,
   filePreview,
   fileText,
@@ -3007,9 +3021,10 @@ function TestcaseSetModal({
   testcaseSet,
 }: {
   deletingTestcaseId: string | null;
+  token: string;
   fileError: unknown;
   filePreview: { storageKey: string; title: string } | null;
-  fileText?: string;
+  fileText?: TextPreview;
   isFileLoading: boolean;
   onClose: () => void;
   onDeleteTestcase: (testcaseId: string) => void;
@@ -3178,9 +3193,11 @@ function TestcaseSetModal({
                                 fallback="파일 내용을 불러오지 못했습니다"
                               />
                             ) : (
-                              <pre className="max-h-96 min-h-32 overflow-auto rounded-lg border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-xs leading-5 whitespace-pre-wrap text-slate-50">
-                                {fileText ?? ''}
-                              </pre>
+                              <StorageFileContent
+                                preview={fileText}
+                                storageKey={filePreview!.storageKey}
+                                token={token}
+                              />
                             )}
                           </div>
                         </td>
@@ -3208,15 +3225,17 @@ function TestcaseSetModal({
 }
 
 function FileContentModal({
+  token,
   fileError,
   filePreview,
   fileText,
   isFileLoading,
   onClose,
 }: {
+  token: string;
   fileError: unknown;
   filePreview: { storageKey: string; title: string };
-  fileText?: string;
+  fileText?: TextPreview;
   isFileLoading: boolean;
   onClose: () => void;
 }) {
@@ -3244,9 +3263,11 @@ function FileContentModal({
             fallback="파일 내용을 불러오지 못했습니다"
           />
         ) : (
-          <pre className="h-full min-h-0 overflow-auto rounded-lg border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-xs leading-5 whitespace-pre-wrap text-slate-50">
-            {fileText ?? ''}
-          </pre>
+          <StorageFileContent
+            preview={fileText}
+            storageKey={filePreview.storageKey}
+            token={token}
+          />
         )}
       </div>
     </ModalDialog>
@@ -3410,9 +3431,9 @@ function PreviewJudgeLog({ label, value }: { label: string; value: string }) {
   return (
     <label className="grid gap-2 text-xs font-semibold text-slate-700">
       {label}
-      <pre className="max-h-56 overflow-auto rounded-lg border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-[11px] leading-5 whitespace-pre-wrap text-slate-50">
+      <BoundedText className="max-h-56 overflow-auto rounded-lg border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-[11px] leading-5 whitespace-pre-wrap text-slate-50">
         {value}
-      </pre>
+      </BoundedText>
     </label>
   );
 }

@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import { useState } from 'react';
 import { parseVerificationDetails } from '@/domains/problemManagement/verificationDetails';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
@@ -129,13 +130,13 @@ export default function SubmissionDetailContent({
           </span>
         ) : null}
         {submission.source_code ? (
-          <pre
+          <BoundedText
             aria-label="제출한 소스 코드"
             tabIndex={0}
             className={`max-h-[min(28rem,55dvh)] min-h-32 overflow-auto rounded-[var(--zoj-radius-inset)] bg-slate-950 p-4 font-mono text-[13px] leading-6 text-slate-100 outline-offset-4 sm:p-5 ${wrapCode ? 'break-all whitespace-pre-wrap' : 'whitespace-pre'}`}
           >
             <code>{submission.source_code}</code>
-          </pre>
+          </BoundedText>
         ) : (
           <p className="zoj-inset text-sm text-slate-500">
             표시할 소스 코드가 없습니다.
@@ -233,13 +234,13 @@ function LogBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-2">
       <h4 className="text-xs font-medium text-slate-600">{label}</h4>
-      <pre
+      <BoundedText
         aria-label={label}
         tabIndex={0}
         className="max-h-64 min-w-0 overflow-auto rounded-[var(--zoj-radius-inset)] border border-[var(--zoj-border)] bg-white p-4 font-mono text-xs leading-6 whitespace-pre text-slate-700 outline-offset-4"
       >
         {value || '(비어 있음)'}
-      </pre>
+      </BoundedText>
     </div>
   );
 }

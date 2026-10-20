@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Modal from '@/shared/ui/Modal';
@@ -219,9 +220,9 @@ export default function VerificationTestResults({
                 {detail.data.judge_message ? (
                   <details className="min-w-0 text-xs text-slate-500">
                     <summary className="cursor-pointer">채점 메시지</summary>
-                    <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 break-all whitespace-pre-wrap">
+                    <BoundedText className="mt-2 max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 break-all whitespace-pre-wrap">
                       {detail.data.judge_message}
-                    </pre>
+                    </BoundedText>
                   </details>
                 ) : null}
               </>
@@ -244,9 +245,9 @@ function Preview({
       <h4 className="text-sm font-medium text-slate-700">{title}</h4>
       {value ? (
         <>
-          <pre className="max-h-96 min-h-28 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-900">
+          <BoundedText className="max-h-96 min-h-28 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-900">
             {value.text || '(빈 출력)'}
-          </pre>
+          </BoundedText>
           {value.truncated ? (
             <p className="text-xs text-amber-700">
               저장된 앞부분만 표시합니다

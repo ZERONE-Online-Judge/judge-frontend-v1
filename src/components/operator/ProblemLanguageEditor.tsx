@@ -1,3 +1,4 @@
+import BoundedTextarea from '@/shared/ui/BoundedTextarea';
 import Select from '@/shared/ui/Select';
 import { useState } from 'react';
 import type {
@@ -226,7 +227,7 @@ export default function ProblemLanguageEditor({
                   className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700"
                 >
                   {label}
-                  <textarea
+                  <BoundedTextarea
                     className={`${inputClass} font-mono text-xs leading-5`}
                     rows={field === 'statement' ? 8 : 3}
                     value={document[field]}
@@ -262,7 +263,7 @@ export default function ProblemLanguageEditor({
                             : field === 'output'
                               ? '번역 예제 출력'
                               : '번역 예제 설명'}
-                          <textarea
+                          <BoundedTextarea
                             className={inputClass}
                             rows={3}
                             value={example[field] || ''}
@@ -309,7 +310,7 @@ export default function ProblemLanguageEditor({
                 </summary>
                 <label className="mt-3 grid gap-2 text-sm font-semibold">
                   번역 해설
-                  <textarea
+                  <BoundedTextarea
                     className={`${inputClass} font-mono text-xs`}
                     rows={6}
                     value={problem.editorial_translations?.[selected] || ''}

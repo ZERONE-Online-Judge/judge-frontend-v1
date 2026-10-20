@@ -1,3 +1,4 @@
+import BoundedText from '@/shared/ui/BoundedText';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import type { ProblemReviewRun } from '@/domains/problemManagement/useProblemReviewRuns';
 import { parseVerificationDetails } from '@/domains/problemManagement/verificationDetails';
@@ -104,9 +105,9 @@ export default function ProblemReviewResult({
       {detail.message ? (
         <details className="min-w-0 text-xs text-slate-500">
           <summary className="cursor-pointer">채점 메시지</summary>
-          <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
+          <BoundedText className="mt-2 max-h-48 overflow-auto rounded-lg bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
             {detail.message}
-          </pre>
+          </BoundedText>
         </details>
       ) : null}
       {detail.input !== undefined ? (
@@ -125,9 +126,9 @@ export default function ProblemReviewResult({
         <summary className="cursor-pointer">
           제출한 코드 · {judgeLanguageLabel(run.language)}
         </summary>
-        <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100">
+        <BoundedText className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100">
           {run.sourceCode}
-        </pre>
+        </BoundedText>
       </details>
     </section>
   );
@@ -137,9 +138,9 @@ function Log({ label, text }: { label: string; text: string }) {
   return (
     <div className="grid min-w-0 gap-1.5">
       <p className="text-xs font-medium text-slate-600">{label}</p>
-      <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
+      <BoundedText className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
         {text || '(비어 있음)'}
-      </pre>
+      </BoundedText>
     </div>
   );
 }

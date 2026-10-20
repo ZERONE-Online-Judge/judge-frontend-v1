@@ -141,7 +141,7 @@ function trigger() {
 test('problem list stays within its workspace without a page modal and restores focus on Escape', async () => {
   await render();
   assert.equal(document.querySelector('dialog'), null);
-  assert.equal(host.querySelector('nav[aria-label="문제 목록"]'), null);
+  assert.equal(host.querySelector('aside').hasAttribute('inert'), true);
   assert.equal(trigger().getAttribute('aria-expanded'), 'false');
   trigger().focus();
   await click(trigger());
@@ -163,7 +163,11 @@ test('problem list stays within its workspace without a page modal and restores 
       }),
     ),
   );
-  assert.equal(document.querySelector('aside'), null);
+  assert.equal(
+    document.querySelector('aside').getAttribute('aria-hidden'),
+    'true',
+  );
+  assert.equal(document.querySelector('aside').hasAttribute('inert'), true);
   assert.equal(document.activeElement, trigger());
   assert.equal(document.body.style.overflow, 'auto');
 });

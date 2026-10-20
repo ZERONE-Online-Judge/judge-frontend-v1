@@ -34,11 +34,13 @@ export default function ProblemSidebar({
 }: ProblemSidebarProps) {
   const showDivisionSelect = divisions.length > 1 && onDivisionChange;
 
-  if (!open) return null;
   return (
     <aside
       className="zoj-problem-drawer"
       id={panelId}
+      data-open={open}
+      aria-hidden={!open}
+      inert={!open}
       aria-label="빠른 문제 전환"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -88,6 +90,7 @@ export default function ProblemSidebar({
                 <li key={problem.problem_id}>
                   <Link
                     aria-current={active ? 'page' : undefined}
+                    title={problem.title}
                     onClick={onClose}
                     to={`/contests/${contestId}/problems/${problem.problem_id}${viewPath}${suffix}`}
                   >

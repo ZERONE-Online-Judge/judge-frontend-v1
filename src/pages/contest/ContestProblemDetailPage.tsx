@@ -800,14 +800,16 @@ function ContestProblemDetailContent({
             targetView={effectiveView}
             search={location.search}
           />
-          {problemListOpen ? (
-            <button
-              className="zoj-problem-layout-scrim"
-              type="button"
-              aria-label="문제 목록 접기"
-              onClick={closeProblemList}
-            />
-          ) : null}
+          <button
+            className="zoj-problem-layout-scrim"
+            type="button"
+            aria-label="문제 목록 접기"
+            aria-hidden={!problemListOpen}
+            disabled={!problemListOpen}
+            tabIndex={problemListOpen ? 0 : -1}
+            data-open={problemListOpen}
+            onClick={closeProblemList}
+          />
           <div className="zoj-problem-layout__content">
             {problem && effectiveView === 'combined' && canShowSubmit ? (
               <section className="zoj-problem-workspace is-combined">

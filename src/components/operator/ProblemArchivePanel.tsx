@@ -4,13 +4,11 @@ import ModalDialog from '@/shared/ui/ModalDialog';
 import type { Division } from '@/domains/contestAdministration/types';
 import type { Problem } from '@/domains/problemManagement/types';
 import {
-  downloadProblemArchive,
   importProblemArchive,
   inspectProblemArchive,
 } from '@/domains/problemManagement/archive';
 import { formatApiError } from '@/shared/api/errors';
 import EditorImportPanel from './EditorImportPanel';
-import PackageUpdateHistory from './PackageUpdateHistory';
 
 function sizeLabel(bytes: number) {
   return bytes >= 1024 * 1024
@@ -23,20 +21,20 @@ export default function ProblemArchivePanel({
   token,
   divisions,
   problems,
-  selectedProblem,
   activeDivisionId,
   unsaved,
   disabled,
+  onCreate,
   onImported,
 }: {
   contestId: string;
   token: string;
   divisions: Division[];
   problems: Problem[];
-  selectedProblem?: Problem;
   activeDivisionId: string;
   unsaved: boolean;
   disabled: boolean;
+  onCreate: () => void;
   onImported: (problem: Problem) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -63,11 +61,6 @@ export default function ProblemArchivePanel({
       onImported(problem);
     },
   });
-  const exporting = useMutation({
-    mutationFn: (problem: Problem) =>
-      downloadProblemArchive(contestId, token, problem),
-    onSuccess: () => setMessage('문제 ZIP 다운로드를 시작했습니다.'),
-  });
   const preview = inspect.data;
   const busy = inspect.isPending || importing.isPending;
   const duplicate = problems.some(
@@ -87,25 +80,13 @@ export default function ProblemArchivePanel({
   return (
     <>
       <section
-        aria-label="문제 파일 가져오기와 내보내기"
+        aria-label="문제 추가하기"
         className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
       >
-        {selectedProblem && (
-          <PackageUpdateHistory
-            key={selectedProblem.problem_id + selectedProblem.title}
-            contestId={contestId}
-            problemId={selectedProblem.problem_id}
-            token={token}
-          />
-        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="grid min-w-0 gap-1">
-            <h2 className="text-sm font-semibold text-slate-900">문제 ZIP</h2>
-            <p className="text-xs leading-5 text-slate-600">
-              지문·예제·해설·첨부 파일·검증 코드·모든 테스트케이스 버전을 한
-              파일로 보관합니다.
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold text-slate-900">
+            문제 추가하기
+          </h2>
           <div className="flex flex-wrap gap-2">
             <EditorImportPanel
               contestId={contestId}
@@ -119,20 +100,7 @@ export default function ProblemArchivePanel({
             <button
               type="button"
               className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 disabled:opacity-50"
-              disabled={
-                disabled || exporting.isPending || !selectedProblem || unsaved
-              }
-              onClick={() => {
-                setMessage('');
-                exporting.mutate(selectedProblem!);
-              }}
-            >
-              {exporting.isPending ? 'ZIP 만드는 중…' : '선택한 문제 내보내기'}
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              disabled={disabled || exporting.isPending || !divisions.length}
+              disabled={disabled || busy || !divisions.length}
               onClick={() => {
                 setOpen(true);
                 setDivisionId(activeDivisionId);
@@ -143,26 +111,21 @@ export default function ProblemArchivePanel({
                 importing.reset();
               }}
             >
-              문제 ZIP 가져오기
+              ZOJ ZIP 불러오기
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              disabled={disabled || busy || !activeDivisionId}
+              onClick={onCreate}
+            >
+              새 문제 생성하기
             </button>
           </div>
         </div>
-        <p className="text-xs text-slate-600">
-          {unsaved && selectedProblem
-            ? '편집한 내용을 저장한 뒤 내보내 주세요.'
-            : selectedProblem
-              ? `내보낼 문제: ${selectedProblem.problem_code}. ${selectedProblem.title}`
-              : '내보낼 문제를 목록에서 선택하세요. 가져오기는 참가 유형을 만든 뒤 사용할 수 있습니다.'}
-        </p>
-        {exporting.error ? (
-          <p role="alert" className="text-sm text-rose-700">
-            {formatApiError(exporting.error, '문제를 내보내지 못했습니다')}
-          </p>
-        ) : null}
-        {exporting.isPending ? (
-          <p role="status" className="text-sm text-indigo-700">
-            첨부 파일과 테스트케이스를 모으고 있습니다. 파일 크기에 따라 시간이
-            걸릴 수 있습니다.
+        {!divisions.length ? (
+          <p className="text-xs text-slate-600">
+            참가 유형을 먼저 추가해 주세요.
           </p>
         ) : null}
         {message ? (
@@ -173,7 +136,7 @@ export default function ProblemArchivePanel({
       </section>
       {open ? (
         <ModalDialog
-          title="문제 ZIP 가져오기"
+          title="ZOJ ZIP 불러오기"
           description="파일을 확인한 뒤 새 문제로 등록합니다."
           size="lg"
           onClose={busy ? undefined : () => setOpen(false)}

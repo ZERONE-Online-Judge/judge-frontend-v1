@@ -1,6 +1,8 @@
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
+import PackageUpdateHistory from '@/components/operator/PackageUpdateHistory';
+import { downloadProblemArchive } from '@/domains/problemManagement/archive';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import useConfirmation from '@/shared/ui/useConfirmation';
 import ModalDialog from '@/shared/ui/ModalDialog';
@@ -808,6 +810,11 @@ function OperatorProblemsContent({
   const selectedProblem = problems.find(
     (problem) => problem.problem_id === effectiveSelectedProblemId,
   );
+  const hasUnsavedProblem = Boolean(
+    selectedProblem &&
+    JSON.stringify(form) !==
+      JSON.stringify(problemFormFromProblem(selectedProblem)),
+  );
   const testDraftScope = `operator:${contestId}`;
   const testDraftKey = effectiveSelectedProblemId
     ? `preview:${effectiveSelectedProblemId}`
@@ -1377,6 +1384,11 @@ function OperatorProblemsContent({
     },
   });
 
+  const exportProblemMutation = useMutation({
+    mutationFn: (problem: Problem) =>
+      downloadProblemArchive(contestId, token, problem),
+  });
+
   const testSubmissionMutation = useMutation({
     mutationFn: async () => {
       const submitted = await createOperatorTestSubmission(
@@ -1496,6 +1508,7 @@ function OperatorProblemsContent({
     setSavedMessage('');
     saveProblemMutation.reset();
     deleteProblemMutation.reset();
+    exportProblemMutation.reset();
   }
 
   function cancelEditor() {
@@ -1602,6 +1615,18 @@ function OperatorProblemsContent({
     uploadMatchedTestcasesMutation.mutate(testcaseFiles);
   }
 
+  const problemWritePending =
+    saveProblemMutation.isPending ||
+    deleteProblemMutation.isPending ||
+    copyProblemMutation.isPending ||
+    uploadAssetMutation.isPending ||
+    uploadEditorialAssetMutation.isPending ||
+    uploadRoleFileMutation.isPending ||
+    uploadMatchedTestcasesMutation.isPending ||
+    deleteAssetMutation.isPending ||
+    deleteTestcaseSetMutation.isPending ||
+    deleteTestcaseMutation.isPending;
+
   return (
     <PageLayout
       navigation={<OperatorTabs contestId={contestId} />}
@@ -1626,25 +1651,10 @@ function OperatorProblemsContent({
         token={token}
         divisions={divisions}
         problems={problems}
-        selectedProblem={selectedProblem}
         activeDivisionId={activeDivisionId}
-        unsaved={Boolean(
-          selectedProblem &&
-          JSON.stringify(form) !==
-            JSON.stringify(problemFormFromProblem(selectedProblem)),
-        )}
-        disabled={
-          saveProblemMutation.isPending ||
-          deleteProblemMutation.isPending ||
-          copyProblemMutation.isPending ||
-          uploadAssetMutation.isPending ||
-          uploadEditorialAssetMutation.isPending ||
-          uploadRoleFileMutation.isPending ||
-          uploadMatchedTestcasesMutation.isPending ||
-          deleteAssetMutation.isPending ||
-          deleteTestcaseSetMutation.isPending ||
-          deleteTestcaseMutation.isPending
-        }
+        unsaved={hasUnsavedProblem}
+        disabled={problemWritePending}
+        onCreate={startCreateMode}
         onImported={(problem) => {
           void queryClient.invalidateQueries({
             queryKey: ['operator', 'problems', contestId],
@@ -1669,19 +1679,6 @@ function OperatorProblemsContent({
               </h2>
             </div>
             <div className="flex shrink-0 gap-2">
-              <button
-                className="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={
-                  !activeDivisionId ||
-                  saveProblemMutation.isPending ||
-                  deleteProblemMutation.isPending ||
-                  copyProblemMutation.isPending
-                }
-                onClick={startCreateMode}
-                type="button"
-              >
-                새 문제
-              </button>
               <button
                 aria-expanded={isCopyPanelOpen}
                 className={[
@@ -1825,7 +1822,7 @@ function OperatorProblemsContent({
                   ? '문제를 불러오는 중입니다.'
                   : problemSearch.trim()
                     ? '검색 결과가 없습니다. 검색어를 바꿔보세요.'
-                    : '이 유형에 등록된 문제가 없습니다. 새 문제를 눌러 추가하세요.'}
+                    : '이 유형에 등록된 문제가 없습니다. 위의 문제 추가하기에서 추가하세요.'}
               </p>
             ) : null}
           </div>
@@ -1865,33 +1862,25 @@ function OperatorProblemsContent({
                 <h3 className="text-lg font-semibold text-slate-800">
                   {!activeDivisionId && !dashboardQuery.isLoading
                     ? '참가 유형을 먼저 추가하세요'
-                    : '어떤 문제를 작업할까요?'}
+                    : '수정할 문제를 선택하세요'}
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-slate-500">
                   {!activeDivisionId && !dashboardQuery.isLoading
                     ? '문제를 추가하려면 참가팀 탭의 참가 유형 관리에서 유형을 먼저 추가해 주세요.'
-                    : '기존 문제는 목록에서 선택하고, 새로 출제할 때는 ‘새 문제’를 누르세요.'}
+                    : '기존 문제는 목록에서 선택하고, 새 문제는 위의 문제 추가하기에서 추가하세요.'}
                 </p>
-                {activeDivisionId ? (
-                  <button
-                    className="rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white"
-                    onClick={startCreateMode}
-                    type="button"
-                  >
-                    새 문제
-                  </button>
-                ) : !dashboardQuery.isLoading ? (
+                {!activeDivisionId && !dashboardQuery.isLoading ? (
                   <Link
                     className="rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white"
                     to={`/operator/contests/${contestId}/participants`}
                   >
                     참가팀에서 참가 유형 추가
                   </Link>
-                ) : (
+                ) : dashboardQuery.isLoading ? (
                   <p className="text-sm text-slate-500">
                     대회 정보를 불러오는 중입니다.
                   </p>
-                )}
+                ) : null}
               </div>
             ) : (
               <>
@@ -1914,6 +1903,14 @@ function OperatorProblemsContent({
                     {editorMode === 'create' ? '작성 취소' : '편집 닫기'}
                   </button>
                 </div>
+                {selectedProblem ? (
+                  <PackageUpdateHistory
+                    key={selectedProblem.problem_id + selectedProblem.title}
+                    contestId={contestId}
+                    problemId={selectedProblem.problem_id}
+                    token={token}
+                  />
+                ) : null}
                 {editorMode === 'edit' && !form.problemId ? (
                   <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                     수정할 문제를 목록에서 가져와 주세요.
@@ -2512,21 +2509,63 @@ function OperatorProblemsContent({
                               : '새 문제 저장'}
                         </button>
                         {editorMode === 'edit' && selectedProblem ? (
-                          <button
-                            className="inline-flex h-11 items-center justify-center rounded-lg border border-rose-200 bg-white px-5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:border-slate-200 disabled:text-slate-300"
-                            disabled={
-                              deleteProblemMutation.isPending ||
-                              saveProblemMutation.isPending
-                            }
-                            onClick={handleDeleteProblem}
-                            type="button"
-                          >
-                            {deleteProblemMutation.isPending
-                              ? '삭제 중'
-                              : '문제 삭제'}
-                          </button>
+                          <>
+                            <button
+                              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                              disabled={
+                                exportProblemMutation.isPending ||
+                                problemWritePending ||
+                                hasUnsavedProblem
+                              }
+                              onClick={() =>
+                                exportProblemMutation.mutate(selectedProblem)
+                              }
+                              type="button"
+                            >
+                              {exportProblemMutation.isPending
+                                ? 'ZIP 만드는 중…'
+                                : '문제 ZIP 내보내기'}
+                            </button>
+                            <button
+                              className="inline-flex h-11 items-center justify-center rounded-lg border border-rose-200 bg-white px-5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:border-slate-200 disabled:text-slate-300"
+                              disabled={
+                                deleteProblemMutation.isPending ||
+                                saveProblemMutation.isPending
+                              }
+                              onClick={handleDeleteProblem}
+                              type="button"
+                            >
+                              {deleteProblemMutation.isPending
+                                ? '삭제 중'
+                                : '문제 삭제'}
+                            </button>
+                          </>
                         ) : null}
                       </div>
+                    ) : null}
+                    {authoringTab !== 'tests' && selectedProblem ? (
+                      <>
+                        {hasUnsavedProblem ? (
+                          <p className="text-xs text-slate-500">
+                            편집한 내용을 저장한 뒤 ZIP으로 내보낼 수 있습니다.
+                          </p>
+                        ) : null}
+                        {exportProblemMutation.error ? (
+                          <ErrorBox
+                            error={exportProblemMutation.error}
+                            fallback="문제를 내보내지 못했습니다"
+                          />
+                        ) : null}
+                        {exportProblemMutation.isPending ? (
+                          <p role="status" className="text-xs text-indigo-700">
+                            첨부 파일과 테스트케이스를 모으고 있습니다.
+                          </p>
+                        ) : exportProblemMutation.isSuccess ? (
+                          <p role="status" className="text-xs text-emerald-700">
+                            문제 ZIP 다운로드를 시작했습니다.
+                          </p>
+                        ) : null}
+                      </>
                     ) : null}
                   </fieldset>
                 </form>

@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -157,7 +158,7 @@ function ProblemReviewContent({
       <section className="flex min-w-0 flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-600">
           참가 유형
-          <select
+          <Select
             className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
             value={divisionId}
             onChange={(event) => {
@@ -175,7 +176,7 @@ function ProblemReviewContent({
                 {division.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="grid min-w-0 flex-1 gap-1.5 text-xs font-medium text-slate-600">
           문제 검색

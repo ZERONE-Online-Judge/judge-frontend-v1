@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { type FormEvent, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
@@ -200,7 +201,7 @@ function AdminAuditLogsContent({ token }: { token: string }) {
               onSubmit={applyFilters}
             >
               {logType === 'operations' ? (
-                <select
+                <Select
                   className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
                   onChange={(event) => {
                     setScopeFilter(event.target.value);
@@ -212,9 +213,9 @@ function AdminAuditLogsContent({ token }: { token: string }) {
                   <option value="">전체 범위</option>
                   <option value="admin">서비스 관리자</option>
                   <option value="operator">운영자</option>
-                </select>
+                </Select>
               ) : (
-                <select
+                <Select
                   className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
                   onChange={(event) => {
                     setAccessScopeFilter(event.target.value);
@@ -226,7 +227,7 @@ function AdminAuditLogsContent({ token }: { token: string }) {
                   <option value="">전체 계정</option>
                   <option value="general">일반 계정</option>
                   <option value="participant">참가자</option>
-                </select>
+                </Select>
               )}
               <input
                 className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"

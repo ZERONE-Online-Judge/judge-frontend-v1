@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import ModalDialog from '@/shared/ui/ModalDialog';
@@ -266,7 +267,7 @@ export default function ProblemArchivePanel({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="grid gap-2 text-sm font-semibold text-slate-800">
                     등록할 참가 유형
-                    <select
+                    <Select
                       aria-label="등록할 참가 유형"
                       disabled={busy}
                       value={divisionId}
@@ -285,7 +286,7 @@ export default function ProblemArchivePanel({
                           {division.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>
                   <label className="grid gap-2 text-sm font-semibold text-slate-800">
                     등록할 문제 번호

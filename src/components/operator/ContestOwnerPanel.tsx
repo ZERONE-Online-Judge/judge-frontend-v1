@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useId, useState } from 'react';
 import { OperatorPanel } from '@/components/operator/OperatorShell';
 import {
@@ -64,7 +65,7 @@ export default function ContestOwnerPanel({
             <div className="grid content-start gap-3">
               <label className="grid gap-2 text-sm font-semibold text-slate-800">
                 총괄을 위임할 운영자
-                <select
+                <Select
                   aria-describedby={helpId}
                   className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:opacity-50"
                   value={email}
@@ -82,7 +83,7 @@ export default function ContestOwnerPanel({
                       {operator.email}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <p id={helpId} className="text-sm leading-6 text-slate-600">
                 {candidates.length

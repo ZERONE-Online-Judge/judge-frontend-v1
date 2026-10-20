@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { type FormEvent, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -169,7 +170,7 @@ export default function MailDeliveryLogPanel({
         </label>
         <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-600">
           발송 상태
-          <select
+          <Select
             aria-label="발송 상태"
             className={fieldClass}
             value={draft.status}
@@ -183,7 +184,7 @@ export default function MailDeliveryLogPanel({
                 {item.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-600">
           요청 시작일 (KST)

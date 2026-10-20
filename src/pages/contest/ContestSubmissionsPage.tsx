@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { pollDelay } from '@/shared/query/polling';
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -413,7 +414,7 @@ function ProblemFilterSelect({
   return (
     <section className="zoj-contest-filter mt-5 grid gap-2">
       <span className="text-sm font-black text-slate-700">문제 선택</span>
-      <select
+      <Select
         className="h-10 w-full max-w-md rounded border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -424,7 +425,7 @@ function ProblemFilterSelect({
             {problem.problem_code}. {problem.title}
           </option>
         ))}
-      </select>
+      </Select>
     </section>
   );
 }

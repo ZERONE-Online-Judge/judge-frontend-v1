@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import SubmissionDetailContent from '@/components/operator/SubmissionDetailContent';
@@ -494,7 +495,7 @@ function OperatorSubmissionsContent({
             </button>
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               유형
-              <select
+              <Select
                 className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextDivisionId = event.target.value;
@@ -517,11 +518,11 @@ function OperatorSubmissionsContent({
                     {division.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               문제
-              <select
+              <Select
                 className="h-10 min-w-52 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextProblemId = event.target.value;
@@ -537,11 +538,11 @@ function OperatorSubmissionsContent({
                     {problem.problem_code}. {problem.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               팀
-              <select
+              <Select
                 className="h-10 min-w-52 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextTeamId = event.target.value;
@@ -560,7 +561,7 @@ function OperatorSubmissionsContent({
                     {team.team_name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             {canRejudge ? (
               <button

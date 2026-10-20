@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { judgeTimeSources } from '@/data/judgeTimeSources';
@@ -48,7 +49,7 @@ export default function JudgeTimeReference() {
         </div>
         <div className="judge-time-language">
           <label htmlFor="time-language">내 풀이 언어</label>
-          <select
+          <Select
             id="time-language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -58,7 +59,7 @@ export default function JudgeTimeReference() {
                 {l.label}
               </option>
             ))}
-          </select>
+          </Select>
           <span>2.2GHz 고정 · 단독 3회 중 최대 CPU 시간이에요.</span>
         </div>
         <div className="judge-time-profiles">
@@ -146,7 +147,7 @@ export default function JudgeTimeReference() {
             {profileId !== 'search' && (
               <label>
                 반복 횟수 가정
-                <select
+                <Select
                   value={complexity}
                   onChange={(e) =>
                     setComplexity(e.target.value as TimeComplexity)
@@ -157,19 +158,19 @@ export default function JudgeTimeReference() {
                   <option value="quadratic">N² · 두 겹 전체 순회</option>
                   <option value="pairs">N(N−1)/2 · 서로 다른 쌍</option>
                   <option value="cubic">N³ · 세 겹 전체 순회</option>
-                </select>
+                </Select>
               </label>
             )}
             <label>
               여유 계수
-              <select
+              <Select
                 value={factor}
                 onChange={(e) => setFactor(e.target.value)}
               >
                 <option value="1">×1 · 여유 없음</option>
                 <option value="2">×2 · 기본 계획값</option>
                 <option value="3">×3 · 더 넉넉하게</option>
-              </select>
+              </Select>
             </label>
           </div>
           {estimate ? (

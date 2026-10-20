@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { type ReactNode, useState } from 'react';
 import CodeEditor from '@/shared/ui/CodeEditor';
 import PageNotice from '@/shared/ui/PageNotice';
@@ -77,7 +78,7 @@ export default function ProblemSubmitPanel({
       <label className="mt-6 grid gap-2">
         <span className="text-xs font-medium text-slate-500">제출 언어</span>
         <span className="relative block">
-          <select
+          <Select
             className="h-11 w-full min-w-0 appearance-none rounded-lg border border-slate-200 bg-white px-5 pr-11 text-sm font-bold text-slate-700 transition outline-none focus:border-[#6d5dfc] focus:ring-2 focus:ring-[#6d5dfc]/15 disabled:bg-slate-100"
             disabled={isSubmitting}
             onChange={(event) =>
@@ -95,21 +96,7 @@ export default function ProblemSubmitPanel({
                   {option.label}
                 </option>
               ))}
-          </select>
-          <svg
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-slate-500"
-            fill="none"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="m5 7.5 5 5 5-5"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
+          </Select>
         </span>
       </label>
 

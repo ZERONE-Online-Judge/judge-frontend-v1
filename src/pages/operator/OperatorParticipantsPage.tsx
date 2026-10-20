@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import ParticipantMemberCard from '@/components/operator/ParticipantMemberCard';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import ParticipantDivisionsPanel from '@/components/operator/ParticipantDivisionsPanel';
@@ -692,7 +693,7 @@ function OperatorParticipantsContent({
         <OperatorPanel
           actions={
             <>
-              <select
+              <Select
                 aria-label="참가팀 유형 필터"
                 className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => setDivisionFilter(event.target.value)}
@@ -707,7 +708,7 @@ function OperatorParticipantsContent({
                     {division.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               <input
                 aria-label="참가팀 검색"
                 className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
@@ -877,7 +878,7 @@ function SelectInput({
   return (
     <label className="grid gap-2 text-sm font-semibold text-slate-700">
       {label}
-      <select
+      <Select
         className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -888,7 +889,7 @@ function SelectInput({
             {option.label}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

@@ -187,9 +187,6 @@ export default function SupportGuidePage() {
                 to={supportPath(section.id)}
               >
                 {section.label}
-                <span aria-hidden="true">
-                  <InterfaceIcon name="arrowUpRight" />
-                </span>
               </Link>
             ))}
           </div>

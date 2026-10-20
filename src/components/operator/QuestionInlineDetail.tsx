@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import type { FormEvent } from 'react';
 import type {
   ContestAnswer,
@@ -233,7 +234,7 @@ export default function QuestionInlineDetail({
           <div className="operator-answer-actions">
             <label className="operator-answer-visibility">
               공개 범위
-              <select
+              <Select
                 aria-label="답변 공개 범위"
                 aria-describedby={
                   forcedPrivateAnswer ? privateHintId : undefined
@@ -253,7 +254,7 @@ export default function QuestionInlineDetail({
                   <option value="public">공개</option>
                 ) : null}
                 <option value="questioner">비공개</option>
-              </select>
+              </Select>
             </label>
             <div className="operator-thread-tools">
               <button

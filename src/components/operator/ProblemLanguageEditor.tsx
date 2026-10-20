@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useState } from 'react';
 import type {
   Problem,
@@ -76,7 +77,7 @@ export default function ProblemLanguageEditor({
     <section className="grid min-w-0 gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
       <label className="grid gap-2 text-sm font-semibold text-slate-700">
         기본 지문 언어
-        <select
+        <Select
           className={inputClass}
           value={defaultLanguage}
           onChange={(e) => {
@@ -98,7 +99,7 @@ export default function ProblemLanguageEditor({
               {statementLanguageLabel(language)}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <p className="text-xs leading-5 text-slate-600">
         아래 원문은 기본 지문입니다. 기존 번역을 기본 언어로 선택하면
@@ -121,7 +122,7 @@ export default function ProblemLanguageEditor({
           <div className="flex flex-wrap items-end gap-2">
             <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-slate-700">
               추가할 지문 언어
-              <select
+              <Select
                 className={inputClass}
                 value={adding}
                 onChange={(e) => setAdding(e.target.value)}
@@ -137,7 +138,7 @@ export default function ProblemLanguageEditor({
                       {statementLanguageLabel(language)}
                     </option>
                   ))}
-              </select>
+              </Select>
             </label>
             <button
               type="button"
@@ -164,7 +165,7 @@ export default function ProblemLanguageEditor({
               <div className="flex flex-wrap items-end gap-2">
                 <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-slate-700">
                   편집할 번역
-                  <select
+                  <Select
                     className={inputClass}
                     value={selected}
                     onChange={(e) => setChoice(e.target.value)}
@@ -174,7 +175,7 @@ export default function ProblemLanguageEditor({
                         {statementLanguageLabel(language)}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <button
                   type="button"

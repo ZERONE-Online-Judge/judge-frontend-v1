@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { judgeBenchmark, type JudgeBenchmarkCase } from '@/data/judgeBenchmark';
@@ -33,7 +34,7 @@ export default function JudgeBenchmarkExamples({
       </p>
       <label className="og-benchmark-select">
         확인할 코드
-        <select
+        <Select
           value={example.id}
           onChange={(event) => onSelect(event.target.value)}
         >
@@ -42,7 +43,7 @@ export default function JudgeBenchmarkExamples({
               {item.label} · {languages[item.language]}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <div className="og-load-selector">
         <span>동시에 채점 큐에 넣는 요청 수</span>

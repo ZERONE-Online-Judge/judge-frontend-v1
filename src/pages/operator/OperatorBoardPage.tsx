@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import QuestionInlineDetail, {
   type AnswerForm,
 } from '@/components/operator/QuestionInlineDetail';
@@ -369,7 +370,7 @@ function OperatorBoardContent({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <select
+            <Select
               aria-label="질문 공개 범위 필터"
               value={visibilityFilter}
               onChange={(event) => setVisibilityFilter(event.target.value)}
@@ -377,7 +378,7 @@ function OperatorBoardContent({
               <option value="all">전체 공개 범위</option>
               <option value="public">공개</option>
               <option value="private">비공개</option>
-            </select>
+            </Select>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">

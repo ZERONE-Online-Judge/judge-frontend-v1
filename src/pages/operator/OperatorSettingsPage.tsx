@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import ProblemLanguageSettings from '@/components/operator/ProblemLanguageSettings';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
@@ -410,7 +411,7 @@ function OperatorSettingsContent({
                     <div className="grid gap-4 lg:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
                       <label className="grid gap-2 text-sm font-semibold text-slate-700">
                         상태
-                        <select
+                        <Select
                           className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50 disabled:text-slate-400"
                           disabled={operationLocked}
                           onChange={(event) =>
@@ -427,7 +428,7 @@ function OperatorSettingsContent({
                               {label}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </label>
                       <TextInput
                         disabled={operationLocked}
@@ -969,7 +970,7 @@ function AccessSelect({
   return (
     <label className="zoj-settings-access">
       {label}
-      <select
+      <Select
         aria-describedby={helperText ? helpId : undefined}
         className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
         disabled={disabled}
@@ -985,7 +986,7 @@ function AccessSelect({
               {option.label}
             </option>
           ))}
-      </select>
+      </Select>
       {helperText ? (
         <span
           id={helpId}

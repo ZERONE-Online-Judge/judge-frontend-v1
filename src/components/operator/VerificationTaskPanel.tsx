@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
@@ -177,7 +178,7 @@ export default function VerificationTaskPanel({
           {!continuing ? (
             <label className="grid min-w-0 gap-1 text-xs font-medium text-slate-600">
               중점 검토할 코드 (선택)
-              <select
+              <Select
                 className="max-w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -189,7 +190,7 @@ export default function VerificationTaskPanel({
                     {item.filename}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           ) : (
             <p className="text-xs text-slate-500">

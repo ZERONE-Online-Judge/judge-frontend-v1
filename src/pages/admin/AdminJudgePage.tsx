@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import JudgeNodeWorkloads from '@/domains/auditMonitoring/components/JudgeNodeWorkloads';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -519,7 +520,7 @@ function AdminJudgeContent({ token }: { token: string }) {
         <AdminPanel
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <Select
                 className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => updateContestFilter(event.target.value)}
                 value={contestFilter}
@@ -530,8 +531,8 @@ function AdminJudgeContent({ token }: { token: string }) {
                     {contest.title}
                   </option>
                 ))}
-              </select>
-              <select
+              </Select>
+              <Select
                 className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 disabled={!contestFilter}
                 onChange={(event) => updateDivisionFilter(event.target.value)}
@@ -548,7 +549,7 @@ function AdminJudgeContent({ token }: { token: string }) {
                     {division.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               <button
                 className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
                 disabled={cursorHistory.length === 0}

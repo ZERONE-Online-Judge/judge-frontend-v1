@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -256,7 +257,7 @@ export default function EditorImportPanel({
                           검색
                         </button>
                       </form>
-                      <select
+                      <Select
                         aria-label="Editor 폴더"
                         value={folder}
                         onChange={(e) => {
@@ -274,7 +275,7 @@ export default function EditorImportPanel({
                             {editorFolderPath(library.data!.folders, f.id)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <div
                         className="grid max-h-80 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-2"
                         aria-label="Editor 문제 목록"
@@ -418,7 +419,7 @@ export default function EditorImportPanel({
                           </fieldset>
                           <label className="grid gap-1 text-xs text-slate-600">
                             기본 지문 언어
-                            <select
+                            <Select
                               value={language}
                               disabled={busy || active}
                               onChange={(e) => {
@@ -430,7 +431,7 @@ export default function EditorImportPanel({
                               {selected.statement_languages.map((s) => (
                                 <option key={s}>{s}</option>
                               ))}
-                            </select>
+                            </Select>
                           </label>
                           <p className="text-xs leading-5 text-slate-500">
                             선택한 언어를 기본으로 사용하고, Editor에 작성한
@@ -482,7 +483,7 @@ export default function EditorImportPanel({
                     </h3>
                     <label className="mb-3 grid gap-1 text-xs text-slate-600">
                       적용 대상
-                      <select
+                      <Select
                         value={targetId}
                         disabled={busy}
                         onChange={(e) => {
@@ -502,14 +503,14 @@ export default function EditorImportPanel({
                             · {p.problem_code}. {p.title} 업데이트
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                     {!targetId && (
                       <>
                         <div className="grid gap-3 sm:grid-cols-2">
                           <label className="grid gap-1 text-xs text-slate-600">
                             참가 유형
-                            <select
+                            <Select
                               value={divisionId}
                               disabled={importing.isPending}
                               onChange={(e) => setDivisionId(e.target.value)}
@@ -524,7 +525,7 @@ export default function EditorImportPanel({
                                   {d.name}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </label>
                           <label className="grid gap-1 text-xs text-slate-600">
                             문제 번호

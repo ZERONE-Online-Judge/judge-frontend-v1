@@ -5,6 +5,7 @@
 @import './components/common/OperatorWorkspace.css';
 @import './components/common/QuestionThread.css';
 @import './shared/ui/Modal.css';
+@import './shared/ui/Select.css';
 
 @theme {
   --color-zoj-blue: var(--zoj-accent);

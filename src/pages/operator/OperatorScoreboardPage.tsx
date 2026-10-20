@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import ScoreboardFreezeDialog, {
   type FreezeChange,
 } from '@/components/operator/ScoreboardFreezeDialog';
@@ -783,7 +784,7 @@ function OperatorScoreboardContent({
             </button>
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               <ScoreboardIcon />
-              <select
+              <Select
                 className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   setDivisionId(event.target.value);
@@ -799,7 +800,7 @@ function OperatorScoreboardContent({
                     {division.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           </>
         }

@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import VerificationTestResults from '@/components/operator/VerificationTestResults';
@@ -317,7 +318,7 @@ function VerificationCodeRow({
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           {filename.endsWith('.py') ? (
-            <select
+            <Select
               aria-label={`${filename} 실행 언어`}
               className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
               disabled={isBusy}
@@ -326,7 +327,7 @@ function VerificationCodeRow({
             >
               <option value="python313">Python 3.13</option>
               <option value="pypy3">PyPy 3.9</option>
-            </select>
+            </Select>
           ) : null}
           <button
             className="h-8 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"

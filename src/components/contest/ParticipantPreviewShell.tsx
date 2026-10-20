@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import ContestEmergencyNotice from '@/components/contest/ContestEmergencyNotice';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -122,7 +123,7 @@ export default function ParticipantPreviewShell({
             >
               <label className="grid min-w-40 flex-1 gap-2 text-sm font-medium text-amber-950 sm:max-w-sm">
                 참가 유형
-                <select
+                <Select
                   className="h-11 rounded-lg border border-amber-200 bg-white px-3 text-slate-900"
                   value={selectedDivisionId}
                   onChange={(event) => setDivisionId(event.target.value)}
@@ -136,7 +137,7 @@ export default function ParticipantPreviewShell({
                       {division.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <button
                 className="h-11 rounded-lg bg-amber-900 px-5 text-sm font-semibold text-white disabled:opacity-50"

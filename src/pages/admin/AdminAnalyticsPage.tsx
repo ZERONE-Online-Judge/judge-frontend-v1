@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import { useId, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -222,7 +223,7 @@ function AnalyticsContent({ token }: { token: string }) {
             </label>
             <label>
               대회
-              <select
+              <Select
                 aria-label="대회"
                 value={draft.contest_id}
                 onChange={(event) =>
@@ -235,11 +236,11 @@ function AnalyticsContent({ token }: { token: string }) {
                     {contest.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label>
               서비스
-              <select
+              <Select
                 aria-label="서비스"
                 value={draft.service}
                 onChange={(event) =>
@@ -251,11 +252,11 @@ function AnalyticsContent({ token }: { token: string }) {
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label>
               이용자
-              <select
+              <Select
                 aria-label="이용자"
                 value={draft.audience}
                 onChange={(event) =>
@@ -267,7 +268,7 @@ function AnalyticsContent({ token }: { token: string }) {
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <button
               className="analytics-button is-primary"

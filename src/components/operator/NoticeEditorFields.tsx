@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Contest } from '@/domains/contestAdministration/types';
 import { ChoiceCard } from '@/components/common/ManagementCards';
@@ -35,7 +36,7 @@ export default function NoticeEditorFields({
         />
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           공개 범위
-          <select
+          <Select
             className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
             onChange={(event) =>
               setForm((prev) => ({
@@ -47,7 +48,7 @@ export default function NoticeEditorFields({
           >
             <option value="participants">참가자</option>
             <option value="public">공개</option>
-          </select>
+          </Select>
         </label>
       </div>
       <label className="grid gap-2 text-sm font-semibold text-slate-700">

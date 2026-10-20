@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { rejudgingStatusLabel } from '@/domains/submissionScoreboard/rejudging';
 import { useState } from 'react';
@@ -236,7 +237,7 @@ function RequestModal({
             </p>
             <label className="grid gap-2 font-semibold text-slate-700">
               언어
-              <select
+              <Select
                 className="rounded-lg border border-slate-200 p-3 font-normal"
                 value={language}
                 onChange={(event) => setLanguage(event.target.value)}
@@ -249,7 +250,7 @@ function RequestModal({
                     </option>
                   ),
                 )}
-              </select>
+              </Select>
             </label>
           </>
         ) : null}

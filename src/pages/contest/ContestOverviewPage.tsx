@@ -64,11 +64,11 @@ function OverviewIconBadge({ icon }: { icon: OverviewIcon }) {
           viewBox="0 0 24 24"
         >
           <path
-            d="M8 4.75h8v6.5H8zM5.5 7.5H8v8H5.5zM16 7.5h2.5v8H16zM12 11.25v5.5M8.75 16.75h6.5"
+            d="M14 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM4 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M20 20v-2a6 6 0 0 0-3-5.2"
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="2"
+            strokeWidth="1.7"
           />
         </svg>
       ) : null}

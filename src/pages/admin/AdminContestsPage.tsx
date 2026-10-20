@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import ContestVisibilitySettings from '@/components/operator/ContestVisibilitySettings';
 import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -277,7 +278,7 @@ function AdminContestsContent({ token }: { token: string }) {
             </label>
             <label className="grid gap-2 text-xs font-medium text-slate-600">
               대회 상태
-              <select
+              <Select
                 className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
@@ -288,7 +289,7 @@ function AdminContestsContent({ token }: { token: string }) {
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             {search || statusFilter !== 'all' ? (
               <button
@@ -372,7 +373,7 @@ function AdminContestsContent({ token }: { token: string }) {
           >
             <label className="grid gap-2 text-sm font-semibold text-slate-700">
               대회
-              <select
+              <Select
                 className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                 onChange={(event) =>
                   setOperatorForm((prev) => ({
@@ -388,7 +389,7 @@ function AdminContestsContent({ token }: { token: string }) {
                     {contest.title || contest.organization_name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="grid gap-2 text-sm font-semibold text-slate-700">
               대회 마스터 이메일

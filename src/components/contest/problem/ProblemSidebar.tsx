@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import type { Ref } from 'react';
 import { Link } from 'react-router-dom';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
@@ -61,7 +62,7 @@ export default function ProblemSidebar({
         {showDivisionSelect ? (
           <label className="zoj-problem-drawer__division">
             <span>유형</span>
-            <select
+            <Select
               onChange={(event) => onDivisionChange(event.target.value)}
               value={selectedDivisionId}
             >
@@ -70,7 +71,7 @@ export default function ProblemSidebar({
                   {division.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         ) : null}
         <nav aria-label="문제 목록">

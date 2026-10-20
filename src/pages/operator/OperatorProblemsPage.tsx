@@ -1,3 +1,4 @@
+import Select from '@/shared/ui/Select';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
@@ -1737,7 +1738,7 @@ function OperatorProblemsContent({
                   채점 파일과 테스트케이스까지 현재 유형으로 복사합니다.
                 </p>
               </div>
-              <select
+              <Select
                 className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 disabled={
                   !copyableProblems.length || copyProblemMutation.isPending
@@ -1763,7 +1764,7 @@ function OperatorProblemsContent({
                     </option>
                   );
                 })}
-              </select>
+              </Select>
               <button
                 className="h-10 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white disabled:bg-slate-300"
                 disabled={
@@ -1958,7 +1959,7 @@ function OperatorProblemsContent({
                       <>
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           유형
-                          <select
+                          <Select
                             className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             onChange={(event) =>
                               setForm((prev) => ({
@@ -1986,7 +1987,7 @@ function OperatorProblemsContent({
                                 {division.name}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </label>
                         <div className="grid gap-3 md:grid-cols-2">
                           <TextInput
@@ -2106,7 +2107,7 @@ function OperatorProblemsContent({
                         />
                         <label className="grid gap-2 text-sm font-semibold text-slate-700">
                           정렬 순서
-                          <select
+                          <Select
                             className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                             disabled={!form.divisionId}
                             onChange={(event) =>
@@ -2127,7 +2128,7 @@ function OperatorProblemsContent({
                                 {option.label}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                           <span className="text-xs font-medium text-slate-500">
                             문제 생성 시 선택한 유형의 마지막 순서가 자동으로
                             채워집니다.

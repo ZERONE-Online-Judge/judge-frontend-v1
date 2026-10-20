@@ -1,5 +1,4 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
-import PublicHero from '@/components/common/PublicHero';
 import { useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useMemo } from 'react';
 import {
@@ -8,10 +7,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import {
-  ExperienceArrow,
-  ExperienceReveal,
-} from '@/components/common/PublicExperience';
+import { ExperienceArrow } from '@/components/common/PublicExperience';
 import type { ServiceNotice } from '@/domains/serviceCommunication/types';
 import { getPublicServiceNotices } from '@/domains/serviceCommunication/api';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
@@ -143,66 +139,18 @@ export default function NoticesPage() {
 
   return (
     <div className="public-experience notices-experience">
-      <PublicHero className="notices-hero">
-        <div className="experience-hero-grid">
-          <div className="experience-hero-copy">
-            <p className="experience-eyebrow">ZOJ</p>
-            <h1>공지사항</h1>
-            <p className="experience-lead">
-              서비스 업데이트, 점검과 긴급 안내를 확인합니다.
-            </p>
-            <a className="experience-text-link" href="#notice-list">
-              공지사항 살펴보기 <ExperienceArrow />
-            </a>
-          </div>
-          <div className="notices-art" aria-hidden="true">
-            <div className="notices-art-orbit" />
-            <div className="notices-art-sheet">
-              <div>
-                <span>ZOJ NEWS</span>
-                <i>
-                  <InterfaceIcon name="arrowUpRight" />
-                </i>
-              </div>
-              <span className="notices-art-line is-wide" />
-              <span className="notices-art-line" />
-              <div className="notices-art-body">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="notices-art-stamp">서비스 공지</div>
-            </div>
-            <div className="notices-art-tag">
-              <span>
-                <InterfaceIcon name="asterisk" />
-              </span>{' '}
-              서비스 공지
-            </div>
-            <span className="notices-art-spark">
-              <InterfaceIcon name="sparkle" />
-            </span>
-          </div>
-        </div>
-      </PublicHero>
+      <header className="experience-container notices-page-heading">
+        <h1>공지사항</h1>
+        <p>서비스 업데이트, 점검과 긴급 안내를 확인합니다.</p>
+      </header>
 
       <section
-        className="experience-container experience-section notices-content"
+        className="experience-container notices-content"
         id="notice-list"
       >
-        <div className="experience-section-heading">
-          <div>
-            <p className="experience-eyebrow">NOTICES</p>
-            <h2 id="notice-list-heading" tabIndex={-1}>
-              공지사항
-            </h2>
-          </div>
-          <p>
-            긴급 공지를 먼저 표시합니다.
-            <br />
-            제목을 누르면 자세한 내용을 읽을 수 있습니다.
-          </p>
-        </div>
+        <h2 id="notice-list-heading" className="sr-only" tabIndex={-1}>
+          공지 목록
+        </h2>
         <div className="notices-toolbar">
           <div className="notices-filters" role="group" aria-label="공지 유형">
             <button
@@ -382,34 +330,15 @@ export default function NoticesPage() {
         </p>
       </section>
 
-      <section className="experience-soft-section">
-        <div className="experience-container notices-bottom">
-          <ExperienceReveal className="notices-bottom-grid">
-            <div>
-              <p className="experience-eyebrow">관련 안내</p>
-              <h2>대회 공지와 이용안내</h2>
-              <p>
-                대회별 공지와 문제 관련 질문은 해당 대회 게시판에서 확인해
-                주세요.
-              </p>
-            </div>
-            <div className="notices-quick-links">
-              <Link to="/contests">
-                <span>
-                  참가 중인 대회의 소식<strong>대회 목록</strong>
-                </span>
-                <ExperienceArrow />
-              </Link>
-              <Link to="/support/help">
-                <span>
-                  서비스 이용 중 궁금한 점<strong>도움말</strong>
-                </span>
-                <ExperienceArrow />
-              </Link>
-            </div>
-          </ExperienceReveal>
-        </div>
-      </section>
+      <aside className="experience-container notices-help">
+        <p>대회별 공지와 문제 관련 질문은 해당 대회 게시판에서 확인하세요.</p>
+        <Link to="/contests">
+          대회 목록 <ExperienceArrow />
+        </Link>
+        <Link to="/support/help">
+          도움말 <ExperienceArrow />
+        </Link>
+      </aside>
     </div>
   );
 }
@@ -426,6 +355,10 @@ function NoticeRow({
   onCollapse: () => void;
 }) {
   const id = notice.service_notice_id;
+  const summary =
+    notice.summary?.trim() !== notice.title.trim()
+      ? notice.summary?.trim()
+      : '';
   return (
     <li
       className={`notices-row ${expanded ? 'is-expanded' : ''} ${notice.emergency ? 'is-emergency' : ''}`}
@@ -459,13 +392,20 @@ function NoticeRow({
           </span>
           <span className="notices-row-copy">
             <strong>{notice.title}</strong>
-            {notice.summary ? <span>{notice.summary}</span> : null}
+            {summary ? <span>{summary}</span> : null}
           </span>
-          <time dateTime={notice.published_at}>
-            {formatDateTime(notice.published_at)}
+          <time
+            dateTime={notice.published_at}
+            title={formatDateTime(notice.published_at)}
+          >
+            {new Intl.DateTimeFormat('ko-KR', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            }).format(new Date(notice.published_at))}
           </time>
-          <span className="notices-row-plus" aria-hidden="true">
-            +
+          <span className="notices-row-chevron" aria-hidden="true">
+            <InterfaceIcon name="chevronDown" />
           </span>
         </Link>
       </h3>
@@ -477,10 +417,10 @@ function NoticeRow({
       >
         {expanded ? (
           <article className="notices-body">
-            {notice.summary ? (
+            {summary ? (
               <div className="notices-summary">
-                <span>한눈에 보기</span>
-                <p>{notice.summary}</p>
+                <span>요약</span>
+                <p>{summary}</p>
               </div>
             ) : null}
             <div className="notices-body-text">

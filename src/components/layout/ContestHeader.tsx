@@ -25,14 +25,12 @@ export default function ContestHeader({ contestId }: ContestHeaderProps) {
 
   return (
     <HeaderShell
-      actionClassName="min-w-0 xl:min-w-80"
       actions={
         <HeaderAuthControls
           loginTo={contestLoginPath(contestId, currentPath)}
         />
       }
       ariaLabel="Contest navigation"
-      navGapClassName="gap-2 md:gap-8 xl:gap-16"
       navItems={contestNavItems(contestId)}
     />
   );

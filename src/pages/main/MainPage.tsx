@@ -171,14 +171,18 @@ export default function MainPage() {
           </div>
         ) : null}
       </section>
-      <section className="experience-soft-section">
+      <section
+        className="experience-soft-section"
+        aria-labelledby="home-notice-heading"
+      >
         <div className="experience-container experience-section home-news">
-          <div>
-            <p className="experience-eyebrow">NOTICES</p>
-            <h2>공지사항</h2>
-            <p>서비스 업데이트와 점검 안내입니다.</p>
+          <div className="home-news-heading">
+            <div>
+              <h2 id="home-notice-heading">공지사항</h2>
+              <p>서비스 업데이트와 점검 안내</p>
+            </div>
             <Link to="/notices" className="experience-text-link">
-              공지사항 모두 보기 <ExperienceArrow />
+              전체 보기 <ExperienceArrow />
             </Link>
           </div>
           <div>
@@ -206,21 +210,19 @@ export default function MainPage() {
                     <Link
                       to={`/notices/${encodeURIComponent(notice.service_notice_id)}`}
                     >
-                      <div>
-                        <span
-                          className={notice.emergency ? 'is-emergency' : ''}
-                        >
-                          {notice.emergency ? '중요 안내' : 'ZOJ 소식'}
-                        </span>
-                        <time dateTime={notice.published_at}>
-                          {new Intl.DateTimeFormat('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                          }).format(new Date(notice.published_at))}
-                        </time>
-                      </div>
+                      <span
+                        className={`home-notice-badge ${notice.emergency ? 'is-emergency' : ''}`}
+                      >
+                        {notice.emergency ? '긴급' : '공지'}
+                      </span>
                       <h3>{notice.title}</h3>
+                      <time dateTime={notice.published_at}>
+                        {new Intl.DateTimeFormat('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                        }).format(new Date(notice.published_at))}
+                      </time>
                       <ExperienceArrow />
                     </Link>
                   </li>

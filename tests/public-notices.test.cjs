@@ -206,3 +206,17 @@ test('public notices stop polling when the page is hidden', async () => {
   assert.equal(options.refetchInterval, false);
   assert.equal(options.refetchIntervalInBackground, false);
 });
+
+test('notice titles are not repeated as identical summaries', async () => {
+  query.data = [
+    { ...notices[0], title: '제목 중복 확인', summary: '  제목 중복 확인  ' },
+  ];
+  await render();
+  assert.equal(
+    (toggle('n1').textContent.match(/제목 중복 확인/g) || []).length,
+    1,
+  );
+  await click(toggle('n1'));
+  assert.equal(host.querySelector('.notices-summary'), null);
+  assert.match(host.querySelector('.notices-body-text').textContent, /본문 1/);
+});

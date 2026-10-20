@@ -168,7 +168,7 @@ function receiptAnswer() {
 
 test('one code click expands typing, while old games and hidden keyboard shortcuts are gone', async () => {
   assert.match(document.body.textContent, /당신의 다음 프로그래밍 플랫폼/);
-  assert.equal(document.querySelector('.home-monogram button'), null);
+  assert.ok(label('ZOJ 네모 점'));
   assert.equal(document.querySelector('.home-star.is-first').tagName, 'SPAN');
   for (const key of [
     'ArrowUp',
@@ -449,4 +449,265 @@ test('private management pages cannot activate public effects', async () => {
   assert.equal(document.querySelector('dialog'), null);
   assert.equal(document.querySelector('.egg-spotlight'), null);
   assert.equal(document.querySelector('.egg-confetti'), null);
+});
+
+const { createSnake, turnSnake, advanceSnake, snakeFood } = source(
+  'components/public/easterEggs/snakeEngine.ts',
+);
+test('the dot is exactly the first snake cell, with food ahead and a safe viewport arena', () => {
+  for (const [width, height, origin] of [
+    [1280, 720, { left: 843.5, top: 482.25, width: 25, height: 25 }],
+    [1079, 929, { left: 775, top: 510, width: 22, height: 22 }],
+    [390, 844, { left: 302, top: 423, width: 16, height: 16 }],
+  ]) {
+    const game = createSnake(origin, width, height);
+    const { arena, body, food } = game;
+    assert.equal(body.length, 1);
+    assert.equal(arena.left + body[0].x * arena.cell, origin.left);
+    assert.equal(arena.top + body[0].y * arena.cell, origin.top);
+    assert.ok(arena.left >= 18 && arena.top >= 86);
+    assert.ok(arena.left + arena.columns * arena.cell <= width - 18);
+    assert.ok(arena.top + arena.rows * arena.cell <= height - 24);
+    assert.equal(food.y, body[0].y);
+    assert.ok(food.x !== body[0].x);
+    assert.equal(game.phase, 'ready');
+  }
+});
+
+test('the snake grows on food and queued turns cannot reverse or skip cells', () => {
+  let game = {
+    ...createSnake({ left: 50, top: 150, width: 24, height: 24 }, 1024, 768),
+    phase: 'running',
+  };
+  const start = game.body[0];
+  const firstFood = game.food;
+  for (let i = 0; i < 4; i++) game = advanceSnake(game, () => 0);
+  assert.equal(game.body.length, 2);
+  assert.deepEqual(game.body[0], firstFood);
+  assert.equal(game.body[0].x, start.x + 4);
+  assert.equal(turnSnake(game, 'left'), game);
+  game = turnSnake(game, 'down');
+  game = turnSnake(game, 'left');
+  assert.deepEqual(game.turns, ['down', 'left']);
+  assert.equal(turnSnake(game, 'up'), game);
+  game = advanceSnake(game);
+  assert.equal(game.direction, 'down');
+  assert.equal(game.body[0].y, start.y + 1);
+  game = advanceSnake(game);
+  assert.equal(game.direction, 'left');
+  assert.deepEqual(game.turns, []);
+});
+
+test('walls and body collisions end a round, while entering the departing tail is legal', () => {
+  const base = {
+    ...createSnake({ left: 50, top: 150, width: 24, height: 24 }, 1024, 768),
+    phase: 'running',
+    turns: [],
+  };
+  assert.equal(
+    advanceSnake({ ...base, body: [{ x: 0, y: 0 }], direction: 'left' }).phase,
+    'over',
+  );
+  const body = [
+    { x: 2, y: 2 },
+    { x: 2, y: 3 },
+    { x: 1, y: 3 },
+    { x: 1, y: 2 },
+  ];
+  const game = { ...base, body, food: { x: 7, y: 7 } };
+  assert.equal(advanceSnake({ ...game, direction: 'down' }).phase, 'over');
+  const tail = advanceSnake({ ...game, direction: 'left' });
+  assert.equal(tail.phase, 'running');
+  assert.deepEqual(tail.body[0], { x: 1, y: 2 });
+  assert.equal(tail.body.length, 4);
+});
+
+test('food never overlaps the body and a full arena finishes without an infinite placement loop', () => {
+  const arena = { columns: 2, rows: 2, cell: 24, left: 18, top: 86 };
+  const body = [
+    { x: 0, y: 0 },
+    { x: 0, y: 1 },
+    { x: 1, y: 1 },
+  ];
+  assert.deepEqual(
+    snakeFood(arena, body, () => 0),
+    { x: 1, y: 0 },
+  );
+  const game = advanceSnake({
+    arena,
+    body,
+    direction: 'right',
+    turns: [],
+    food: { x: 1, y: 0 },
+    phase: 'running',
+  });
+  assert.equal(game.phase, 'won');
+  assert.equal(game.body.length, 4);
+  assert.equal(game.food, null);
+  assert.equal(snakeFood(arena, game.body), null);
+  assert.equal(advanceSnake(game), game);
+});
+
+function snakeTimers(t) {
+  const timeouts = new Map(),
+    intervals = new Map();
+  let id = 0;
+  t.mock.method(window, 'setTimeout', (fn) => {
+    timeouts.set(++id, fn);
+    return id;
+  });
+  t.mock.method(window, 'clearTimeout', (key) => timeouts.delete(key));
+  t.mock.method(window, 'setInterval', (fn) => {
+    intervals.set(++id, fn);
+    return id;
+  });
+  t.mock.method(window, 'clearInterval', (key) => intervals.delete(key));
+  return {
+    timeouts,
+    intervals,
+    async start() {
+      await act(() => {
+        const [key, fn] = [...timeouts][0];
+        timeouts.delete(key);
+        fn();
+      });
+    },
+    async tick(n = 1) {
+      for (let i = 0; i < n; i++) await act(() => [...intervals.values()][0]());
+    },
+  };
+}
+
+test('one dot click starts a single segment, grows naturally, pauses and restores the dot on close', async (t) => {
+  const timers = snakeTimers(t);
+  await click(label('ZOJ 네모 점'));
+  assert.ok(document.querySelector('.home-monogram-dot.is-playing'));
+  assert.equal(label('지렁이 길이').textContent, '1');
+  assert.equal(document.querySelectorAll('.snake-segment').length, 1);
+  assert.equal(timers.timeouts.size, 1);
+  assert.equal(timers.intervals.size, 0);
+  assert.doesNotMatch(
+    document.querySelector('dialog').textContent,
+    /AC|WA|브라우저에서만|실제 채점|소리 없이/,
+  );
+  await timers.start();
+  await timers.tick(4);
+  assert.equal(label('지렁이 길이').textContent, '2');
+  assert.equal(document.querySelectorAll('.snake-segment').length, 2);
+  await click(label('지렁이 일시정지'));
+  assert.equal(timers.intervals.size, 0);
+  assert.ok(label('지렁이 계속하기'));
+  await click(label('지렁이 계속하기'));
+  assert.equal(timers.intervals.size, 1);
+  await click(label('지렁이 다시 시작'));
+  assert.equal(label('지렁이 길이').textContent, '1');
+  assert.equal(timers.intervals.size, 0);
+  assert.equal(timers.timeouts.size, 1);
+  await click(label('지렁이 닫기'));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.querySelector('.home-monogram-dot.is-playing'), null);
+  assert.equal(document.activeElement, label('ZOJ 네모 점'));
+  assert.equal(document.body.style.overflow, '');
+  assert.equal(timers.timeouts.size, 0);
+});
+
+test('snake keyboard controls stop capturing arrows when Escape closes the scene', async (t) => {
+  const timers = snakeTimers(t);
+  await click(label('ZOJ 네모 점'));
+  await timers.start();
+  const up = new window.KeyboardEvent('keydown', {
+    key: 'ArrowUp',
+    bubbles: true,
+    cancelable: true,
+  });
+  await act(() => document.querySelector('dialog').dispatchEvent(up));
+  assert.equal(up.defaultPrevented, true);
+  await timers.tick();
+  assert.ok(document.querySelector('.snake-segment.faces-up'));
+  await act(() =>
+    document
+      .querySelector('dialog')
+      .dispatchEvent(new window.Event('cancel', { cancelable: true })),
+  );
+  assert.equal(timers.intervals.size, 0);
+  const normal = new window.KeyboardEvent('keydown', {
+    key: 'ArrowUp',
+    bubbles: true,
+    cancelable: true,
+  });
+  await act(() => document.body.dispatchEvent(normal));
+  assert.equal(normal.defaultPrevented, false);
+});
+
+test('touch swipes and directional buttons steer the same snake', async (t) => {
+  const timers = snakeTimers(t);
+  await click(label('ZOJ 네모 점'));
+  await timers.start();
+  const scene = document.querySelector('.egg-snake');
+  await act(() => {
+    scene.dispatchEvent(
+      new window.MouseEvent('pointerdown', {
+        clientX: 120,
+        clientY: 200,
+        bubbles: true,
+      }),
+    );
+    scene.dispatchEvent(
+      new window.MouseEvent('pointerup', {
+        clientX: 120,
+        clientY: 250,
+        bubbles: true,
+      }),
+    );
+  });
+  await timers.tick();
+  assert.ok(document.querySelector('.snake-segment.faces-down'));
+  await click(label('왼쪽으로'));
+  await timers.tick();
+  assert.ok(document.querySelector('.snake-segment.faces-left'));
+  await click(label('지렁이 닫기'));
+  assert.equal(timers.intervals.size, 0);
+});
+
+test('hiding a snake round pauses it and resizing rebuilds a fitting one-cell arena', async (t) => {
+  const timers = snakeTimers(t);
+  await click(label('ZOJ 네모 점'));
+  await timers.start();
+  const oldHidden = Object.getOwnPropertyDescriptor(document, 'hidden');
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    value: true,
+  });
+  try {
+    await act(() =>
+      document.dispatchEvent(new window.Event('visibilitychange')),
+    );
+    assert.ok(label('지렁이 계속하기'));
+    assert.equal(timers.intervals.size, 0);
+  } finally {
+    if (oldHidden) Object.defineProperty(document, 'hidden', oldHidden);
+    else delete document.hidden;
+  }
+  const oldWidth = window.innerWidth,
+    oldHeight = window.innerHeight;
+  try {
+    await act(() => {
+      window.innerWidth = 390;
+      window.innerHeight = 844;
+      window.dispatchEvent(new window.Event('resize'));
+    });
+    assert.equal(label('지렁이 길이').textContent, '1');
+    const field = document.querySelector('.snake-field');
+    assert.ok(
+      Number.parseFloat(field.style.left) +
+        Number.parseFloat(field.style.width) <=
+        390 - 18,
+    );
+    assert.equal(timers.timeouts.size, 1);
+    await click(label('지렁이 닫기'));
+    assert.equal(timers.timeouts.size, 0);
+  } finally {
+    window.innerWidth = oldWidth;
+    window.innerHeight = oldHeight;
+  }
 });

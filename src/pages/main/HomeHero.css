@@ -96,9 +96,26 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.home-monogram-dot {
-  color: #7c629f;
-  font-size: 0.67em;
+.home-monogram-dot.home-egg-trigger {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin-left: 0.02em;
+  border: 0;
+  background: none;
+  vertical-align: baseline;
+}
+.home-dot-core {
+  display: block;
+  width: clamp(16px, 2vw, 25px);
+  height: clamp(16px, 2vw, 25px);
+  background: #7c629f;
+}
+.home-monogram-dot.is-playing .home-dot-core {
+  opacity: 0;
 }
 .home-orbit {
   position: absolute;

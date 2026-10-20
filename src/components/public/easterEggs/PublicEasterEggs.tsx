@@ -13,6 +13,7 @@ import {
   type EggPoint,
 } from './context';
 import CodeTyping from './CodeTyping';
+import Snake from './Snake';
 import Spotlight from './Spotlight';
 import Confetti from './Confetti';
 
@@ -47,6 +48,10 @@ export default function PublicEasterEggs({
     origin: EggOrigin;
     path: string;
   } | null>(null);
+  const [snake, setSnake] = useState<{
+    origin: EggOrigin;
+    path: string;
+  } | null>(null);
   const [spotlight, setSpotlight] = useState<EggPoint | null>(null);
   const [celebration, setCelebration] = useState(0);
   const [confettiVisible, setConfettiVisible] = useState(false);
@@ -55,8 +60,18 @@ export default function PublicEasterEggs({
   return (
     <PublicEggContext.Provider
       value={{
+        snakeActive: enabled && snake?.path === pathname,
+        openSnake: (origin) => {
+          if (enabled) {
+            setTyping(null);
+            setSnake({ origin, path: pathname });
+          }
+        },
         openTyping: (origin) => {
-          if (enabled) setTyping({ origin, path: pathname });
+          if (enabled) {
+            setSnake(null);
+            setTyping({ origin, path: pathname });
+          }
         },
         tapSpotlight: (point) => {
           if (!enabled || !desktopPointer || spotlight) return;
@@ -72,6 +87,9 @@ export default function PublicEasterEggs({
       }}
     >
       {children}
+      {enabled && snake?.path === pathname && (
+        <Snake origin={snake.origin} onClose={() => setSnake(null)} />
+      )}
       {enabled && typing?.path === pathname && (
         <CodeTyping origin={typing.origin} onClose={() => setTyping(null)} />
       )}

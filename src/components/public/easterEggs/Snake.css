@@ -1,0 +1,226 @@
+.zoj-dialog:has(.egg-snake)::backdrop {
+  background: #f8f7fccc;
+  backdrop-filter: blur(2px) saturate(0.5);
+  animation: snake-reveal 0.45s ease-out;
+}
+@keyframes snake-reveal {
+  from {
+    background: transparent;
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+.egg-snake {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  user-select: none;
+  color: #705787;
+}
+.snake-toolbar {
+  position: absolute;
+  inset: max(20px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right)) auto
+    max(24px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.snake-toolbar output {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding-inline: 12px;
+  border: 1px solid #e5deed;
+  border-radius: 12px;
+  background: #fffffff2;
+}
+.snake-toolbar output i {
+  width: 13px;
+  height: 13px;
+  background: #7c629f;
+  border-radius: 2px;
+}
+.snake-toolbar output strong {
+  font-size: 24px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.snake-toolbar > div {
+  display: flex;
+  gap: 8px;
+}
+.snake-toolbar button,
+.snake-direction-pad button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #e5deed;
+  border-radius: 12px;
+  color: #8a779b;
+  background: #ffffffc9;
+  cursor: pointer;
+}
+.snake-toolbar svg,
+.snake-direction-pad svg {
+  width: 18px;
+  height: 18px;
+}
+.snake-toolbar button:hover,
+.snake-direction-pad button:active {
+  background: #ede5f4;
+  color: #614676;
+}
+.snake-toolbar button:disabled,
+.snake-direction-pad button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.snake-field {
+  position: absolute;
+  pointer-events: none;
+  outline: 1px solid #a993ba30;
+  outline-offset: 6px;
+  border-radius: 5px;
+}
+.snake-segment {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--snake-cell);
+  height: var(--snake-cell);
+  border: 1px solid #f8f7fc55;
+  border-radius: 3px;
+  background: #7c629f;
+  box-shadow: 0 2px 8px #58407113;
+  transition: transform 140ms linear;
+}
+.snake-segment.is-head {
+  background: #71558f;
+}
+.snake-segment.is-head::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  top: 25%;
+  left: 25%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 7px #fff;
+}
+.snake-segment.faces-right::after {
+  left: auto;
+  right: 25%;
+}
+.snake-segment.faces-up::after {
+  box-shadow: 7px 0 #fff;
+}
+.snake-segment.faces-down::after {
+  top: auto;
+  bottom: 25%;
+  box-shadow: 7px 0 #fff;
+}
+.snake-food {
+  position: absolute;
+  width: var(--snake-cell);
+  height: var(--snake-cell);
+  display: grid;
+  place-items: center;
+}
+.snake-food::after {
+  content: '';
+  width: 55%;
+  height: 55%;
+  border-radius: 3px;
+  background: #8da96d;
+  box-shadow: 0 0 0 5px #adc79419;
+  transform: rotate(45deg);
+  animation: snake-food 1.5s ease-in-out infinite alternate;
+}
+@keyframes snake-food {
+  to {
+    box-shadow: 0 0 0 9px #adc79407;
+  }
+}
+.snake-return {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.snake-return button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 22px;
+  border: 1px solid #cdbddb;
+  border-radius: 14px;
+  color: #6b4c83;
+  background: #fffffff0;
+  box-shadow: 0 8px 32px #49335c12;
+  font-size: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.snake-return svg {
+  width: 18px;
+  height: 18px;
+}
+.egg-snake.is-ended .snake-segment {
+  background: #b18caa;
+}
+.snake-direction-pad {
+  display: none;
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  right: max(24px, env(safe-area-inset-right));
+  grid-template: repeat(2, 44px) / repeat(3, 44px);
+  gap: 5px;
+}
+.snake-direction-pad button {
+  width: 44px;
+  height: 44px;
+}
+.snake-direction-pad .points-up {
+  grid-area: 1 / 2;
+}
+.snake-direction-pad .points-left {
+  grid-area: 2 / 1;
+}
+.snake-direction-pad .points-down {
+  grid-area: 2 / 2;
+}
+.snake-direction-pad .points-right {
+  grid-area: 2 / 3;
+}
+.snake-direction-pad .points-up svg {
+  transform: rotate(-90deg);
+}
+.snake-direction-pad .points-down svg {
+  transform: rotate(90deg);
+}
+.snake-direction-pad .points-left svg {
+  transform: rotate(180deg);
+}
+@media (max-width: 760px), (hover: none), (pointer: coarse) {
+  .snake-direction-pad {
+    display: grid;
+  }
+  .snake-toolbar {
+    inset-inline: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoj-dialog:has(.egg-snake)::backdrop,
+  .snake-food::after {
+    animation: none;
+  }
+  .snake-segment {
+    transition: none;
+  }
+}

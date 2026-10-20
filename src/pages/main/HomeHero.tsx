@@ -5,7 +5,8 @@ import './HomeHero.css';
 import { usePublicEasterEggs } from '@/components/public/easterEggs/context';
 
 export default function HomeHero() {
-  const { openTyping, tapSpotlight } = usePublicEasterEggs();
+  const { openTyping, tapSpotlight, openSnake, snakeActive } =
+    usePublicEasterEggs();
   return (
     <section className="home-launch" aria-labelledby="home-launch-title">
       <div className="home-launch-aurora" aria-hidden="true" />
@@ -26,7 +27,22 @@ export default function HomeHero() {
             <i />
           </div>
           <div className="home-monogram">
-            Z<span>O</span>J<span className="home-monogram-dot">.</span>
+            Z<span>O</span>J
+            <button
+              type="button"
+              className={`home-monogram-dot home-egg-trigger ${snakeActive ? 'is-playing' : ''}`}
+              aria-label="ZOJ 네모 점"
+              onClick={(event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                openSnake(
+                  (
+                    event.currentTarget.firstElementChild ?? event.currentTarget
+                  ).getBoundingClientRect(),
+                );
+              }}
+            >
+              <span className="home-dot-core" aria-hidden="true" />
+            </button>
           </div>
           <button
             type="button"

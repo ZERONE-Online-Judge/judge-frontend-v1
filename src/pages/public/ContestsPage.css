@@ -158,32 +158,41 @@
 }
 .contest-directory .directory-phases {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
   margin: 22px 0 40px;
+  border-bottom: 1px solid var(--zoj-border);
 }
 .contest-directory .directory-phases button {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 40px;
-  border: 1px solid #e7e8ed;
-  border-radius: 30px;
-  padding: 8px 14px;
+  min-height: 44px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  padding: 12px 16px;
   color: #686f80;
-  font-size: 12px;
-  transition: background 0.2s;
+  font-size: 13px;
+  white-space: nowrap;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
 .contest-directory .directory-phases button[aria-pressed='true'] {
-  background: #262c3e;
-  border-color: #262c3e;
-  color: #fff;
+  border-bottom-color: var(--zoj-accent);
+  color: var(--zoj-accent);
+  font-weight: 650;
+}
+.contest-directory .directory-phases button:hover {
+  color: var(--zoj-accent);
 }
 .contest-directory .directory-phases button > span {
-  opacity: 0.7;
+  color: #8b90a0;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.contest-directory .directory-phases i,
+.contest-directory .directory-phases button[aria-pressed='true'] > span {
+  color: inherit;
+}
 .contest-directory .directory-status i {
   width: 6px;
   height: 6px;
@@ -191,11 +200,9 @@
   background: #b4b6c3;
   flex-shrink: 0;
 }
-.contest-directory .directory-phases i.is-running,
 .contest-directory .directory-status.is-running i {
   background: #54ba8f;
 }
-.contest-directory .directory-phases i.is-upcoming,
 .contest-directory .directory-status.is-upcoming i {
   background: #9b88f7;
 }
@@ -229,7 +236,7 @@
 }
 .contest-directory .directory-section > ul {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   padding: 0;
   margin: 0;
@@ -259,15 +266,17 @@
   width: 100%;
 }
 .contest-directory .directory-card-content {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.85fr);
+  align-items: center;
   min-width: 0;
-  gap: 20px;
+  gap: 20px 28px;
   text-align: left;
 }
 .contest-directory .directory-card-topline {
   display: flex;
+  grid-column: 1 / -1;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -397,6 +406,7 @@
 }
 .contest-directory .directory-card-footer {
   display: flex;
+  grid-column: 1 / -1;
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 14px 20px;
@@ -406,7 +416,7 @@
 }
 .contest-directory .directory-resources {
   display: grid;
-  flex-basis: 100%;
+  flex: 1;
   min-width: 0;
   gap: 6px;
   margin: 0;
@@ -582,8 +592,16 @@
   }
 }
 @media (max-width: 900px) {
-  .contest-directory .directory-section > ul {
-    grid-template-columns: minmax(0, 1fr);
+  .contest-directory .directory-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .contest-directory .directory-card-footer {
+    align-items: flex-start;
+  }
+  .contest-directory .directory-resources {
+    flex-basis: 100%;
   }
   .contest-directory .directory-art {
     min-height: 320px;
@@ -634,13 +652,16 @@
     flex: 1;
   }
   .contest-directory .directory-phases {
-    gap: 6px;
+    gap: 4px;
     margin: 18px 0 32px;
   }
   .contest-directory .directory-phases button {
-    padding: 8px 10px;
+    padding: 10px 6px;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .contest-directory .directory-phases button > span {
     font-size: 11px;
-    gap: 5px;
   }
   .contest-directory .directory-card > a,
   .contest-directory .directory-card > button {

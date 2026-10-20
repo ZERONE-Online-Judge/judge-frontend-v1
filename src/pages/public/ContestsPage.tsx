@@ -324,7 +324,6 @@ export default function ContestsPage() {
               key={value}
               type="button"
             >
-              {value !== 'all' ? <i className={`is-${value}`} /> : null}
               {label}
               <span>
                 {waiting && !contests.length

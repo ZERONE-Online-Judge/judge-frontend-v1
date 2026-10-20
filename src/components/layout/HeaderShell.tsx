@@ -31,7 +31,7 @@ export default function HeaderShell({
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
-    const media = window.matchMedia('(min-width: 1101px)');
+    const media = window.matchMedia('(min-width: 901px)');
     const closeOnDesktop = (event: MediaQueryListEvent) => {
       if (event.matches) setOpenedAt(null);
     };

@@ -11,26 +11,26 @@
   align-items: center;
   gap: 28px;
   width: min(1320px, calc(100% - 64px));
-  min-height: 64px;
+  min-height: 72px;
   margin-inline: auto;
-  padding-block: 10px;
+  padding-block: 12px;
 }
 .site-header-brand {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   gap: 9px;
-  min-height: 40px;
+  min-height: 44px;
   text-decoration: none;
 }
 .site-brand-icon {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 .site-brand-name {
   color: #25243e;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 750;
   letter-spacing: -0.04em;
 }
@@ -49,11 +49,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 12px;
   border-radius: 8px;
   color: #666779;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 550;
   line-height: 1.5;
   white-space: nowrap;
@@ -88,11 +88,11 @@
   margin-left: auto;
 }
 .site-header .header-action {
-  height: 40px;
-  min-width: 40px;
+  height: 44px;
+  min-width: 44px;
   padding-inline: 10px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12px;
   background: #fafafb;
   border-color: #e9e9f0;
 }
@@ -137,7 +137,19 @@
 .site-mobile-nav .site-nav-badge {
   margin-left: auto;
 }
-@media (max-width: 1100px) {
+@media (min-width: 901px) and (max-width: 1100px) {
+  .site-header-inner {
+    width: calc(100% - 40px);
+    gap: 18px;
+  }
+  .site-desktop-nav ul {
+    gap: 2px;
+  }
+  .site-desktop-nav a {
+    padding-inline: 8px;
+  }
+}
+@media (max-width: 900px) {
   .site-header-inner {
     width: calc(100% - 40px);
     gap: 10px;
@@ -169,11 +181,11 @@
     gap: 8px;
   }
   .site-brand-icon {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
   }
   .site-brand-name {
-    font-size: 17px;
+    font-size: 18px;
   }
   .site-header-actions {
     gap: 6px;

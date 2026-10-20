@@ -13,11 +13,7 @@ export default function HomeHero() {
       <div className="experience-container">
         <div className="home-launch-heading">
           <p>ZERONE ONLINE JUDGE</p>
-          <h1 id="home-launch-title">
-            코딩 대회를 열고,
-            <br />
-            <span>문제를 풀어보세요.</span>
-          </h1>
+          <h1 id="home-launch-title">당신의 다음 프로그래밍 플랫폼</h1>
           <p className="home-launch-description">
             문제 출제 · 코드 제출 · 자동 채점 · 스코어보드
           </p>

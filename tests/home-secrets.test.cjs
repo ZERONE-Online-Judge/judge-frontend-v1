@@ -126,7 +126,7 @@ async function keys(target = document.body, options = {}) {
 
 test('ordinary home interaction stays unchanged and seven taps open a closable local game', async () => {
   assert.equal(document.querySelector('dialog'), null);
-  assert.match(document.body.textContent, /코딩 대회를 열고/);
+  assert.match(document.body.textContent, /당신의 다음 프로그래밍 플랫폼/);
   await taps('ZOJ 마침표', 6);
   assert.equal(document.querySelector('dialog'), null);
   byLabel('ZOJ 마침표').focus();

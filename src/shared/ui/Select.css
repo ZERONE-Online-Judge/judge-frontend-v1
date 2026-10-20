@@ -46,7 +46,7 @@ select.zoj-select:disabled {
     0 12px 36px rgb(15 23 42 / 0.12),
     0 2px 6px rgb(15 23 42 / 0.04);
   scrollbar-width: thin;
-  font-family: var(--font-sans);
+  font-family: inherit;
   font-size: 13px;
   line-height: 1.5;
   text-align: left;
@@ -55,8 +55,6 @@ select.zoj-select:disabled {
 .zoj-select-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   min-height: 36px;
   padding: 8px 10px;
   border-radius: 6px;
@@ -70,11 +68,9 @@ select.zoj-select:disabled {
   background: #f2f4f8;
 }
 .zoj-select-option[aria-selected='true'] {
+  background: #eef0ff;
   color: #4338ca;
   font-weight: 550;
-}
-.zoj-select-option[aria-selected='true'][data-active='true'] {
-  background: #eef0ff;
 }
 .zoj-select-option[aria-disabled='true'] {
   color: #a1a9b7;

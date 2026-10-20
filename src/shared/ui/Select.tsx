@@ -9,7 +9,6 @@ import {
   type SelectHTMLAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
-import InterfaceIcon from '@/components/common/InterfaceIcon';
 
 type Choice = {
   value: string;
@@ -298,9 +297,6 @@ const Select = forwardRef<
                   }}
                 >
                   <span>{choice.label}</span>
-                  {choice.selected ? (
-                    <InterfaceIcon name="check" size={16} />
-                  ) : null}
                 </div>
               </div>
             ))}

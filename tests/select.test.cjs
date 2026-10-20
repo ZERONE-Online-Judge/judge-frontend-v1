@@ -17,11 +17,6 @@ const filename = path.resolve(__dirname, '../src/shared/ui/Select.tsx');
 const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
-const nativeRequire = loaded.require.bind(loaded);
-loaded.require = (id) =>
-  id === '@/components/common/InterfaceIcon'
-    ? { __esModule: true, default: () => null }
-    : nativeRequire(id);
 loaded._compile(
   ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: {

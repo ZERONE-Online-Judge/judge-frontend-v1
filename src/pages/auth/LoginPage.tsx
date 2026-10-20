@@ -141,6 +141,8 @@ function postLoginRedirectPath(
     : '/';
   const target = moveTo ?? fallback;
   const targetContestId = contestIdFromParticipantPath(target) ?? contestId;
+  const previewRequested =
+    new URL(target, window.location.origin).searchParams.get('preview') === '1';
   const isParticipantContest = session.participantContests.some(
     (item) => item.contest.contest_id === targetContestId,
   );
@@ -150,7 +152,9 @@ function postLoginRedirectPath(
 
   if (
     targetContestId &&
-    !hasParticipantPreviewAccess(session, targetContestId) &&
+    !(
+      previewRequested && hasParticipantPreviewAccess(session, targetContestId)
+    ) &&
     !isParticipantContest &&
     (isOperatorContest || isServiceMaster(session))
   ) {

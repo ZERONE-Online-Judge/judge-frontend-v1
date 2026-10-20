@@ -2,7 +2,6 @@ import {
   usePresentationSession,
   presentationPath,
 } from '@/domains/presentationAccess/session';
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import { type ReactNode, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { isServiceMaster } from '@/domains/identityAccess/permissions';
@@ -75,20 +74,6 @@ function RouteAccessGuard({
   }
 
   if (!access || access === 'public') return children;
-
-  const operatorRoute = operatorContestRoute(location.pathname);
-  if (
-    access === 'operator' &&
-    operatorRoute &&
-    hasParticipantPreviewAccess(generalSession, operatorRoute.contestId)
-  ) {
-    return (
-      <Navigate
-        replace
-        to={`/contests/${encodeURIComponent(operatorRoute.contestId)}`}
-      />
-    );
-  }
 
   const canUseOperatorArea =
     Boolean(generalSession?.operatorSession) ||

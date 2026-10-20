@@ -1,4 +1,3 @@
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ContestAccessDeniedModal from '@/components/contest/ContestAccessDeniedModal';
@@ -49,13 +48,21 @@ export default function ContestCard({
         (item) => item.contest.contest_id === contestId,
       )
     : true;
-  const isPreviewContest = Boolean(
-    contestId && hasParticipantPreviewAccess(generalSession, contestId),
+  const isOperatorContest = Boolean(
+    contestId &&
+    generalSession?.operatorContests.some(
+      (item) => item.contest.contest_id === contestId,
+    ),
   );
   const canOpenContest =
-    !generalSession || !contestId || isParticipantContest || isPreviewContest;
+    !generalSession || !contestId || isParticipantContest || isOperatorContest;
   const cardHref = canOpenContest
-    ? (href ?? (generalSession ? contestHref : loginHref))
+    ? (href ??
+      (isOperatorContest
+        ? `/operator/contests/${encodeURIComponent(contestId!)}`
+        : generalSession
+          ? contestHref
+          : loginHref))
     : undefined;
   const canShowUnavailableMessage = canOpenContest && !cardHref;
   const cardClassName = [
@@ -71,9 +78,9 @@ export default function ContestCard({
   const cardContent = (
     <>
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        {isPreviewContest ? (
+        {isOperatorContest ? (
           <span className="rounded-full bg-amber-50 px-4 py-1.5 text-sm font-semibold text-amber-800">
-            참가자 미리보기
+            운영
           </span>
         ) : null}
         {isParticipantContest ? (

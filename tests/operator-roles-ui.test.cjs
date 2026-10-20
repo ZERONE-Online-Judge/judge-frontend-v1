@@ -393,25 +393,22 @@ test('new operator requires name and roles, allows multiple roles, and treats ma
   assert.equal(inputByLabel('이름 (필수)').value, '');
 });
 
-test('participant preview is exclusive in both selection directions and saves as its own role', async () => {
+test('participant preview remains selected when combined with other operator permissions', async () => {
   await render();
   await input(inputByLabel('이메일 (필수)'), 'preview@example.test');
   await input(inputByLabel('이름 (필수)'), '참가자 화면 검수자');
-  await click(role('출제진'));
-  await click(role('공지 작성'));
-  await click(role('참가자 미리보기'));
-  assert.equal(role('출제진').checked, false);
-  assert.equal(role('공지 작성').checked, false);
-  await click(role('대회 마스터'));
-  assert.equal(role('참가자 미리보기').checked, false);
-  await click(role('참가자 미리보기'));
-  assert.equal(role('대회 마스터').checked, false);
   await click(role('검수진'));
-  assert.equal(role('참가자 미리보기').checked, false);
   await click(role('참가자 미리보기'));
-  assert.equal(role('검수진').checked, false);
+  await click(role('공지 작성'));
+  assert.equal(role('검수진').checked, true);
+  assert.equal(role('참가자 미리보기').checked, true);
   await click(button('운영자 추가'));
-  assert.deepEqual(creates[0].body.roles, ['participant_preview']);
+  assert.deepEqual(creates[0].body.roles, [
+    'problem_reviewer',
+    'problems_viewer',
+    'participant_preview',
+    'notices_manager',
+  ]);
 });
 
 test('choosing an author also selects and locks review until author is removed', async () => {
@@ -500,7 +497,7 @@ test('operator list shows one prioritized title beside each name while retaining
     ['author@example.test', '손동열 / 출제진'],
     ['operations@example.test', '운영 담당자 / 검수진'],
     ['reviewer@example.test', '문제 검수자 / 검수진'],
-    ['preview@example.test', '미리보기 계정 / 미리보기'],
+    ['preview@example.test', '미리보기 계정 / 운영진'],
     ['legacy@example.test', '기존 운영자 / 운영진'],
   ])
     assert.equal(

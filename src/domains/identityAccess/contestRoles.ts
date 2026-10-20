@@ -78,9 +78,9 @@ export const CONTEST_ROLES = [
   },
   {
     value: 'participant_preview',
-    label: '참가자 미리보기',
+    label: '대회 운영진 · 참가자 미리보기',
     description:
-      '참가자 화면에서 대회 전 문제 풀이·제출·게시판을 점검합니다. 다른 권한과 함께 선택할 수 없습니다.',
+      '운영자 화면에서 새 탭으로 참가자 화면을 열어 문제·제출·게시판을 점검합니다.',
   },
 ] as const;
 
@@ -107,8 +107,7 @@ export type ContestRoleTitle =
   | '마스터'
   | '출제진'
   | '운영진'
-  | '검수진'
-  | '미리보기';
+  | '검수진';
 
 export function withIncludedContestRoles(
   roles: readonly ContestRole[],
@@ -122,8 +121,6 @@ export function withIncludedContestRoles(
 export function contestRoleTitle(
   roles: readonly ContestRole[],
 ): ContestRoleTitle | null {
-  if (roles.length === 1 && roles[0] === 'participant_preview')
-    return '미리보기';
   if (roles.includes('owner')) return '총괄';
   if (roles.includes('master')) return '마스터';
   if (roles.includes('problem_author')) return '출제진';
@@ -134,8 +131,6 @@ export function contestRoleTitle(
 export function contestRoleTitleForScopes(
   scopes: readonly string[],
 ): ContestRoleTitle | null {
-  if (scopes.length === 1 && scopes[0] === roleScopes.participant_preview)
-    return '미리보기';
   if (scopes.includes('contest.owner')) return '총괄';
   if (scopes.some((scope) => ['*', 'master', 'contest.*'].includes(scope)))
     return '마스터';

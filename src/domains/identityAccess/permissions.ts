@@ -5,6 +5,7 @@ import type {
 
 export type ContestPermissionCode =
   | 'contest.view'
+  | 'contest.participant.preview'
   | 'contest.settings.manage'
   | 'contest.staff.view'
   | 'contest.staff.manage'
@@ -55,6 +56,7 @@ export type ContestPermissionCode =
 type PermissionSession = GeneralSession | StaffSession | null | undefined;
 
 export const operatorHomePermissions = [
+  'contest.participant.preview',
   'contest.settings.manage',
   'contest.staff.manage',
   'contest.participant.view',

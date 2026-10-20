@@ -27,12 +27,10 @@ export default function ContestRoleSelector({
       return;
     }
     onChange(
-      role === 'master' || role === 'participant_preview'
+      role === 'master'
         ? [role]
         : withIncludedContestRoles([
-            ...selectedRoles.filter(
-              (item) => item !== 'master' && item !== 'participant_preview',
-            ),
+            ...selectedRoles.filter((item) => item !== 'master'),
             role,
           ]),
     );
@@ -42,7 +40,7 @@ export default function ContestRoleSelector({
     <SettingsCard
       title="권한 (필수)"
       disabled={disabled}
-      description="담당할 권한을 하나 이상 선택하세요. 대회 마스터와 참가자 미리보기는 각각 단독으로 선택합니다. 검수진은 문제 확인 권한을, 출제진은 검수진과 문제 확인 권한을 자동으로 포함합니다."
+      description="담당할 권한을 하나 이상 선택하세요. 참가자 미리보기는 다른 운영 권한과 함께 선택할 수 있습니다. 대회 마스터는 단독으로 선택합니다. 검수진은 문제 확인 권한을, 출제진은 검수진과 문제 확인 권한을 자동으로 포함합니다."
       hint={
         !canAssignMaster
           ? '대회 마스터 권한은 마스터만 부여할 수 있습니다.'

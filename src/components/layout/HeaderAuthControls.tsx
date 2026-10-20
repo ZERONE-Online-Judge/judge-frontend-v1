@@ -1,6 +1,5 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import HeaderPanel, { HeaderIcon } from '@/components/layout/HeaderPanel';
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,10 +65,6 @@ export default function HeaderAuthControls({
   const [isAccountPanelOpen, setIsAccountPanelOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const accountEmail = generalSession?.account.email;
-  const previewContests =
-    generalSession?.operatorContests.filter((entry) =>
-      hasParticipantPreviewAccess(generalSession, entry.contest.contest_id),
-    ) ?? [];
   const participantContestSections = accountContestSections.map((section) => ({
     ...section,
     contests: sortContestsByRecentDate(
@@ -201,31 +196,6 @@ export default function HeaderAuthControls({
               <InterfaceIcon name="arrowRight" />
             </span>
           </button>
-          {previewContests.length ? (
-            <section
-              className="header-panel-section"
-              aria-label="미리보기 대회"
-            >
-              <div className="header-section-heading">
-                <h3>참가자 미리보기</h3>
-                <span>{previewContests.length}개</span>
-              </div>
-              {previewContests.map(({ contest }) => (
-                <Link
-                  key={contest.contest_id}
-                  className="header-contest-card"
-                  to={`/contests/${encodeURIComponent(contest.contest_id)}`}
-                  onClick={() => setIsAccountPanelOpen(false)}
-                >
-                  <strong>{contest.title}</strong>
-                  <span>
-                    유형을 선택해 참가자 화면 사전 점검{' '}
-                    <InterfaceIcon name="arrowUpRight" />
-                  </span>
-                </Link>
-              ))}
-            </section>
-          ) : null}
           <section className="header-panel-section">
             <div className="header-section-heading">
               <h3>내가 참가한 대회</h3>

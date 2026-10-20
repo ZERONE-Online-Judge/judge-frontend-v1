@@ -1,4 +1,9 @@
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
+import {
+  hasParticipantPreviewAccess,
+  participantPreviewPath,
+} from '@/domains/identityAccess/participantPreview';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -294,14 +299,26 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
 
   return (
     <div className="grid min-w-0 gap-2">
-      {staffSession ? (
-        <p className="zoj-break-anywhere text-right text-sm font-medium text-slate-700">
-          {staffSession.staff.display_name}
-          {roleTitle ? (
-            <span className="text-slate-500"> / {roleTitle}</span>
-          ) : null}
-        </p>
-      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {staffSession ? (
+          <p className="zoj-break-anywhere text-sm font-medium text-slate-700">
+            {staffSession.staff.display_name}
+            {roleTitle ? (
+              <span className="text-slate-500"> / {roleTitle}</span>
+            ) : null}
+          </p>
+        ) : null}
+        {hasParticipantPreviewAccess(generalSession, contestId) ? (
+          <Link
+            to={participantPreviewPath(contestId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+          >
+            참가자 화면 미리보기 <InterfaceIcon name="arrowUpRight" />
+          </Link>
+        ) : null}
+      </div>
       <nav
         ref={navRef}
         aria-label="운영자 메뉴"

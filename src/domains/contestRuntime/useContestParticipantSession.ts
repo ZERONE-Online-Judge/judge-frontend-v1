@@ -1,4 +1,5 @@
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
+import { isParticipantPreviewMode } from '@/domains/identityAccess/participantPreview';
+import { useLocation } from 'react-router-dom';
 import { useCallback, useMemo } from 'react';
 import { getGeneralMe } from '@/domains/identityAccess/api';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
@@ -11,6 +12,7 @@ const participantSessionRequests = new Map<
 >();
 
 export function useContestParticipantSession(contestId: string) {
+  const { search } = useLocation();
   const generalSession = useSessionStore((state) => state.generalSession);
   const participantSession = useSessionStore(
     (state) => state.participantSession,
@@ -23,7 +25,11 @@ export function useContestParticipantSession(contestId: string) {
   const participantContest = generalSession?.participantContests.find(
     (item) => item.contest.contest_id === contestId,
   );
-  const canPreview = hasParticipantPreviewAccess(generalSession, contestId);
+  const canPreview = isParticipantPreviewMode(
+    generalSession,
+    contestId,
+    search,
+  );
   const matchingSession =
     participantSession?.contestId === contestId ? participantSession : null;
   const activeParticipantSession = useMemo(

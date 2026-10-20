@@ -85,7 +85,7 @@ const roleScopes = {
     'contest.problem.review',
     'contest.problem.test',
   ],
-  participant_preview: ['contest.participant.preview'],
+  participant_preview: ['contest.view', 'contest.participant.preview'],
 };
 const roleTabs = {
   settings_manager: ['', 'settings'],
@@ -100,7 +100,7 @@ const roleTabs = {
   audit_viewer: ['', 'audit-logs'],
   problem_author: ['', 'problems', 'problem-review'],
   problem_reviewer: ['problem-review'],
-  participant_preview: [],
+  participant_preview: [''],
 };
 let session, reads;
 function staffWith(scopes, contestId = 'contest') {
@@ -121,7 +121,7 @@ function generalWith(scopes) {
 }
 function forRoles(...roles) {
   return generalWith([
-    ...(roles.includes('participant_preview') ? [] : ['contest.view']),
+    ...['contest.view'],
     ...new Set(roles.flatMap((role) => roleScopes[role])),
   ]);
 }
@@ -392,9 +392,7 @@ for (const [role, expectedTabs] of Object.entries(roleTabs)) {
         ? '출제진'
         : role === 'problem_reviewer'
           ? '검수진'
-          : role === 'participant_preview'
-            ? '미리보기'
-            : '운영진';
+          : '운영진';
     assert.match(container.textContent, new RegExp(`운영진 / ${title}`));
   });
 }
@@ -435,13 +433,16 @@ test('multiple roles combine permissions and navigation without granting unrelat
   assert.equal(container.querySelectorAll('nav a').length, 0);
 });
 
-test('participant preview does not grant operator home, management, or review access', async () => {
+test('preview grants an operator entry and a new-tab link without granting other management powers', async () => {
   session = forRoles('participant_preview');
-  for (const permission of [
-    'contest.view',
-    'contest.problem.review',
-    'contest.staff.manage',
-  ]) {
+  assert.equal(hasContestPermission(session, 'contest', 'contest.view'), true);
+  await render(h(OperatorTabs, { contestId: 'contest' }));
+  const link = container.querySelector('a[target="_blank"]');
+  assert.equal(link.getAttribute('href'), '/contests/contest?preview=1');
+  assert.equal(link.getAttribute('rel'), 'noopener noreferrer');
+  assert.match(link.textContent, /참가자 화면 미리보기/);
+  assert.deepEqual(reads, []);
+  for (const permission of ['contest.problem.review', 'contest.staff.manage']) {
     assert.equal(hasContestPermission(session, 'contest', permission), false);
     await render(
       h(OperatorAccessGate, { contestId: 'contest', permission }, () =>
@@ -450,15 +451,10 @@ test('participant preview does not grant operator home, management, or review ac
     );
     assert.equal(container.querySelector('[data-protected]'), null);
   }
-  assert.deepEqual(reads, []);
-  assert.equal(contestRoleTitle(['participant_preview']), '미리보기');
+  assert.equal(contestRoleTitle(['participant_preview']), '운영진');
   assert.equal(
     contestRoleTitleForScopes(['contest.participant.preview']),
-    '미리보기',
-  );
-  assert.equal(
-    contestRoleTitleForAccount(session.operatorSession.staff, 'contest'),
-    '미리보기',
+    '운영진',
   );
 });
 

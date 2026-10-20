@@ -139,7 +139,7 @@ test('anonymous mine filter explains sign in and does not show public contests a
     '/login?moveTo=%2Fcontests',
   );
 });
-test('mine merges private operator assignments and preview uses real participant route', async () => {
+test('mine includes preview assignments as operators and opens management', async () => {
   const hidden = contest('preview', day, day * 2, 'draft');
   session = {
     account: {},
@@ -155,9 +155,9 @@ test('mine merges private operator assignments and preview uses real participant
   const cards = [...host.querySelectorAll('.directory-card')];
   assert.equal(
     cards[1].querySelector('a').getAttribute('href'),
-    '/contests/preview',
+    '/operator/contests/preview',
   );
-  assert.match(cards[1].textContent, /참가자 미리보기/);
+  assert.match(cards[1].textContent, /운영/);
   assert.match(cards[1].textContent, /비공개/);
   assert.match(cards[1].textContent, /일정 준비 중/);
 });

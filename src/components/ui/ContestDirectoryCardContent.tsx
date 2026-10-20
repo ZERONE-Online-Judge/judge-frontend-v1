@@ -44,7 +44,6 @@ export default function ContestDirectoryCardContent({
   meta,
   participant,
   operator,
-  preview,
   privateContest,
   countdown,
   publicLabels,
@@ -54,7 +53,6 @@ export default function ContestDirectoryCardContent({
   meta: ContestDirectoryMeta;
   participant: boolean;
   operator: boolean;
-  preview: boolean;
   privateContest: boolean;
   countdown?: string;
   publicLabels: string[];
@@ -75,11 +73,7 @@ export default function ContestDirectoryCardContent({
           {participant ? (
             <span className="directory-personal">내 참가</span>
           ) : null}
-          {operator ? (
-            <span className="directory-personal">
-              {preview ? '참가자 미리보기' : '운영'}
-            </span>
-          ) : null}
+          {operator ? <span className="directory-personal">운영</span> : null}
           {privateContest ? (
             <span className="directory-private">비공개</span>
           ) : null}
@@ -133,7 +127,7 @@ export default function ContestDirectoryCardContent({
           </dl>
         ) : null}
         <span className="directory-card-action">
-          {preview ? '미리보기' : operator ? '운영 화면' : '대회 보기'}
+          {operator ? '운영 화면' : '대회 보기'}
           <ExperienceArrow />
         </span>
       </div>

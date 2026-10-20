@@ -154,6 +154,7 @@ const mocks = {
     tokenQueryIdentity: () => 'preview-identity',
   },
   '@/domains/identityAccess/sessionStorage': {
+    PARTICIPANT_PREVIEW_MODE_KEY: 'zoj.participantPreviewMode',
     saveParticipantSession: (next) => {
       savedSession = next;
     },
@@ -263,7 +264,9 @@ beforeEach(() => {
       accessToken: 'general-token',
       account: { email: 'preview@example.test', display_name: '점검자' },
       participantContests: [],
-      operatorContests: [{ contest, scopes: ['contest.participant.preview'] }],
+      operatorContests: [
+        { contest, scopes: ['contest.view', 'contest.participant.preview'] },
+      ],
     },
     participantSession: null,
     setParticipantSession: (next) => setState({ participantSession: next }),
@@ -278,6 +281,7 @@ beforeEach(() => {
   questions = [];
   document.body.innerHTML = '';
   window.localStorage.clear();
+  window.sessionStorage.clear();
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -298,7 +302,10 @@ async function flush() {
     async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
   );
 }
-async function render(url = '/contests/contest', showNotifications = false) {
+async function render(
+  url = '/contests/contest?preview=1',
+  showNotifications = false,
+) {
   await act(async () =>
     root.render(
       h(
@@ -367,7 +374,7 @@ async function input(element, value) {
   await flush();
 }
 
-test('preview is a separate title and cannot be combined with any role in the selector', async () => {
+test('preview combines with operator roles and masters can open it explicitly', async () => {
   function Fixture() {
     const [roles, setRoles] = React.useState([
       'problem_author',
@@ -385,17 +392,14 @@ test('preview is a separate title and cannot be combined with any role in the se
       .find((item) => item.textContent.includes(text))
       .querySelector('input');
   await click(role('참가자 미리보기'));
-  assert.equal(container.querySelectorAll('input:checked').length, 1);
+  assert.equal(role('출제진').checked, true);
+  assert.equal(role('참가자 미리보기').checked, true);
   await click(role('공지 작성'));
-  assert.equal(role('참가자 미리보기').checked, false);
-  assert.equal(role('공지 작성').checked, true);
-  await click(role('대회 마스터'));
-  await click(role('참가자 미리보기'));
-  assert.equal(role('대회 마스터').checked, false);
-  assert.equal(contestRoleTitle(['participant_preview']), '미리보기');
+  assert.equal(role('참가자 미리보기').checked, true);
+  assert.equal(contestRoleTitle(['participant_preview']), '운영진');
   assert.equal(
     contestRoleTitleForScopes(['contest.participant.preview']),
-    '미리보기',
+    '운영진',
   );
   assert.equal(
     hasParticipantPreviewAccess(
@@ -405,7 +409,19 @@ test('preview is a separate title and cannot be combined with any role in the se
       },
       'contest',
     ),
+    true,
+  );
+});
+
+test('a preview permission alone does not switch a normal contest page into preview', async () => {
+  await render('/contests/contest');
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/participant-preview')),
     false,
+  );
+  assert.equal(
+    calls.some((call) => call.url === '/public/contests/contest'),
+    true,
   );
 });
 
@@ -438,7 +454,7 @@ test('private scheduled contest starts preview through division selection then u
 test('selected preview can submit code before start using the ordinary participant submission endpoint', async () => {
   state.participantSession = previewSession();
   serverDivision = 'a';
-  await render('/contests/contest/problems/problem/submit');
+  await render('/contests/contest/problems/problem/submit?preview=1');
   await input(
     await waitForElement('textarea[aria-label="제출 코드"]'),
     'print(3)',
@@ -458,7 +474,7 @@ test('selected preview can submit code before start using the ordinary participa
 test('selected preview can post a question through the actual participant board', async () => {
   state.participantSession = previewSession();
   serverDivision = 'a';
-  await render('/contests/contest/board');
+  await render('/contests/contest/board?preview=1');
   await click(button('질문하기'));
   await input(
     container.querySelector('input[placeholder="제목을 입력하세요."]'),
@@ -486,7 +502,7 @@ test('local preview without a matching server selection must be restarted before
     divisions: [division('a')],
     selected_division_id: 'a',
   });
-  await render('/contests/contest/problems');
+  await render('/contests/contest/problems?preview=1');
   assert.ok(button('미리보기 시작'));
   assert.equal(button('미리보기 시작').disabled, false);
   assert.equal(
@@ -501,7 +517,7 @@ test('server preview denial hides participant content even with a saved local se
   state.participantSession = previewSession();
   serverDivision = 'a';
   rejectOptions = true;
-  await render('/contests/contest/problems');
+  await render('/contests/contest/problems?preview=1');
   assert.equal(
     calls.some((call) => call.url.endsWith('/problems')),
     false,
@@ -522,7 +538,7 @@ test('preview displays the same dismissible emergency notice as normal participa
 
 test('preview keeps the account inbox independent of division selection and does not poll judging sources', async () => {
   state.participantSession = previewSession();
-  await render('/contests/contest', true);
+  await render('/contests/contest?preview=1', true);
   assert.ok(
     calls.some(
       (call) => call.url === '/notifications' && call.token === 'general-token',
@@ -561,7 +577,7 @@ test('active preview shows its own server account inbox without creating partici
     read_at: null,
     dismissed_at: null,
   }));
-  await render('/contests/contest', true);
+  await render('/contests/contest?preview=1', true);
   await flush();
   assert.ok(container.textContent.includes('새 대회 공지'));
   assert.ok(container.textContent.includes('내 질문 답변'));

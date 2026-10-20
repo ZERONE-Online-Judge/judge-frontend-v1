@@ -2,7 +2,6 @@ import { contestListItemText } from '@/data/uiText';
 import ContestDirectoryCardContent, {
   type ContestDirectoryMeta,
 } from '@/components/ui/ContestDirectoryCardContent';
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import { Link } from 'react-router-dom';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
 import { SvgIcon } from '@/utils/Icons';
@@ -46,14 +45,8 @@ export default function ContestListItem({
   const isOperatorContest = generalSession?.operatorContests.some(
     (item) => item.contest.contest_id === contestId,
   );
-  const isPreviewContest = hasParticipantPreviewAccess(
-    generalSession,
-    contestId,
-  );
   const operatorHref = `/operator/contests/${encodeURIComponent(contestId)}`;
-  const itemHref = isPreviewContest
-    ? contestHref
-    : (href ?? (isOperatorContest ? operatorHref : contestHref));
+  const itemHref = href ?? (isOperatorContest ? operatorHref : contestHref);
 
   const content = directoryMeta ? (
     <ContestDirectoryCardContent
@@ -62,7 +55,6 @@ export default function ContestListItem({
       meta={directoryMeta}
       participant={Boolean(isParticipantContest)}
       operator={Boolean(isOperatorContest || href?.startsWith('/operator/'))}
-      preview={isPreviewContest}
       privateContest={operatorOnlyVisible}
       countdown={countdownLabel}
       publicLabels={publicResourceLabels}
@@ -80,7 +72,7 @@ export default function ContestListItem({
           {isOperatorContest ? (
             <span className="inline-flex h-7 items-center gap-2 rounded-full bg-indigo-50 px-3 text-xs font-black text-indigo-700">
               <span className="size-2 rounded-full bg-indigo-500" />
-              <span>{isPreviewContest ? '참가자 미리보기' : '운영'}</span>
+              <span>운영</span>
             </span>
           ) : null}
           <span className="inline-flex h-7 items-center gap-2 rounded-full bg-slate-100 px-3 text-xs font-black text-slate-700">

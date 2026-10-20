@@ -1,6 +1,9 @@
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import ParticipantPreviewShell from '@/components/contest/ParticipantPreviewShell';
-import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
+import {
+  activateParticipantPreview,
+  isParticipantPreviewMode,
+} from '@/domains/identityAccess/participantPreview';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
 import type { ReactNode } from 'react';
 import ContestEmergencyNotice from '@/components/contest/ContestEmergencyNotice';
@@ -26,8 +29,16 @@ type ContestPageShellProps = {
 
 export default function ContestPageShell({ children }: ContestPageShellProps) {
   const { contestId } = useParams();
+  const { search } = useLocation();
   const session = useSessionStore((state) => state.generalSession);
-  if (contestId && session && hasParticipantPreviewAccess(session, contestId)) {
+  const preview = Boolean(
+    contestId && isParticipantPreviewMode(session, contestId, search),
+  );
+  useEffect(() => {
+    if (preview && session && contestId)
+      activateParticipantPreview(session, contestId);
+  }, [preview, session, contestId]);
+  if (contestId && session && preview) {
     return (
       <ParticipantPreviewShell
         contestId={contestId}

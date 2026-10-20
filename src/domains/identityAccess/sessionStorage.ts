@@ -7,6 +7,8 @@ import type {
 import type { ParticipantSession } from '@/domains/teamParticipation/types';
 
 export const PARTICIPANT_SESSION_KEY = 'zoj.participantSession';
+export const PARTICIPANT_PREVIEW_SESSION_KEY = 'zoj.participantPreviewSession';
+export const PARTICIPANT_PREVIEW_MODE_KEY = 'zoj.participantPreviewMode';
 export const GENERAL_SESSION_KEY = 'zoj.generalSession';
 export const SESSION_SYNC_EVENT = 'zoj:session-sync';
 export const SESSION_EXPIRED_EVENT = 'zoj:session-expired';
@@ -88,8 +90,27 @@ export function loadStoredParticipantSession(): ParticipantSession | null {
   if (!storage) return null;
 
   try {
+    const previewRaw = legacyBrowserStorage()?.getItem(
+      PARTICIPANT_PREVIEW_SESSION_KEY,
+    );
+    const preview = previewRaw
+      ? (JSON.parse(previewRaw) as ParticipantSession)
+      : null;
+    if (
+      preview?.isPreview &&
+      preview.member.email === loadStoredGeneralSession()?.account.email
+    ) {
+      return preview;
+    }
+  } catch {
+    legacyBrowserStorage()?.removeItem(PARTICIPANT_PREVIEW_SESSION_KEY);
+  }
+
+  try {
     const raw = readStoredSessionValue(PARTICIPANT_SESSION_KEY);
-    return raw ? (JSON.parse(raw) as ParticipantSession) : null;
+    const session = raw ? (JSON.parse(raw) as ParticipantSession) : null;
+    // Old shared previews must not put another tab into participant mode.
+    return session?.isPreview ? null : session;
   } catch {
     removeStoredSessionValue(PARTICIPANT_SESSION_KEY);
     return null;
@@ -99,6 +120,16 @@ export function loadStoredParticipantSession(): ParticipantSession | null {
 export function saveParticipantSession(session: ParticipantSession | null) {
   const storage = browserStorage();
   if (!storage) return;
+
+  if (session?.isPreview) {
+    legacyBrowserStorage()?.setItem(
+      PARTICIPANT_PREVIEW_SESSION_KEY,
+      JSON.stringify(session),
+    );
+    return;
+  }
+  legacyBrowserStorage()?.removeItem(PARTICIPANT_PREVIEW_SESSION_KEY);
+  legacyBrowserStorage()?.removeItem(PARTICIPANT_PREVIEW_MODE_KEY);
 
   if (session) {
     storage.setItem(PARTICIPANT_SESSION_KEY, JSON.stringify(session));

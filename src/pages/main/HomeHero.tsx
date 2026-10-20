@@ -2,11 +2,10 @@ import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import '@/pages/public/PublicExperience.css';
 import './HomeHero.css';
-import HomeSecrets from './HomeSecrets';
-import { useHomeSecrets } from './useHomeSecrets';
+import { usePublicEasterEggs } from '@/components/public/easterEggs/context';
 
 export default function HomeHero() {
-  const { secret, tap, close } = useHomeSecrets();
+  const { openTyping, tapSpotlight } = usePublicEasterEggs();
   return (
     <section className="home-launch" aria-labelledby="home-launch-title">
       <div className="home-launch-aurora" aria-hidden="true" />
@@ -27,20 +26,14 @@ export default function HomeHero() {
             <i />
           </div>
           <div className="home-monogram">
-            Z<span>O</span>J
-            <button
-              type="button"
-              className="home-monogram-dot home-secret-trigger"
-              aria-label="ZOJ 마침표"
-              onClick={() => tap('binary')}
-            >
-              .
-            </button>
+            Z<span>O</span>J<span className="home-monogram-dot">.</span>
           </div>
           <button
             type="button"
-            className="home-satellite is-code home-secret-trigger"
-            onClick={() => tap('reaction')}
+            className="home-satellite is-code home-egg-trigger"
+            onClick={(event) =>
+              openTyping(event.currentTarget.getBoundingClientRect())
+            }
             aria-label="예제 코드"
           >
             <span>
@@ -60,17 +53,19 @@ export default function HomeHero() {
               <strong>Accepted</strong>
             </div>
           </div>
+          <span className="home-star is-first" aria-hidden="true">
+            <InterfaceIcon name="asterisk" />
+          </span>
           <button
             type="button"
-            className="home-star is-first home-secret-trigger"
+            className="home-star is-second home-egg-trigger"
             aria-label="별"
-            onClick={() => tap('lights')}
+            onClick={(event) =>
+              tapSpotlight({ x: event.clientX, y: event.clientY })
+            }
           >
-            <InterfaceIcon name="asterisk" />
-          </button>
-          <span className="home-star is-second" aria-hidden="true">
             <InterfaceIcon name="sparkle" />
-          </span>
+          </button>
           <span className="home-universe-coordinate" aria-hidden="true">
             ZERONE
             <br />
@@ -88,7 +83,6 @@ export default function HomeHero() {
           </div>
         </div>
       </div>
-      {secret && <HomeSecrets secret={secret} onClose={close} />}
     </section>
   );
 }

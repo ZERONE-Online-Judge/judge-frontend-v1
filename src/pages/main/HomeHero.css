@@ -351,26 +351,18 @@
   }
 }
 
-.home-secret-trigger {
+.home-egg-trigger {
   cursor: default;
   font: inherit;
   color: inherit;
   text-align: inherit;
   -webkit-tap-highlight-color: transparent;
 }
-.home-secret-trigger:focus-visible {
+.home-egg-trigger:focus-visible {
   outline: 2px solid #7666bc;
   outline-offset: 5px;
 }
-.home-monogram-dot.home-secret-trigger {
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 0.67em;
-  font-weight: inherit;
-  color: #7c629f;
-}
-.home-star.home-secret-trigger {
+.home-star.home-egg-trigger {
   padding: 0;
   border: 0;
   background: none;
@@ -381,4 +373,8 @@
   margin: 16px 0 24px;
   font-size: 14px;
   letter-spacing: 0;
+}
+
+.home-satellite.home-egg-trigger {
+  cursor: pointer;
 }

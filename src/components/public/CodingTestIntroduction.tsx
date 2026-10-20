@@ -1,6 +1,7 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { Link } from 'react-router-dom';
 import './CodingTestIntroduction.css';
+import CafeReceipts from './easterEggs/CafeReceipts';
 
 const skills = [
   [
@@ -62,55 +63,7 @@ export default function CodingTestIntroduction() {
                 과정을 직접 경험합니다.
               </p>
             </div>
-            <article
-              className="about-everyday"
-              aria-labelledby="about-everyday-heading"
-              data-reveal
-            >
-              <div className="about-everyday-heading">
-                <span className="about-everyday-symbol" aria-hidden="true">
-                  <InterfaceIcon name="coffee" />
-                </span>
-                <span>생활 속 문제로 생각해 보면</span>
-              </div>
-              <h3 id="about-everyday-heading">
-                카페에서 가장 많이 팔린 메뉴는?
-              </h3>
-              <p>주문 내역을 보고, 가장 많이 나온 메뉴를 찾아보세요.</p>
-              <div className="about-order-list" aria-label="주문 내역 예시">
-                {['라테', '아메리카노', '라테', '레모네이드', '라테'].map(
-                  (menu, index) => (
-                    <span key={index}>{menu}</span>
-                  ),
-                )}
-              </div>
-              <ol className="about-everyday-steps">
-                <li>
-                  <span aria-hidden="true">01</span>
-                  <div>
-                    <strong>메뉴별 주문 수를 세고</strong>
-                    <p>라테 3잔 · 아메리카노 1잔 · 레모네이드 1잔</p>
-                  </div>
-                </li>
-                <li>
-                  <span aria-hidden="true">02</span>
-                  <div>
-                    <strong>가장 큰 수 확인</strong>
-                    <p>이 과정을 코드로 작성합니다.</p>
-                  </div>
-                </li>
-              </ol>
-              <div className="about-everyday-answer">
-                <span>이 주문 내역의 답</span>
-                <strong>
-                  라테 <small>3잔</small>
-                </strong>
-              </div>
-              <p className="about-everyday-footnote">
-                주문이 한 건이거나 아주 많아져도 잘 작동할까요? 코딩 테스트는
-                이런 다양한 상황까지 확인합니다.
-              </p>
-            </article>
+            <CafeReceipts />
           </div>
           <div className="about-learn-why" data-reveal>
             <p className="about-eyebrow">평가 항목</p>

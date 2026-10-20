@@ -1,0 +1,263 @@
+.egg-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+  background: #000;
+  mask-image: radial-gradient(
+    circle 155px at var(--spot-x) var(--spot-y),
+    transparent 0,
+    transparent 105px,
+    #000 155px
+  );
+  -webkit-mask-image: radial-gradient(
+    circle 155px at var(--spot-x) var(--spot-y),
+    transparent 0,
+    transparent 105px,
+    #000 155px
+  );
+}
+.egg-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  overflow: hidden;
+  pointer-events: none;
+}
+.egg-confetti i {
+  position: absolute;
+  top: -24px;
+  width: 9px;
+  height: 17px;
+  animation: egg-confetti-fall 2.4s cubic-bezier(0.16, 0.45, 0.48, 0.93)
+    var(--delay) both;
+}
+@keyframes egg-confetti-fall {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -24px, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(var(--drift), 110vh, 0) rotate(var(--turn));
+  }
+}
+.egg-typing {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  color: #3a3655;
+  background: #f8f7fc;
+  animation: egg-unfold 650ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+@keyframes egg-unfold {
+  from {
+    clip-path: inset(
+      var(--typing-top) var(--typing-right) var(--typing-bottom)
+        var(--typing-left) round 20px
+    );
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+  }
+}
+.egg-typing-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 32px;
+  border-bottom: 1px solid #e8e5f1;
+}
+.egg-typing-bar h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font:
+    500 14px ui-monospace,
+    monospace;
+}
+.egg-typing-bar h2 > svg {
+  color: #8b79af;
+}
+.egg-typing-bar h2 small {
+  color: #a2a0b1;
+  font-size: 11px;
+}
+.egg-typing-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.egg-typing-tools output {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding-inline: 10px 20px;
+  color: #8b84a2;
+}
+.egg-typing-tools output strong {
+  font-size: 28px;
+  font-weight: 650;
+  color: #5d4b8c;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.egg-typing-tools output span {
+  font-size: 11px;
+}
+.egg-typing-tools button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #e7e3ef;
+  border-radius: 12px;
+  background: #ffffffb0;
+  color: #7c718f;
+}
+.egg-typing-tools button:hover {
+  background: #eeebf6;
+  color: #56446f;
+}
+.egg-typing-tools button:focus-visible {
+  outline: 2px solid #9d8bc4;
+  outline-offset: 3px;
+}
+.egg-typing-done {
+  font-size: 12px;
+  color: #588e7b;
+}
+.egg-typing-sheet {
+  position: relative;
+  display: flex;
+  align-self: center;
+  align-items: flex-start;
+  gap: 26px;
+  width: min(780px, calc(100% - 80px));
+  margin-block: auto;
+  padding-block: 48px;
+  overflow-x: auto;
+  font:
+    400 clamp(16px, 2.2vw, 25px)/1.95 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.egg-typing-gutter {
+  display: grid;
+  flex-shrink: 0;
+  color: #d3cedf;
+  font-size: 0.55em;
+  line-height: 3.5455;
+  padding-top: 6px;
+  user-select: none;
+}
+.egg-typing-surface {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.egg-typing-reference {
+  margin: 0;
+  color: #b9b3c8;
+  font: inherit;
+  white-space: pre;
+  tab-size: 4;
+}
+.egg-typing-reference .is-correct {
+  color: #4b425f;
+}
+.egg-typing-reference .is-error {
+  color: #bf6b7c;
+  background: #f9e6ec;
+  border-radius: 2px;
+}
+.egg-typing-reference .is-current {
+  border-left: 2px solid #8e75bb;
+  margin-left: -2px;
+}
+.egg-typing-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: transparent;
+  font: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  tab-size: 4;
+  white-space: pre;
+  overflow: hidden;
+}
+.egg-typing-input::selection {
+  background: #a98edc35;
+}
+@media (max-width: 600px) {
+  .egg-typing-bar {
+    padding: 14px 16px;
+  }
+  .egg-typing-bar h2 {
+    gap: 8px;
+    font-size: 12px;
+  }
+  .egg-typing-bar h2 small {
+    display: none;
+  }
+  .egg-typing-tools {
+    gap: 6px;
+  }
+  .egg-typing-tools output {
+    padding-inline: 0 6px;
+    gap: 4px;
+  }
+  .egg-typing-tools output strong {
+    font-size: 23px;
+  }
+  .egg-typing-tools button {
+    width: 38px;
+    height: 38px;
+  }
+  .egg-typing-sheet {
+    width: calc(100% - 32px);
+    gap: 14px;
+    font-size: 15px;
+  }
+  .egg-typing-gutter {
+    padding-top: 4px;
+  }
+  .egg-typing-done {
+    display: none;
+  }
+}
+@media (max-width: 768px), (hover: none), (pointer: coarse) {
+  .egg-spotlight {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .egg-typing {
+    animation: none;
+  }
+  .egg-confetti i {
+    animation: none;
+    top: 15%;
+    opacity: 0.75;
+  }
+}

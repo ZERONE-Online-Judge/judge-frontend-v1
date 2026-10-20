@@ -31,103 +31,6 @@
   border-left: 2px solid var(--lime);
   font-size: 14px;
 }
-.about-everyday {
-  min-width: 0;
-  padding: 30px;
-  border: 1px solid var(--zoj-border);
-  border-radius: var(--zoj-radius-card);
-  background: var(--zoj-surface);
-}
-.about-everyday-heading {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 20px;
-}
-.about-everyday-symbol {
-  font-size: 20px;
-}
-.about-everyday h3 {
-  font-size: 21px;
-  line-height: 1.5;
-  letter-spacing: -0.03em;
-  margin-bottom: 12px;
-}
-.about-everyday > p {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.85;
-}
-.about-order-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-block: 22px;
-}
-.about-order-list span {
-  padding: 7px 13px;
-  background: #fff;
-  border: 1px solid var(--zoj-border);
-  border-radius: 8px;
-  font-size: 13px;
-}
-.about-everyday-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 18px;
-}
-.about-everyday-steps li {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.about-everyday-steps li > span {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--purple);
-  padding-top: 3px;
-}
-.about-everyday-steps strong {
-  font-size: 14px;
-  font-weight: 650;
-}
-.about-everyday-steps p {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.9;
-  margin-top: 4px;
-}
-.about-everyday-answer {
-  margin-block: 24px 16px;
-  padding: 18px 20px;
-  border-radius: 10px;
-  background: #e7f7dd;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.about-everyday-answer > span {
-  font-size: 12px;
-  color: #40513b;
-}
-.about-everyday-answer strong {
-  font-size: 24px;
-  letter-spacing: -0.04em;
-}
-.about-everyday-answer small {
-  font-size: 14px;
-  margin-left: 4px;
-  font-weight: 500;
-}
-.about-everyday > .about-everyday-footnote {
-  font-size: 12px;
-}
 .about-learn-why {
   margin-top: 76px;
   padding-top: 36px;
@@ -237,10 +140,8 @@
 }
 @media (max-width: 1050px) {
   .about-learn-grid {
+    grid-template-columns: 1fr;
     gap: 36px;
-  }
-  .about-everyday {
-    padding: 24px;
   }
   .about-skill-grid {
     gap: 28px;
@@ -262,9 +163,6 @@
   }
   .about-learn-copy > p:not(.about-eyebrow) {
     font-size: 15px;
-  }
-  .about-everyday {
-    padding: 22px;
   }
   .about-learn-why {
     margin-top: 44px;

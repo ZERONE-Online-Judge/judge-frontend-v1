@@ -1900,7 +1900,7 @@ function OperatorProblemsContent({
                   <p className="text-xs leading-5 text-indigo-800">
                     {editorMode === 'create'
                       ? '새로 작성 중 · 저장하면 문제 목록에 추가됩니다.'
-                      : '수정 중 · 기본 정보, 본문, 해설은 저장해야 반영됩니다. 파일 업로드와 테스트케이스 작업은 즉시 반영됩니다.'}
+                      : '수정 중 · 기본 정보, 본문, 해설은 저장해야 반영됩니다. 파일·테스트 변경은 개별 저장됩니다.'}
                   </p>
                   <button
                     className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 disabled:opacity-50"
@@ -3521,9 +3521,11 @@ function TextInput({
 }
 
 function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
+  const message = error ? formatApiError(error, fallback) : fallback;
+  if (!message) return null;
   return (
     <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-      {error ? formatApiError(error, fallback) : fallback}
+      {message}
     </p>
   );
 }

@@ -14,7 +14,7 @@ import {
   type PackageUpdatePreview,
 } from '@/domains/problemManagement/editorLibrary';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
-import { formatApiError } from '@/shared/api/errors';
+import { formatApiError, isChangeNoticeCancelled } from '@/shared/api/errors';
 import EditorUpdateModal from '@/components/operator/EditorUpdateModal';
 
 export default function EditorImportPanel({
@@ -555,7 +555,7 @@ export default function EditorImportPanel({
               )}
             </div>
           )}
-          {error && (
+          {error && !isChangeNoticeCancelled(error) && (
             <p
               role="alert"
               className="mt-4 rounded-lg bg-red-50 p-3 text-sm whitespace-pre-wrap text-red-700"

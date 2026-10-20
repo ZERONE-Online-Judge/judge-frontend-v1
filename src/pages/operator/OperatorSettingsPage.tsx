@@ -1050,9 +1050,11 @@ function QuickActions({
 }
 
 function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
+  const message = error ? formatApiError(error, fallback) : fallback;
+  if (!message) return null;
   return (
     <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-      {error ? formatApiError(error, fallback) : fallback}
+      {message}
     </p>
   );
 }

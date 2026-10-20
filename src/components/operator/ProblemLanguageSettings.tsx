@@ -10,7 +10,7 @@ import { judgeLanguages } from '@/domains/submissionScoreboard/languagePreferenc
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 import type { Problem } from '@/domains/problemManagement/types';
-import { formatApiError } from '@/shared/api/errors';
+import { formatApiError, isChangeNoticeCancelled } from '@/shared/api/errors';
 
 export default function ProblemLanguageSettings({
   contestId,
@@ -138,7 +138,7 @@ function ProblemLanguages({
           <span className="text-xs text-emerald-700">저장했습니다.</span>
         ) : null}
       </div>
-      {save.error ? (
+      {save.error && !isChangeNoticeCancelled(save.error) ? (
         <p role="alert" className="mt-2 text-xs text-rose-700">
           {formatApiError(save.error, '저장하지 못했습니다.')}
         </p>

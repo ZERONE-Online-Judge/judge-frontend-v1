@@ -1,4 +1,9 @@
-import { toApiError } from '@/shared/api/errors';
+import { ApiClientError, toApiError } from '@/shared/api/errors';
+import {
+  changeNoticeRequestInit,
+  requestChangeNotice,
+  type ChangeNoticeDraft,
+} from '@/shared/api/changeNotice';
 import type {
   ApiPageMeta,
   ApiPagePayload,
@@ -549,6 +554,7 @@ export async function apiRequest<T>(
   path: string,
   token?: string,
   init?: RequestInit,
+  noticeAttempts = 0,
 ): Promise<T> {
   let currentToken = preferredStoredTokenForRequest(path, token);
   let result = await apiFetchRaw(path, currentToken, init);
@@ -563,6 +569,36 @@ export async function apiRequest<T>(
     if (refreshedToken) {
       currentToken = refreshedToken;
       result = await apiFetchRaw(path, currentToken, init);
+    }
+  }
+
+  if (
+    !result.response.ok &&
+    path.startsWith('/operator/') &&
+    noticeAttempts < 3
+  ) {
+    const error = toApiError(result.response, result.payload);
+    if (error.code === 'change_notice_required') {
+      const draft = error.details as ChangeNoticeDraft;
+      if (
+        typeof draft?.title === 'string' &&
+        typeof draft.body === 'string' &&
+        typeof draft.fingerprint === 'string'
+      ) {
+        const approval = await requestChangeNotice(draft);
+        if (!approval)
+          throw new ApiClientError(
+            409,
+            'change_notice_cancelled',
+            '변경을 취소했습니다. 입력한 내용은 유지됩니다.',
+          );
+        return apiRequest<T>(
+          path,
+          currentToken,
+          changeNoticeRequestInit(init, approval),
+          noticeAttempts + 1,
+        );
+      }
     }
   }
 

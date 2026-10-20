@@ -49,6 +49,7 @@ export function toApiError(response: Response, payload: unknown) {
 }
 
 export function formatApiError(error: unknown, fallback: string) {
+  if (isChangeNoticeCancelled(error)) return '';
   if (error instanceof ApiClientError) {
     const message = apiErrorUserMessage(error);
     return message ? `${fallback}: ${message}` : fallback;
@@ -62,6 +63,7 @@ export function formatApiError(error: unknown, fallback: string) {
 }
 
 export function formatUserApiError(error: unknown, fallback: string) {
+  if (isChangeNoticeCancelled(error)) return '';
   if (error instanceof ApiClientError) {
     const message = apiErrorUserMessage(error);
     return message ? `${fallback}: ${message}` : fallback;
@@ -74,7 +76,14 @@ export function formatUserApiError(error: unknown, fallback: string) {
   return fallback;
 }
 
+export function isChangeNoticeCancelled(error: unknown) {
+  return (
+    error instanceof ApiClientError && error.code === 'change_notice_cancelled'
+  );
+}
+
 function apiErrorUserMessage(error: ApiClientError) {
+  if (error.code.startsWith('change_notice_')) return error.message;
   if (error.status === 413)
     return '전송할 데이터가 너무 큽니다. 파일이나 코드 크기를 줄여 주세요.';
   if (error.code === 'api_busy') return error.message;

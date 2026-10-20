@@ -143,6 +143,7 @@ function ProblemReviewContent({
   const error = problemsQuery.error || dashboard.error;
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       width="full"
       title="문제 모아보기"
@@ -153,7 +154,6 @@ function ProblemReviewContent({
           : '참가 유형별 문제 지문, 예제와 첨부 이미지를 확인하세요.'
       }
     >
-      <OperatorTabs contestId={contestId} />
       <section className="flex min-w-0 flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-600">
           참가 유형
@@ -214,11 +214,8 @@ function ProblemReviewContent({
           문제를 불러오는 중입니다.
         </p>
       ) : selected ? (
-        <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
-          <aside
-            aria-label="문제 목록"
-            className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-3 lg:sticky lg:top-4"
-          >
+        <div className="operator-review-layout">
+          <aside aria-label="문제 목록" className="operator-review-index">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-semibold text-slate-900">
                 문제 목록

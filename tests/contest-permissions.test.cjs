@@ -408,7 +408,10 @@ for (const [role, expectedTabs] of Object.entries(roleTabs)) {
         : role === 'problem_reviewer'
           ? '검수진'
           : '운영진';
-    assert.match(container.textContent, new RegExp(`운영진 / ${title}`));
+    assert.equal(
+      container.querySelector('.operator-context__identity').textContent,
+      `운영진${title}`,
+    );
   });
 }
 
@@ -931,4 +934,33 @@ test('running operators read problem statements without review, test or edit pow
     assert.equal(tabs().includes('problem-review'), status === 'running');
     assert.ok(tabs().includes('notices') && tabs().includes('board'));
   }
+});
+
+test('compact operator menu closes on Escape and navigation while preserving the active page', async () => {
+  session = forRoles('settings_manager');
+  await render();
+  const trigger = container.querySelector('.operator-menu-trigger');
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  assert.ok(document.getElementById(trigger.getAttribute('aria-controls')));
+  await act(async () => trigger.click());
+  assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+  await act(async () =>
+    trigger.dispatchEvent(
+      new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    ),
+  );
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  assert.equal(document.activeElement, trigger);
+  await act(async () => trigger.click());
+  await act(async () =>
+    container.querySelector('nav a[href$="/settings"]').click(),
+  );
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  assert.match(trigger.textContent, /설정/);
+  assert.equal(
+    container
+      .querySelector('nav a[href$="/settings"]')
+      .getAttribute('aria-current'),
+    'page',
+  );
 });

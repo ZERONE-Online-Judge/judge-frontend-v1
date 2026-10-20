@@ -353,15 +353,15 @@ function OperatorSettingsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
+      actions={<RecentChangeNotice contestId={contestId} token={token} />}
       variant="management"
       description="대회 정보, 일정과 공개 범위를 조정합니다."
       eyebrow="Operator"
-      title={`${contest?.title ?? '대회'} 설정`}
+      title="대회 설정"
       width="full"
     >
       {dialog}
-      <OperatorTabs contestId={contestId} />
-      <RecentChangeNotice contestId={contestId} token={token} />
 
       {dashboardQuery.error ? (
         <ErrorBox

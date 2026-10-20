@@ -1604,16 +1604,15 @@ function OperatorProblemsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
+      actions={<RecentChangeNotice contestId={contestId} token={token} />}
       variant="management"
       description="문제 본문, 예제, 채점 파일, 테스트케이스를 관리합니다."
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 문제 관리`}
+      title="문제 관리"
       width="full"
     >
       {confirmationDialog}
-
-      <OperatorTabs contestId={contestId} />
-      <RecentChangeNotice contestId={contestId} token={token} />
 
       {dashboardQuery.error || problemsQuery.error ? (
         <ErrorBox
@@ -1658,8 +1657,8 @@ function OperatorProblemsContent({
         }}
       />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)]">
+      <div className="operator-problem-layout">
+        <aside className="operator-problem-index">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-indigo-600 uppercase">
@@ -1815,10 +1814,8 @@ function OperatorProblemsContent({
                   {problem.problem_code}. {problem.title}
                 </span>
                 <span className="text-xs font-medium text-slate-500">
-                  시간 {problemTimeLimitLabel(problem)}
-                </span>
-                <span className="text-xs font-medium text-slate-500">
-                  메모리 {problemMemoryLimitLabel(problem)}
+                  {problemTimeLimitLabel(problem)} ·{' '}
+                  {problemMemoryLimitLabel(problem)}
                 </span>
               </button>
             ))}

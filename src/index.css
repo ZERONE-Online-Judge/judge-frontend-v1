@@ -2,6 +2,8 @@
 @import 'tailwindcss';
 @import './styles/design-tokens.css';
 @import './components/common/ManagementCards.css';
+@import './components/common/OperatorWorkspace.css';
+@import './components/common/QuestionThread.css';
 @import './shared/ui/Modal.css';
 
 @theme {

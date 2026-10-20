@@ -510,7 +510,10 @@ test('operator list shows one prioritized title beside each name while retaining
   assert.match(permissions.textContent, /검수진/);
   assert.match(permissions.textContent, /공지 작성/);
   assert.match(permissions.textContent, /출제진/);
-  assert.match(container.textContent, /운영자 \/ 마스터/);
+  assert.equal(
+    container.querySelector('.operator-context__identity').textContent,
+    '운영자마스터',
+  );
 });
 
 test('settings manager sees settings without participant division or staff controls', async () => {

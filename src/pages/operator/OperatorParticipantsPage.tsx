@@ -385,15 +385,14 @@ function OperatorParticipantsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description="참가 유형, 참가팀, 멤버와 로그인 세션을 관리합니다."
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 참가팀`}
+      title="참가팀 관리"
       width="full"
     >
       {confirmationDialog}
-
-      <OperatorTabs contestId={contestId} />
 
       {dashboardQuery.error || teamsQuery.error ? (
         <ErrorBox

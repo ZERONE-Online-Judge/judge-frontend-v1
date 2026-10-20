@@ -404,13 +404,13 @@ function OperatorSubmissionsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description="대회 전체 제출과 채점 진행 상태를 운영자 기준으로 확인합니다."
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 제출`}
+      title="제출 목록"
       width="full"
     >
-      <OperatorTabs contestId={contestId} />
       {retryMutation.isError ? (
         <p
           role="alert"

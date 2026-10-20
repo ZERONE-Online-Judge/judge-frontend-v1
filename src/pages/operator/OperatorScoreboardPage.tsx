@@ -634,13 +634,13 @@ function OperatorScoreboardContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description="운영자용 내부 순위입니다. 프리즈 이후에도 최신 채점 결과가 반영됩니다."
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 스코어보드`}
+      title="스코어보드"
       width="full"
     >
-      <OperatorTabs contestId={contestId} />
       {freezeChange && contest ? (
         <ScoreboardFreezeDialog
           key={`${freezeChange.from}-${freezeChange.to}`}

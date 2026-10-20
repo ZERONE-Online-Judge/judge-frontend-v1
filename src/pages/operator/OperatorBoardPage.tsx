@@ -316,6 +316,7 @@ function OperatorBoardContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description={
         canManage
@@ -323,12 +324,10 @@ function OperatorBoardContent({
           : '참가자 질문과 답변을 확인합니다.'
       }
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 게시판`}
+      title="게시판"
       width="full"
     >
       {confirmationDialog}
-
-      <OperatorTabs contestId={contestId} />
 
       {dashboardQuery.error || questionsQuery.error ? (
         <ErrorBox

@@ -5,6 +5,7 @@ import NoticeCountdownText, {
   NoticeCountdownCommands,
 } from '@/components/contest/NoticeCountdownText';
 import useConfirmation from '@/shared/ui/useConfirmation';
+import ModalDialog from '@/shared/ui/ModalDialog';
 import { type FormEvent, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -91,6 +92,7 @@ function OperatorNoticesContent({
   const [form, setForm] = useState(emptyNoticeForm);
   const [emergencyDraft, setEmergencyNotice] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<NoticeEditorMode>('notice');
   const [expandedNoticeId, setExpandedNoticeId] = useState('');
   const [noticePage, setNoticePage] = useState(1);
@@ -153,6 +155,8 @@ function OperatorNoticesContent({
             visibility: form.visibility,
           }),
     onSuccess: (notice) => {
+      setEditorOpen(false);
+      setExpandedNoticeId(notice.contest_notice_id);
       setForm(emptyNoticeForm);
       setFormError('');
       queryClient.setQueryData<ContestNotice[]>(noticesQueryKey, (current) => {
@@ -189,6 +193,7 @@ function OperatorNoticesContent({
         emergency_notice: notice?.trim() || null,
       }),
     onSuccess: (updatedContest) => {
+      setEditorOpen(false);
       setEmergencyNotice(null);
       queryClient.setQueryData<OperatorDashboard>(
         dashboardQueryKey,
@@ -247,6 +252,7 @@ function OperatorNoticesContent({
       visibility: notice.visibility,
     });
     setEditorMode('notice');
+    setEditorOpen(true);
   }
 
   async function removeNotice(notice: ContestNotice) {
@@ -264,15 +270,14 @@ function OperatorNoticesContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description="대회 공지와 긴급공지를 확인합니다."
       eyebrow="Operator"
-      title={`${contest?.title ?? '대회'} 공지`}
+      title="공지"
       width="full"
     >
       {confirmationDialog}
-
-      <OperatorTabs contestId={contestId} />
 
       {dashboardQuery.error || noticesQuery.error ? (
         <ErrorBox
@@ -282,42 +287,18 @@ function OperatorNoticesContent({
       ) : null}
 
       <div className="grid gap-6">
-        {canManage ? (
-          <OperatorPanel
-            actions={
-              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-                <button
-                  className={[
-                    'h-9 rounded-lg px-4 text-sm font-semibold transition',
-                    editorMode === 'notice'
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-950',
-                  ].join(' ')}
-                  onClick={() => setEditorMode('notice')}
-                  type="button"
-                >
-                  공지 작성
-                </button>
-                <button
-                  className={[
-                    'h-9 rounded-lg px-4 text-sm font-semibold transition',
-                    editorMode === 'emergency'
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-950',
-                  ].join(' ')}
-                  onClick={() => setEditorMode('emergency')}
-                  type="button"
-                >
-                  긴급공지 관리
-                </button>
-              </div>
+        {canManage && editorOpen ? (
+          <ModalDialog
+            title={
+              editorMode === 'emergency'
+                ? '긴급공지 관리'
+                : form.noticeId
+                  ? '공지 수정'
+                  : '공지 작성'
             }
-            description={
-              editorMode === 'notice'
-                ? '새 공지를 작성하거나 기존 공지를 수정합니다.'
-                : '전광판에 표시되는 현재 긴급공지 문구를 따로 관리합니다.'
-            }
-            title={editorMode === 'notice' ? '공지 작성' : '긴급공지 관리'}
+            size="md"
+            onClose={() => setEditorOpen(false)}
+            closeOnBackdrop={false}
           >
             {editorMode === 'notice' ? (
               <form className="grid gap-4" onSubmit={handleSubmit}>
@@ -436,12 +417,39 @@ function OperatorNoticesContent({
                 </form>
               </div>
             )}
-          </OperatorPanel>
+          </ModalDialog>
         ) : null}
 
         <OperatorPanel
-          description="참가자 화면 상단에 표시될 대회 공지입니다."
-          title="공지 목록"
+          actions={
+            canManage ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="operator-action operator-action--secondary"
+                  type="button"
+                  onClick={() => {
+                    setEditorMode('emergency');
+                    setEditorOpen(true);
+                  }}
+                >
+                  긴급공지 관리
+                </button>
+                <button
+                  className="operator-action operator-action--primary"
+                  type="button"
+                  onClick={() => {
+                    setForm(emptyNoticeForm);
+                    setFormError('');
+                    setEditorMode('notice');
+                    setEditorOpen(true);
+                  }}
+                >
+                  공지 작성
+                </button>
+              </div>
+            ) : null
+          }
+          title={`공지 목록 · ${notices.length}건`}
         >
           <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
             {isNoticeListLoading ? (
@@ -454,21 +462,19 @@ function OperatorNoticesContent({
             ) : notices.length > 0 ? (
               pagedNotices.map((notice) => (
                 <article
-                  className="grid gap-3 px-4 py-4"
+                  className="operator-notice"
                   key={notice.contest_notice_id}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     {notice.pinned ? (
-                      <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
-                        상단
-                      </span>
+                      <span className="operator-notice__badge">상단</span>
                     ) : null}
                     {notice.emergency ? (
-                      <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
+                      <span className="operator-notice__badge operator-notice__badge--urgent">
                         긴급
                       </span>
                     ) : null}
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    <span className="operator-notice__badge">
                       {notice.visibility === 'public' ? '공개' : '참가자'}
                     </span>
                     <time className="text-xs font-medium text-slate-400">
@@ -487,7 +493,7 @@ function OperatorNoticesContent({
                       }
                       type="button"
                     >
-                      <strong className="text-lg font-semibold break-keep text-slate-950">
+                      <strong className="operator-notice__title">
                         {notice.title}
                       </strong>
                     </button>

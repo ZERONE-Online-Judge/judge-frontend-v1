@@ -140,6 +140,17 @@ const mocks = {
     },
   },
   '@/domains/serviceCommunication/api': {
+    createContestNotice: async (contestId, token, body) => {
+      record('notice-write', { contestId, token, body });
+      const notice = {
+        ...body,
+        contest_id: contestId,
+        contest_notice_id: 'new-notice',
+        published_at: '2026-10-20T00:00:00Z',
+      };
+      noticeItems = [notice, ...noticeItems];
+      return notice;
+    },
     listOperatorContestNotices: async () => {
       record('notices');
       return noticeItems;
@@ -316,7 +327,10 @@ beforeEach(() => {
   document.body.append(container);
   root = createRoot(container);
   client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { gcTime: Infinity },
+    },
   });
 });
 afterEach(async () => {
@@ -929,4 +943,104 @@ test('every operator reads questions and answers while board management remains 
   assert.ok(button('답변 작성'));
   await click(button('답변 작성'));
   assert.ok(container.querySelector('textarea'));
+});
+
+test('notice managers begin with the list and use a dialog to write without posting on cancel', async () => {
+  session = withScopes(['contest.notice.manage']);
+  await render(NoticesPage, '/notices');
+  assert.equal(container.querySelector('form'), null);
+  await click(button('공지 작성'));
+  let dialog = document.querySelector('dialog');
+  assert.ok(dialog && dialog.querySelector('textarea'));
+  await input(dialog.querySelector('input'), '대회 안내');
+  await input(dialog.querySelector('textarea'), '대회는 예정대로 진행합니다.');
+  await click(dialog.querySelector('button[aria-label="닫기"]'));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(requests('notice-write').length, 0);
+  await click(button('공지 작성'));
+  dialog = document.querySelector('dialog');
+  await input(dialog.querySelector('input'), '대회 안내');
+  await input(dialog.querySelector('textarea'), '대회는 예정대로 진행합니다.');
+  await act(async () =>
+    dialog
+      .querySelector('form')
+      .dispatchEvent(
+        new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  await flush();
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(requests('notice-write').length, 1);
+  assert.equal(requests('notice-write')[0].body.title, '대회 안내');
+  assert.ok(button('대회 안내'));
+  assert.match(container.textContent, /대회는 예정대로 진행합니다/);
+});
+
+test('operator question thread matches chronological replies and keeps private reply drafts private', async () => {
+  session = withScopes(['contest.board.question.manage']);
+  questionItems = [
+    {
+      contest_question_id: 'private-q',
+      contest_id: 'contest',
+      title: '비공개 질문',
+      body: '질문 본문입니다.',
+      visibility: 'private',
+      created_at: '2026-10-20T00:00:00Z',
+      answers: [
+        {
+          contest_answer_id: 'new',
+          body: '나중 답변',
+          visibility: 'questioner',
+          created_by_role: 'operator',
+          created_by_name: '운영자',
+          created_at: '2026-10-20T00:02:00Z',
+        },
+        {
+          contest_answer_id: 'old',
+          body: '이전 댓글',
+          visibility: 'questioner',
+          created_by_role: 'participant',
+          created_by_name: '참가자',
+          created_at: '2026-10-20T00:01:00Z',
+        },
+      ],
+    },
+  ];
+  await render(BoardPage, '/board');
+  await click(
+    [...container.querySelectorAll('button')].find((el) =>
+      el.textContent.includes('비공개 질문'),
+    ),
+  );
+  assert.ok(
+    container.querySelector('.contest-question-detail .contest-question-body'),
+  );
+  assert.deepEqual(
+    [...container.querySelectorAll('.contest-reply > p')].map(
+      (el) => el.textContent,
+    ),
+    ['이전 댓글', '나중 답변'],
+  );
+  assert.deepEqual(
+    [...container.querySelectorAll('.contest-reply')].map(
+      (el) => el.dataset.operator,
+    ),
+    ['false', 'true'],
+  );
+  await click(button('답변 작성'));
+  const visibility = container.querySelector(
+    'select[aria-label="답변 공개 범위"]',
+  );
+  assert.equal(visibility.disabled, true);
+  assert.equal(visibility.value, 'questioner');
+  assert.equal(visibility.options.length, 1);
+  await input(container.querySelector('textarea'), '작성 중인 비공개 답변');
+  await click(button('답변 작성 중'));
+  assert.equal(
+    container.querySelector('textarea').value,
+    '작성 중인 비공개 답변',
+  );
+  await click(button('취소'));
+  assert.equal(container.querySelector('textarea'), null);
+  assert.match(container.textContent, /이전 댓글/);
 });

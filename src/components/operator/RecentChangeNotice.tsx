@@ -48,7 +48,7 @@ export default function RecentChangeNotice({
   if (!notice && !query.error) return null;
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => {

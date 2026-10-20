@@ -111,44 +111,17 @@ function GuideContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       title="운영 가이드"
       description="설정·채점·대회 운영의 사용법과 문제 대처 안내입니다."
       width="full"
     >
-      <OperatorTabs contestId={contestId} />
       <div className="operator-guide">
-        <header className="og-hero">
-          <div className="og-hero-copy">
-            <span className="og-eyebrow">
-              <span /> ZOJ OPERATOR HANDBOOK
-            </span>
-            <h2>
-              기능별로 살펴보는
-              <br />
-              <em>ZOJ 대회 운영</em>
-            </h2>
-            <p>
-              각 기능의 설정 방법과 적용 결과를 확인하세요.
-              <br className="og-desktop-break" /> 참가자에게 표시되는 내용과
-              문제 발생 시 대처 방법을 함께 안내합니다.
-            </p>
-            <div className="og-hero-meta">
-              <span>
-                <strong>{operatorGuideCategories.length}</strong>가지 카테고리
-              </span>
-              <i />
-              <span>
-                <strong>{articleCount}</strong>개의 상세 안내
-              </span>
-              <i />
-              <span>설정 방법부터 문제 대처까지</span>
-            </div>
-            <a href="#operator-guide-content" className="og-start-link">
-              화면별 사용법 보기 <GuideIcon kind="arrow" />
-            </a>
-          </div>
-        </header>
+        <div className="operator-guide-summary">
+          <span>카테고리 {operatorGuideCategories.length}개</span>
+          <span>안내 {articleCount}개</span>
+        </div>
         <div className="og-find-bar">
           <div className="og-search">
             <GuideIcon kind="search" />

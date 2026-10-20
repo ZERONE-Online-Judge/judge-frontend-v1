@@ -14,6 +14,8 @@ type PageHeadingProps = {
 
 type PageLayoutProps = {
   children: ReactNode;
+  actions?: ReactNode;
+  navigation?: ReactNode;
   description?: ReactNode;
   eyebrow?: ReactNode;
   title?: ReactNode;
@@ -81,12 +83,38 @@ export function PageHeading({
 
 export default function PageLayout({
   children,
+  actions,
+  navigation,
   description,
   eyebrow,
   title,
   width = '7xl',
   variant = 'page',
 }: PageLayoutProps) {
+  const content = (
+    <>
+      {navigation && title ? (
+        <div className="operator-page-heading">
+          <PageHeading
+            description={description}
+            title={title}
+            variant={variant}
+          />
+          {actions ? (
+            <div className="operator-page-heading__actions">{actions}</div>
+          ) : null}
+        </div>
+      ) : title ? (
+        <PageHeading
+          description={description}
+          eyebrow={navigation ? undefined : eyebrow}
+          title={title}
+          variant={variant}
+        />
+      ) : null}
+      {children}
+    </>
+  );
   return (
     <section
       className={[
@@ -95,17 +123,17 @@ export default function PageLayout({
           ? 'zoj-management gap-5 py-6 sm:gap-6 sm:py-8'
           : 'gap-6 py-10 sm:gap-8 sm:py-14',
         widthClasses[width],
+        navigation ? 'operator-layout' : '',
       ].join(' ')}
     >
-      {title ? (
-        <PageHeading
-          description={description}
-          eyebrow={eyebrow}
-          title={title}
-          variant={variant}
-        />
-      ) : null}
-      {children}
+      {navigation ? (
+        <>
+          <aside className="operator-layout__navigation">{navigation}</aside>
+          <div className="operator-layout__content">{content}</div>
+        </>
+      ) : (
+        content
+      )}
     </section>
   );
 }

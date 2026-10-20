@@ -74,14 +74,13 @@ function OperatorHomeContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description="운영 권한이 있는 대회의 참가팀, 문제, 제출, 공지를 관리합니다."
       eyebrow="Operator"
-      title={contest ? `${contest.title} 운영` : '대회 운영'}
+      title="운영 홈"
       width="full"
     >
-      <OperatorTabs contestId={contestId} />
-
       {dashboardQuery.error ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
           {formatApiError(
@@ -144,10 +143,7 @@ function OperatorHomeContent({
           />
         </div>
 
-        <OperatorPanel
-          description="운영자가 자주 쓰는 기능으로 이동합니다."
-          title="운영 작업"
-        >
+        <OperatorPanel title="운영 작업">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {can('contest.settings.manage') ? (
               <OperatorQuickLink
@@ -219,10 +215,7 @@ function OperatorHomeContent({
           </div>
         </OperatorPanel>
 
-        <OperatorPanel
-          description="등록된 참가 유형을 확인합니다."
-          title="참가 유형"
-        >
+        <OperatorPanel title="참가 유형">
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
@@ -287,10 +280,7 @@ function OperatorQuickLink({
   to: string;
 }) {
   return (
-    <Link
-      className="inline-flex h-14 items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-      to={to}
-    >
+    <Link className="operator-quick-link" to={to}>
       {icon}
       {label}
     </Link>

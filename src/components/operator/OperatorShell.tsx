@@ -4,7 +4,7 @@ import {
   hasParticipantPreviewAccess,
   participantPreviewPath,
 } from '@/domains/identityAccess/participantPreview';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -251,19 +251,11 @@ export function OperatorAccessGate({
 }
 
 export function OperatorTabs({ contestId }: OperatorTabsProps) {
-  const navRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
-  useEffect(() => {
-    const nav = navRef.current;
-    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!nav || !active) return;
-    const viewport = nav.getBoundingClientRect();
-    const item = active.getBoundingClientRect();
-    if (item.left < viewport.left || item.right > viewport.right) {
-      nav.scrollLeft +=
-        item.left - viewport.left - (nav.clientWidth - item.width) / 2;
-    }
-  }, [pathname, contestId]);
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const menuId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuOpen = openPath === pathname;
   const generalSession = useSessionStore((state) => state.generalSession);
   const staffSession = staffSessionFromGeneralSession(generalSession);
   const token = staffSession?.accessToken;
@@ -326,92 +318,118 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
   const problemCountLabel = countLabel(problems.length, '개');
   const boardCountLabel =
     questions.length > 0
-      ? `${questions.length}건(답변필요:${questions.filter((question) => !hasOperatorAnswer(question)).length})`
+      ? `${questions.length} · 미답변 ${questions.filter((question) => !hasOperatorAnswer(question)).length}`
       : '';
 
+  const visibleTabs = operatorTabs.filter((tab) =>
+    hasContestPermission(
+      generalSession,
+      contestId,
+      tab.permission,
+      dashboardQuery.data?.contest?.status,
+    ),
+  );
+  const activeTab = visibleTabs.find((tab) =>
+    tab.path
+      ? pathname.startsWith(`${basePath}/${tab.path}`)
+      : pathname === basePath,
+  );
   return (
-    <div className="grid min-w-0 gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div
+      className="operator-navigation"
+      data-open={menuOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && menuOpen) {
+          setOpenPath(null);
+          triggerRef.current?.focus();
+        }
+      }}
+    >
+      <div className="operator-context">
+        <Link to="/contests" className="operator-context__back">
+          <InterfaceIcon name="arrowLeft" /> 대회 목록
+        </Link>
+        <strong
+          className="operator-context__title"
+          title={dashboardQuery.data?.contest?.title}
+        >
+          {dashboardQuery.data?.contest?.title ?? '대회 운영'}
+        </strong>
         {staffSession ? (
-          <p className="zoj-break-anywhere text-sm font-medium text-slate-700">
+          <p className="operator-context__identity">
             {staffSession.staff.display_name}
-            {roleTitle ? (
-              <span className="text-slate-500"> / {roleTitle}</span>
-            ) : null}
+            <span>{roleTitle}</span>
           </p>
         ) : null}
-        {hasParticipantPreviewAccess(generalSession, contestId) ? (
-          <Link
-            to={participantPreviewPath(contestId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
-          >
-            참가자 화면 미리보기 <InterfaceIcon name="arrowUpRight" />
-          </Link>
-        ) : null}
       </div>
-      <nav
-        ref={navRef}
-        aria-label="운영자 메뉴"
-        className="zoj-management-tabs flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5"
+      <button
+        ref={triggerRef}
+        type="button"
+        className="operator-menu-trigger"
+        aria-expanded={menuOpen}
+        aria-controls={menuId}
+        onClick={() => setOpenPath(menuOpen ? null : pathname)}
       >
-        {operatorTabs
-          .filter((tab) =>
-            hasContestPermission(
-              generalSession,
-              contestId,
-              tab.permission,
-              dashboardQuery.data?.contest?.status,
-            ),
-          )
-          .map((tab) => {
-            const Icon = tab.icon;
-            const to = tab.path ? `${basePath}/${tab.path}` : basePath;
-
-            return (
-              <NavLink
-                className={({ isActive }) =>
-                  [
-                    'zoj-pressable inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition',
-                    'shrink-0 whitespace-nowrap',
-                    isActive
-                      ? 'border-indigo-100 bg-indigo-50 text-indigo-700'
-                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-                  ].join(' ')
-                }
-                end={'end' in tab ? tab.end : undefined}
-                key={tab.label}
-                to={to}
-              >
-                <Icon />
-                {tab.label}
-                {tab.path === 'notices' && noticeCountLabel ? (
-                  <TabCountBadge>{noticeCountLabel}</TabCountBadge>
-                ) : null}
-                {tab.path === 'board' && boardCountLabel ? (
-                  <TabCountBadge>{boardCountLabel}</TabCountBadge>
-                ) : null}
-                {tab.path === 'participants' && participantCountLabel ? (
-                  <TabCountBadge>{participantCountLabel}</TabCountBadge>
-                ) : null}
-                {tab.path === 'problems' && problemCountLabel ? (
-                  <TabCountBadge>{problemCountLabel}</TabCountBadge>
-                ) : null}
-              </NavLink>
-            );
-          })}
-      </nav>
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
+          <path
+            d={menuOpen ? 'm5 5 10 10M15 5 5 15' : 'M3 5h14M3 10h14M3 15h14'}
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+        <span>{activeTab?.label ?? '운영자 메뉴'}</span>
+        <span className="operator-menu-trigger__hint">메뉴</span>
+      </button>
+      <div className="operator-menu-collapse" id={menuId}>
+        <div className="operator-menu-collapse__inner">
+          <nav aria-label="운영자 메뉴" className="operator-menu">
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const to = tab.path ? `${basePath}/${tab.path}` : basePath;
+              const count =
+                tab.path === 'notices'
+                  ? noticeCountLabel
+                  : tab.path === 'board'
+                    ? boardCountLabel
+                    : tab.path === 'participants'
+                      ? participantCountLabel
+                      : tab.path === 'problems'
+                        ? problemCountLabel
+                        : '';
+              return (
+                <NavLink
+                  className="operator-menu__link"
+                  end={'end' in tab ? tab.end : undefined}
+                  key={tab.label}
+                  to={to}
+                  onClick={() => setOpenPath(null)}
+                >
+                  <Icon />
+                  <span className="operator-menu__label">{tab.label}</span>
+                  {count ? <TabCountBadge>{count}</TabCountBadge> : null}
+                </NavLink>
+              );
+            })}
+          </nav>
+          {hasParticipantPreviewAccess(generalSession, contestId) ? (
+            <Link
+              to={participantPreviewPath(contestId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="operator-preview-link"
+            >
+              참가자 화면 미리보기 <InterfaceIcon name="arrowUpRight" />
+            </Link>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
 
 function TabCountBadge({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-md bg-slate-100/80 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
-      {children}
-    </span>
-  );
+  return <span className="operator-menu__count">{children}</span>;
 }
 
 export function OperatorPanel(props: OperatorPanelProps) {
@@ -426,7 +444,7 @@ export function OperatorMetricCard({
   value,
 }: OperatorMetricCardProps) {
   return (
-    <article className="zoj-card flex items-start gap-4 sm:grid">
+    <article className="zoj-card operator-metric">
       <span
         className={[
           'inline-flex size-9 items-center justify-center rounded-lg border',

@@ -188,44 +188,6 @@
   gap: 1.25rem;
   min-width: 0;
 }
-.contest-field {
-  display: grid;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.contest-field > span,
-.contest-question-visibility legend {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #334155;
-}
-.contest-field :is(input, textarea) {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  padding: 0.75rem 0.875rem;
-  background: #fff;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: var(--zoj-ink);
-  outline: none;
-  transition:
-    border-color 150ms,
-    box-shadow 150ms;
-}
-.contest-field input {
-  min-height: 2.75rem;
-}
-.contest-field textarea {
-  resize: vertical;
-}
-.contest-field :is(input, textarea)::placeholder {
-  color: #94a3b8;
-}
-.contest-field :is(input, textarea):focus {
-  border-color: #818cf8;
-  box-shadow: 0 0 0 3px #eef2ff;
-}
 .contest-question-visibility {
   display: flex;
   flex-wrap: wrap;
@@ -268,62 +230,6 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
-}
-.contest-question-detail {
-  padding: 0 1.25rem 1.25rem;
-  background: #f8fafc;
-}
-.contest-question-body {
-  padding: 1.25rem 0;
-  font-size: 0.875rem;
-  line-height: 1.9;
-  white-space: pre-wrap;
-}
-.contest-replies {
-  display: grid;
-  gap: 0.875rem;
-}
-.contest-reply {
-  border-left: 2px solid #cbd5e1;
-  padding: 0.75rem 1rem;
-  background: #fff;
-  border-radius: 0 0.375rem 0.375rem 0;
-}
-.contest-reply[data-operator='true'] {
-  border-left-color: #818cf8;
-}
-.contest-reply header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.375rem 0.625rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--zoj-muted);
-}
-.contest-reply header strong {
-  color: #334155;
-  font-weight: 600;
-}
-.contest-reply header time {
-  margin-left: auto;
-}
-.contest-reply p {
-  font-size: 0.875rem;
-  line-height: 1.8;
-  white-space: pre-wrap;
-}
-.contest-replies-empty {
-  padding: 0.5rem 0;
-  font-size: 0.8125rem;
-  color: var(--zoj-muted);
-}
-.contest-reply-form {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--zoj-border);
 }
 .contest-board-pagination {
   display: flex;

@@ -299,13 +299,13 @@ function OperatorOperatorsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       width="full"
       eyebrow="Operator"
-      title={`${dashboardQuery.data?.contest.title ?? '대회'} 운영자 관리`}
+      title="운영자 관리"
       description="이 대회를 운영할 구성원을 추가하고 이름, 이메일과 담당 권한을 관리합니다."
     >
-      <OperatorTabs contestId={contestId} />
       {dashboardQuery.error || operatorsQuery.error ? (
         <ErrorBox
           error={dashboardQuery.error || operatorsQuery.error}

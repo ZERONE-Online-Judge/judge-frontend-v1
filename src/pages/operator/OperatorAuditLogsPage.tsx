@@ -158,6 +158,7 @@ function OperatorAuditLogsContent({
 
   return (
     <PageLayout
+      navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
       description={
         canViewOperations
@@ -168,7 +169,6 @@ function OperatorAuditLogsContent({
       title="운영 로그"
       width="full"
     >
-      <OperatorTabs contestId={contestId} />
       <OperatorPanel
         description={
           logType === 'email'

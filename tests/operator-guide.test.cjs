@@ -263,7 +263,7 @@ test('every guide category shows instructions without practice widgets', async (
     );
   }
   assert.doesNotMatch(
-    host.querySelector('.og-hero').textContent,
+    host.querySelector('.operator-guide-summary').textContent,
     /조작을 연습|화면 요소로 연습/,
   );
 });

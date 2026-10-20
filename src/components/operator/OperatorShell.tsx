@@ -392,9 +392,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
               }
             }}
           >
-            <InterfaceIcon
-              name={sidebarCollapsed ? 'arrowRight' : 'arrowLeft'}
-            />
+            <InterfaceIcon name="menu" />
           </button>
         </div>
         <strong

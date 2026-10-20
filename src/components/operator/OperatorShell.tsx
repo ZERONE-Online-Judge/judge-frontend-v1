@@ -139,6 +139,16 @@ const operatorTabs = [
   },
 ] as const;
 
+const SIDEBAR_COLLAPSED_KEY = 'zoj.operator.sidebarCollapsed';
+
+function storedSidebarCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function countLabel(count: number, unit = '건') {
   return count > 0 ? `${count}${unit}` : '';
 }
@@ -253,6 +263,9 @@ export function OperatorAccessGate({
 export function OperatorTabs({ contestId }: OperatorTabsProps) {
   const { pathname } = useLocation();
   const [openPath, setOpenPath] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    storedSidebarCollapsed,
+  );
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuOpen = openPath === pathname;
@@ -338,6 +351,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
     <div
       className="operator-navigation"
       data-open={menuOpen}
+      data-collapsed={sidebarCollapsed}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && menuOpen) {
           setOpenPath(null);
@@ -346,9 +360,43 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       }}
     >
       <div className="operator-context">
-        <Link to="/contests" className="operator-context__back">
-          <InterfaceIcon name="arrowLeft" /> 대회 목록
-        </Link>
+        <div className="operator-context__toolbar">
+          <Link
+            to="/contests"
+            className="operator-context__back"
+            aria-label="대회 목록"
+            title="대회 목록"
+          >
+            <InterfaceIcon name="arrowLeft" />
+            <span>대회 목록</span>
+          </Link>
+          <button
+            type="button"
+            className="operator-sidebar-toggle"
+            aria-label={
+              sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
+            }
+            title={sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'}
+            aria-expanded={!sidebarCollapsed}
+            aria-controls={menuId}
+            onClick={() => {
+              const next = !sidebarCollapsed;
+              setSidebarCollapsed(next);
+              try {
+                window.localStorage.setItem(
+                  SIDEBAR_COLLAPSED_KEY,
+                  String(next),
+                );
+              } catch {
+                // The menu remains usable when browser storage is unavailable.
+              }
+            }}
+          >
+            <InterfaceIcon
+              name={sidebarCollapsed ? 'arrowRight' : 'arrowLeft'}
+            />
+          </button>
+        </div>
         <strong
           className="operator-context__title"
           title={dashboardQuery.data?.contest?.title}
@@ -400,6 +448,8 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
               return (
                 <NavLink
                   className="operator-menu__link"
+                  aria-label={count ? `${tab.label} ${count}` : tab.label}
+                  title={count ? `${tab.label} · ${count}` : tab.label}
                   end={'end' in tab ? tab.end : undefined}
                   key={tab.label}
                   to={to}
@@ -418,8 +468,11 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="operator-preview-link"
+              aria-label="참가자 화면 미리보기"
+              title="참가자 화면 미리보기"
             >
-              참가자 화면 미리보기 <InterfaceIcon name="arrowUpRight" />
+              <span>참가자 화면 미리보기</span>
+              <InterfaceIcon name="arrowUpRight" />
             </Link>
           ) : null}
         </div>

@@ -1,5 +1,5 @@
 export const SITE_ORIGIN = 'https://zoj.kr';
-export const SITE_TITLE = 'ZOJ · Zerone Online Judge | 프로그래밍 대회 플랫폼';
+export const SITE_TITLE = '홈 | ZOJ';
 export const SITE_DESCRIPTION =
   'ZOJ는 프로그래밍 대회의 문제, 참가자, 코드 제출, 자동 채점과 스코어보드를 관리하는 플랫폼입니다.';
 
@@ -14,19 +14,19 @@ export type PageMetadata = {
 
 const PUBLIC_PAGES: Record<string, [string, string]> = {
   '/': [
-    'ZOJ · Zerone Online Judge | 프로그래밍 대회 플랫폼',
+    '홈 | ZOJ',
     'ZOJ는 프로그래밍 대회의 문제, 참가자, 코드 제출, 자동 채점과 스코어보드를 관리하는 플랫폼입니다.',
   ],
   '/about': [
-    'ZOJ 소개 | 프로그래밍 대회의 준비부터 결과 공개까지',
+    'ZOJ 소개 | ZOJ',
     'ZOJ의 문제·테스트 검증, 참가자 관리, 자동 채점, 스코어보드와 결과 공개 기능을 소개합니다.',
   ],
   '/editor': [
-    'ZOJ Editor 소개 | 문제 제작과 검증',
+    'Editor 소개 | ZOJ',
     'ZOJ Editor는 지문·테스트·풀이와 검수 기록을 관리하는 문제 제작 도구입니다. ZOJ 채점기 검증, 대회 문제 등록과 패키지 내보내기를 지원합니다.',
   ],
   '/contests': [
-    '프로그래밍 대회 목록 | ZOJ',
+    '대회 목록 | ZOJ',
     'ZOJ에서 열리는 프로그래밍 대회를 찾아보세요. 대회 소개와 주최, 진행 일정, 참가 현황 및 종료된 대회의 공개 자료를 확인할 수 있습니다.',
   ],
   '/notices': [
@@ -34,19 +34,19 @@ const PUBLIC_PAGES: Record<string, [string, string]> = {
     'ZOJ의 서비스 업데이트, 점검과 긴급 공지사항을 확인합니다.',
   ],
   '/judge-status': [
-    '채점 서버 상태 | ZOJ',
+    '채점 안내 | ZOJ',
     'ZOJ 채점 서버의 연결 상태를 확인하세요. 서버 연결 정보가 주기적으로 갱신되며, 코드 제출부터 결과 확인까지의 채점 과정도 안내합니다.',
   ],
   '/support': [
-    '지원 안내 | ZOJ 이용안내·규정·도움말',
+    '지원 안내 | ZOJ',
     'ZOJ 이용안내, 대회 참가 규정, 로그인과 코드 제출에 관한 도움말을 확인하세요. 개인정보 처리 안내와 서비스 문의도 지원 안내에서 찾을 수 있습니다.',
   ],
   '/support/rules': [
-    '대회 참가 규정 | ZOJ 지원 안내',
+    '대회 참가 규정 | ZOJ',
     'ZOJ 대회 참가 유형과 접근 범위, 채점 결과와 스코어보드, 프리즈 및 종료 후 자료 공개에 관한 서비스 기준을 확인하세요.',
   ],
   '/support/help': [
-    '자주 묻는 질문 | ZOJ 도움말',
+    '자주 묻는 질문 | ZOJ',
     '로그인, 대회 접근, 코드 제출과 채점 결과, 스코어보드 프리즈 및 세션 만료에 관한 자주 묻는 질문과 답변을 확인하세요.',
   ],
   '/support/privacy': [
@@ -54,7 +54,7 @@ const PUBLIC_PAGES: Record<string, [string, string]> = {
     'Zerone Online Judge의 개인정보 처리 기준을 안내합니다. 수집 항목, 이용 목적, 보관과 파기 기준 및 개인정보 관련 문의 방법을 확인하세요.',
   ],
   '/support/contact': [
-    '서비스 문의 | ZOJ 지원 안내',
+    '서비스 문의 | ZOJ',
     'ZOJ 이용 중 궁금한 점과 불편한 점을 남겨 주세요. 서비스 문의 양식으로 접수하면 입력한 이메일 주소로 답변을 받을 수 있습니다.',
   ],
 };
@@ -100,7 +100,9 @@ export function fallbackMetadata(path: string): PageMetadata {
     title:
       page?.[0] ??
       (publicPath
-        ? SITE_TITLE
+        ? path.startsWith('/notices/')
+          ? '공지사항 | ZOJ'
+          : '대회 개요 | ZOJ'
         : privateTitle
           ? `${privateTitle} | ZOJ`
           : '페이지를 찾을 수 없습니다 | ZOJ'),
@@ -119,28 +121,55 @@ export function fallbackMetadata(path: string): PageMetadata {
   };
 }
 
+const PRIVATE_PAGES: Record<string, string> = {
+  '/login': '로그인',
+  '/admin': '관리자 콘솔',
+  '/admin/contests': '대회 관리',
+  '/admin/judge': '채점 관리',
+  '/admin/analytics': '운영 통계',
+  '/admin/audit-logs': '운영 로그',
+  '/admin/inquiries': '문의 관리',
+  '/operator': '대회 운영',
+};
+const OPERATOR_PAGES: Record<string, string> = {
+  '': '대회 운영',
+  settings: '대회 설정',
+  operators: '운영자 관리',
+  notices: '대회 공지',
+  board: '대회 게시판',
+  participants: '참가팀 관리',
+  problems: '문제 관리',
+  'problem-review': '문제 모아보기',
+  submissions: '제출 목록',
+  scoreboard: '스코어보드',
+  'scoreboard/presentation': '프레젠테이션 스코어보드',
+  'audit-logs': '운영 로그',
+  guide: '운영 가이드',
+};
+const CONTEST_PAGES: Record<string, string> = {
+  submissions: '채점현황',
+  scoreboard: '스코어보드',
+  board: '대회 게시판',
+};
+
 function privatePageTitle(path: string): string | null {
   if (/^\/presentation\/contests\/[^/]+$/.test(path))
-    return '대회 프레젠테이션';
-  if (path === '/login') return '로그인';
-  if (/^\/operator\/contests\/[^/]+\/guide$/.test(path)) return '운영 가이드';
-  if (/^\/admin(?:\/(?:contests|judge|audit-logs|inquiries))?$/.test(path)) {
-    return '서비스 관리자';
-  }
-  if (
-    /^\/operator(?:\/contests\/[^/]+(?:\/(?:settings|operators|notices|board|participants|problems|problem-review|submissions|scoreboard(?:\/presentation)?|audit-logs))?)?$/.test(
-      path,
-    )
-  ) {
-    return '대회 운영';
-  }
-  if (
-    /^\/contests\/[^/]+\/(?:submissions|scoreboard|board|problems(?:\/[^/]+(?:\/[^/]+)?)?)$/.test(
-      path,
-    )
-  ) {
-    return '대회 참가';
-  }
+    return '프레젠테이션 스코어보드';
+  if (path in PRIVATE_PAGES) return PRIVATE_PAGES[path];
+  const operator = path.match(/^\/operator\/contests\/[^/]+(?:\/(.+))?$/);
+  if (operator) return OPERATOR_PAGES[operator[1] ?? ''] ?? null;
+  const contest = path.match(/^\/contests\/[^/]+\/(.+)$/);
+  if (!contest) return null;
+  const section = contest[1];
+  if (section in CONTEST_PAGES) return CONTEST_PAGES[section];
+  if (section === 'problems') return '문제집';
+  const problem = section.match(/^problems\/[^/]+(?:\/([^/]+))?$/);
+  if (problem)
+    return problem[1] === 'submit'
+      ? '코드 제출'
+      : problem[1] === 'editorial'
+        ? '해설'
+        : '문제 보기';
   return null;
 }
 

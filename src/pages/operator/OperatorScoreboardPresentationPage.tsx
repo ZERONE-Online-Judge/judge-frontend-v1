@@ -359,7 +359,7 @@ export function OperatorScoreboardPresentationContent({
 
   useEffect(() => {
     if (contest?.title) {
-      document.title = `${contest.title} 프레젠테이션 스코어보드`;
+      document.title = `${contest.title} · 프레젠테이션 스코어보드 | ZOJ`;
     }
   }, [contest?.title]);
 

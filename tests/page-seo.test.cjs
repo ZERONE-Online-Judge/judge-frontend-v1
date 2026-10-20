@@ -162,7 +162,7 @@ test('navigation updates public metadata immediately and removes the previous st
   bootstrap(metadata('/'));
   await mount();
   await act(async () => navigate('/about?token=do-not-publish#private'));
-  assert.match(document.title, /ZOJ 소개/);
+  assert.equal(document.title, 'ZOJ 소개 | ZOJ');
   assert.equal(canonical(), 'https://zoj.kr/about');
   assert.equal(meta('robots'), 'index,follow');
   assert.equal(document.getElementById('zoj-structured-data'), null);
@@ -210,7 +210,7 @@ test('private and unknown routes become noindex immediately and never retain pub
     navigate('/operator/contests/private/settings?token=secret'),
   );
   assert.equal(meta('robots'), 'noindex,nofollow');
-  assert.equal(document.title, '대회 운영 | ZOJ');
+  assert.equal(document.title, '대회 설정 | ZOJ');
   assert.equal(
     meta('description'),
     '로그인과 접근 권한이 필요한 ZOJ 페이지입니다.',
@@ -227,7 +227,7 @@ test('private and unknown routes become noindex immediately and never retain pub
     '요청한 페이지가 없거나 공개되지 않았습니다.',
   );
   await act(async () => navigate('/admin/contests'));
-  assert.equal(document.title, '서비스 관리자 | ZOJ');
+  assert.equal(document.title, '대회 관리 | ZOJ');
   assert.equal(meta('robots'), 'noindex,nofollow');
   await act(async () =>
     navigate('/operator/contests/private/guide?section=settings'),
@@ -250,17 +250,17 @@ test('a late public response cannot overwrite metadata after navigating to a pri
 
 test('contest workspace URLs remain noindex regardless of whether an account can access them', async () => {
   await mount('/contests/example/problems');
-  for (const section of [
-    'problems',
-    'problems/problem-a',
-    'problems/problem-a/statement',
-    'scoreboard',
-    'submissions',
-    'board',
+  for (const [section, title] of [
+    ['problems', '문제집'],
+    ['problems/problem-a', '문제 보기'],
+    ['problems/problem-a/statement', '문제 보기'],
+    ['scoreboard', '스코어보드'],
+    ['submissions', '채점현황'],
+    ['board', '대회 게시판'],
   ]) {
     await act(async () => navigate(`/contests/example/${section}`));
     assert.equal(meta('robots'), 'noindex,nofollow');
-    assert.equal(document.title, '대회 참가 | ZOJ');
+    assert.equal(document.title, `${title} | ZOJ`);
     assert.equal(document.getElementById('zoj-structured-data'), null);
   }
   assert.equal(requests.length, 0);
@@ -304,9 +304,9 @@ test('legacy public query links resolve to clean permalinks without unrelated se
 });
 
 test('presentation keeps its contest-specific tab title while remaining private', async () => {
-  document.title = '테스트 대회 프레젠테이션 스코어보드';
+  document.title = '테스트 대회 · 프레젠테이션 스코어보드 | ZOJ';
   await mount('/operator/contests/a/scoreboard/presentation');
-  assert.equal(document.title, '테스트 대회 프레젠테이션 스코어보드');
+  assert.equal(document.title, '테스트 대회 · 프레젠테이션 스코어보드 | ZOJ');
   assert.equal(meta('robots'), 'noindex,nofollow');
   assert.equal(requests.length, 0);
 });

@@ -5,34 +5,37 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 13px;
-  border: 1px solid #e6e5ee;
-  border-radius: 12px;
-  background: #f8f8fb;
-  color: #55576e;
-  font-size: 12px;
-  font-weight: 600;
+  min-width: 44px;
+  height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #666779;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.5;
+  white-space: nowrap;
   text-decoration: none;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    color 0.18s;
+    background 0.15s,
+    color 0.15s;
 }
-.header-action:hover,
+.header-action:hover {
+  color: #3d355b;
+  background: #f5f5f9;
+}
 .header-action[aria-expanded='true'] {
-  background: #efebf9;
-  color: #7055a5;
-  border-color: #d8cdeb;
+  color: #5949d3;
+  background: #f2f0ff;
 }
 .header-action-label {
   display: none;
 }
 .header-action-count {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: 0;
+  right: 0;
   display: grid;
   place-items: center;
   min-width: 18px;
@@ -40,7 +43,7 @@
   padding: 0 4px;
   border: 2px solid white;
   border-radius: 12px;
-  background: #78609d;
+  background: #5949d3;
   color: #fff;
   font-size: 9px;
   line-height: 1;
@@ -417,7 +420,9 @@
   background: var(--zoj-surface-raised);
   color: var(--zoj-ink);
   text-align: left;
-  transition: border-color 160ms, background 160ms;
+  transition:
+    border-color 160ms,
+    background 160ms;
 }
 .header-security-card:hover {
   border-color: var(--zoj-border-selected);
@@ -433,6 +438,18 @@
   background: var(--zoj-surface-hover);
   color: var(--zoj-accent);
 }
-.header-security-card strong { display: block; font-size: 0.875rem; }
-.header-security-card small { display: block; margin-top: 0.25rem; color: var(--zoj-muted); font-size: 0.75rem; font-weight: 400; }
-.header-security-arrow { margin-left: auto; color: var(--zoj-accent); }
+.header-security-card strong {
+  display: block;
+  font-size: 0.875rem;
+}
+.header-security-card small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--zoj-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.header-security-arrow {
+  margin-left: auto;
+  color: var(--zoj-accent);
+}

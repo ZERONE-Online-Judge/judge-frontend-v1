@@ -432,3 +432,17 @@ test('an explicit ended status opens its public archive even if saved schedule d
   assert.ok(host.querySelector('nav a[href$="/problems"]'));
   assertNoProtectedPrefetch();
 });
+
+test('participant overview uses the shared progress panel and keeps account, team and notices', async () => {
+  login(true);
+  await render();
+  await flush();
+  assert.equal(host.querySelector('progress')?.value, 100);
+  assert.match(host.textContent, /대회 진행률/);
+  assert.match(host.textContent, /참가자 이름/);
+  assert.match(host.textContent, /참가팀 이름/);
+  assert.match(host.textContent, /공지사항/);
+  assert.equal(host.querySelectorAll('.zoj-overview-card').length, 2);
+  assert.equal(host.querySelector('.zoj-overview-schedule'), null);
+  assert.equal(host.querySelector('a[href*="/settings"]'), null);
+});

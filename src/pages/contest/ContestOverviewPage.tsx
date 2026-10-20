@@ -1,5 +1,6 @@
 import ContestPublicOverview from '@/components/contest/ContestPublicOverview';
-import { useEffect, useMemo, useState } from 'react';
+import ContestProgressStatus from '@/components/contest/ContestProgressStatus';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeading } from '@/components/common/PageLayout';
 import ContestPageFrame from '@/components/contest/ContestPageFrame';
@@ -27,9 +28,8 @@ import { getContestNotices } from '@/domains/serviceCommunication/api';
 import type { ContestNotice } from '@/domains/serviceCommunication/types';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import PageNotice from '@/shared/ui/PageNotice';
-import { SvgIcon } from '@/utils/Icons';
 
-type OverviewIcon = 'user' | 'team' | 'timer';
+type OverviewIcon = 'user' | 'team';
 
 type OverviewCardProps = {
   icon: OverviewIcon;
@@ -72,7 +72,6 @@ function OverviewIconBadge({ icon }: { icon: OverviewIcon }) {
           />
         </svg>
       ) : null}
-      {icon === 'timer' ? <SvgIcon name="timer" size={28} /> : null}
     </span>
   );
 }
@@ -91,96 +90,6 @@ function OverviewCard({ icon, title, subtitle }: OverviewCardProps) {
       </div>
     </article>
   );
-}
-
-function formatOpenCountdown(startAt: string, now: number) {
-  const diff = Math.max(0, new Date(startAt).getTime() - now);
-  const days = Math.floor(diff / 86_400_000);
-  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
-  const minutes = Math.floor((diff % 3_600_000) / 60_000);
-  const seconds = Math.floor((diff % 60_000) / 1000);
-
-  if (days > 0) return `D-${days}, ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m ${seconds}s`;
-}
-
-function formatCompactCountdown(value: string, now: number) {
-  const diff = Math.max(0, new Date(value).getTime() - now);
-  const days = Math.floor(diff / 86_400_000);
-  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
-  const minutes = Math.floor((diff % 3_600_000) / 60_000);
-  const seconds = Math.floor((diff % 60_000) / 1000);
-
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
-}
-
-function formatOverviewDateTime(value?: string | null) {
-  if (!value) return '-';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-
-  const parts = new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'numeric',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((item) => item.type === type)?.value ?? '';
-
-  return `${part('year')}. ${part('month')}. ${part('day')}. ${part(
-    'dayPeriod',
-  )} ${part('hour')}:${part('minute')}`;
-}
-
-function getTimerCard(contest: Contest, now: number) {
-  const startAt = new Date(contest.start_at).getTime();
-  const endAt = new Date(contest.end_at).getTime();
-  const freezeAt = new Date(contest.freeze_at).getTime();
-
-  if (Number.isNaN(startAt) || Number.isNaN(endAt)) {
-    return { subtitle: '시간 미정', title: '일정 미정' };
-  }
-  if (now < startAt) {
-    return {
-      subtitle: '오픈까지',
-      title: formatOpenCountdown(contest.start_at, now),
-    };
-  }
-  if (now >= endAt) return { subtitle: '대회 종료', title: '종료됨' };
-
-  if (!Number.isNaN(freezeAt) && now < freezeAt) {
-    return {
-      subtitle: `프리즈까지 ${formatCompactCountdown(contest.freeze_at, now)}`,
-      title: `종료까지 ${formatCompactCountdown(contest.end_at, now)}`,
-    };
-  }
-
-  return {
-    subtitle: '스코어보드 프리즈 중',
-    title: `종료까지 ${formatCompactCountdown(contest.end_at, now)}`,
-  };
-}
-
-function getFreezeSummary(contest: Contest, now: number) {
-  const freezeAt = new Date(contest.freeze_at).getTime();
-  const endAt = new Date(contest.end_at).getTime();
-
-  if (Number.isNaN(freezeAt)) return '프리즈 시간 미정';
-  if (now < freezeAt) {
-    return `프리즈까지 ${formatCompactCountdown(contest.freeze_at, now)}`;
-  }
-  if (!Number.isNaN(endAt) && now < endAt) {
-    return `프리즈 중 · 종료까지 ${formatCompactCountdown(contest.end_at, now)}`;
-  }
-  return '프리즈 종료';
 }
 
 function sortNotices(notices: ContestNotice[]) {
@@ -270,14 +179,6 @@ function ContestOverviewContent({
     participantSession,
     token,
   } = useContestParticipantSession(contest.contest_id);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
   const noticeAccess = contestResourceAccess(contest, 'notice');
   const hasParticipantAccess = Boolean(
     participantContest || activeParticipantSession,
@@ -338,7 +239,6 @@ function ContestOverviewContent({
     participantSession?.division.name ??
     divisions[0]?.name ??
     'division';
-  const timerCard = getTimerCard(contest, now);
 
   return (
     <ContestPageFrame>
@@ -351,38 +251,13 @@ function ContestOverviewContent({
 
       <ContestPageNavigation contest={contest} contestId={contest.contest_id} />
 
-      <section className="zoj-overview-cards mt-6 grid gap-4">
+      <div className="mt-6">
+        <ContestProgressStatus contest={contest} />
+      </div>
+
+      <section className="zoj-overview-cards mt-4 grid gap-4">
         <OverviewCard icon="user" subtitle={memberEmail} title={memberName} />
         <OverviewCard icon="team" subtitle={divisionName} title={teamName} />
-        <OverviewCard
-          icon="timer"
-          subtitle={timerCard.subtitle}
-          title={timerCard.title}
-        />
-      </section>
-
-      <section className="zoj-overview-schedule zoj-card mt-4 grid gap-5 sm:grid-cols-3">
-        <div className="grid gap-1">
-          <span className="text-xs font-black text-slate-400">시작 시간</span>
-          <strong className="text-sm font-black text-slate-950">
-            {formatOverviewDateTime(contest.start_at)}
-          </strong>
-        </div>
-        <div className="grid gap-1">
-          <span className="text-xs font-black text-slate-400">마감 시간</span>
-          <strong className="text-sm font-black text-slate-950">
-            {formatOverviewDateTime(contest.end_at)}
-          </strong>
-        </div>
-        <div className="grid gap-1">
-          <span className="text-xs font-black text-slate-400">
-            스코어보드 프리즈
-          </span>
-          <strong className="text-sm font-black text-slate-950">
-            {formatOverviewDateTime(contest.freeze_at)} ·{' '}
-            {getFreezeSummary(contest, now)}
-          </strong>
-        </div>
       </section>
 
       <div className="zoj-overview-notices zoj-card mt-6">

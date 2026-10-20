@@ -67,14 +67,11 @@ main:has(.zoj-contest-shell) {
   min-width: 0;
 }
 .zoj-overview-cards {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .zoj-overview-card h2 {
   font-size: 1.125rem;
   line-height: 1.6;
-}
-.zoj-overview-schedule > div {
-  min-width: 0;
 }
 .zoj-overview-notices :is(h2, h3) {
   font-size: 1.125rem;
@@ -381,12 +378,6 @@ main:has(.zoj-contest-shell) {
 }
 
 @media (max-width: 1099px) {
-  .zoj-overview-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .zoj-overview-cards > :last-child {
-    grid-column: 1 / -1;
-  }
   .zoj-participant .zoj-problems-table th {
     width: auto;
   }

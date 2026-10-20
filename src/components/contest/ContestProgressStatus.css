@@ -1,21 +1,21 @@
-.operator-contest-status {
+.contest-progress-status {
   --status-color: var(--zoj-accent);
   display: grid;
   gap: 1.25rem;
 }
 
-.operator-contest-status[data-phase='running'] {
+.contest-progress-status[data-phase='running'] {
   --status-color: #047857;
 }
-.operator-contest-status[data-phase='ended'] {
+.contest-progress-status[data-phase='ended'] {
   --status-color: #475569;
 }
-.operator-contest-status[data-phase='unknown'] {
+.contest-progress-status[data-phase='unknown'] {
   --status-color: #b45309;
 }
 
-.operator-contest-status__top,
-.operator-contest-status__progress > div {
+.contest-progress-status__top,
+.contest-progress-status__progress > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,19 +25,19 @@
   color: var(--zoj-muted);
 }
 
-.operator-contest-status__top a {
+.contest-progress-status__top a {
   color: var(--zoj-accent);
   white-space: nowrap;
 }
-.operator-contest-status__top a:hover {
+.contest-progress-status__top a:hover {
   text-decoration: underline;
 }
-.operator-contest-status__main {
+.contest-progress-status__main {
   display: grid;
   align-items: center;
   gap: 1.5rem;
 }
-.operator-contest-status__summary h2 {
+.contest-progress-status__summary h2 {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -46,7 +46,7 @@
   letter-spacing: -0.04em;
   color: var(--zoj-ink);
 }
-.operator-contest-status__dot {
+.contest-progress-status__dot {
   width: 0.65rem;
   height: 0.65rem;
   flex-shrink: 0;
@@ -54,22 +54,22 @@
   background: var(--status-color);
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--status-color) 10%, transparent);
 }
-.operator-contest-status[data-phase='running'] .operator-contest-status__dot {
-  animation: operator-status-pulse 2.4s ease-in-out infinite;
+.contest-progress-status[data-phase='running'] .contest-progress-status__dot {
+  animation: contest-status-pulse 2.4s ease-in-out infinite;
 }
-.operator-contest-status__summary > p {
+.contest-progress-status__summary > p {
   margin-top: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.7;
   color: var(--zoj-muted);
 }
-.operator-contest-status__badges {
+.contest-progress-status__badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
 }
-.operator-contest-status__badges span {
+.contest-progress-status__badges span {
   padding: 0.3rem 0.6rem;
   border-radius: var(--zoj-radius-control);
   background: var(--zoj-surface-raised);
@@ -77,19 +77,19 @@
   font-size: 0.75rem;
   color: var(--zoj-muted);
 }
-.operator-contest-status__badges .operator-contest-status__submission {
+.contest-progress-status__badges .contest-progress-status__submission {
   color: var(--status-color);
   font-weight: 700;
 }
-.operator-contest-status__countdown {
+.contest-progress-status__countdown {
   text-align: center;
 }
-.operator-contest-status__countdown > p {
+.contest-progress-status__countdown > p {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--zoj-muted);
 }
-.operator-contest-status__timer {
+.contest-progress-status__timer {
   display: flex;
   justify-content: center;
   align-items: baseline;
@@ -102,39 +102,39 @@
   line-height: 1.2;
   color: var(--status-color);
 }
-.operator-contest-status__timer span {
+.contest-progress-status__timer span {
   display: grid;
   gap: 0.35rem;
 }
-.operator-contest-status__days {
+.contest-progress-status__days {
   margin-inline-end: clamp(0.75rem, 2vw, 1.5rem);
 }
-.operator-contest-status__timer small {
+.contest-progress-status__timer small {
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0;
   color: var(--zoj-muted);
 }
-.operator-contest-status__timer b {
+.contest-progress-status__timer b {
   color: var(--zoj-border-selected);
   font-weight: 400;
 }
-.operator-contest-status__message {
+.contest-progress-status__message {
   display: block;
   padding: 0.75rem 0;
   font-size: clamp(1rem, 2vw, 1.5rem);
   font-weight: 650;
   color: var(--status-color);
 }
-.operator-contest-status__progress {
+.contest-progress-status__progress {
   display: grid;
   gap: 0.5rem;
 }
-.operator-contest-status__progress strong {
+.contest-progress-status__progress strong {
   color: var(--status-color);
   font-variant-numeric: tabular-nums;
 }
-.operator-contest-status__progress progress {
+.contest-progress-status__progress progress {
   appearance: none;
   width: 100%;
   height: 0.45rem;
@@ -144,23 +144,23 @@
   background: var(--zoj-border);
   color: var(--status-color);
 }
-.operator-contest-status__progress progress::-webkit-progress-bar {
+.contest-progress-status__progress progress::-webkit-progress-bar {
   background: var(--zoj-border);
 }
-.operator-contest-status__progress progress::-webkit-progress-value {
+.contest-progress-status__progress progress::-webkit-progress-value {
   border-radius: 1rem;
   background: var(--status-color);
   transition: width 1s linear;
 }
-.operator-contest-status__progress progress::-moz-progress-bar {
+.contest-progress-status__progress progress::-moz-progress-bar {
   border-radius: 1rem;
   background: var(--status-color);
 }
-.operator-contest-status__schedule {
+.contest-progress-status__schedule {
   display: grid;
   gap: 0.75rem;
 }
-.operator-contest-status__schedule > div {
+.contest-progress-status__schedule > div {
   display: grid;
   grid-template-columns: 3.25rem minmax(0, 1fr);
   align-items: center;
@@ -170,78 +170,78 @@
   border-radius: var(--zoj-radius-inset);
   background: var(--zoj-surface-raised);
 }
-.operator-contest-status__schedule dt {
+.contest-progress-status__schedule dt {
   font-size: 0.75rem;
   color: var(--zoj-muted);
 }
-.operator-contest-status__schedule dd {
+.contest-progress-status__schedule dd {
   font-size: 0.875rem;
   font-weight: 600;
 }
-.operator-contest-status__scoreboard {
+.contest-progress-status__scoreboard {
   padding-top: 1rem;
   border-top: 1px solid var(--zoj-border);
 }
-.operator-contest-status__scoreboard > div {
+.contest-progress-status__scoreboard > div {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
   align-items: center;
 }
-.operator-contest-status__scoreboard strong {
+.contest-progress-status__scoreboard strong {
   font-size: 0.875rem;
   font-weight: 650;
 }
-.operator-contest-status__scoreboard span {
+.contest-progress-status__scoreboard span {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   color: var(--zoj-accent);
 }
-.operator-contest-status__scoreboard[data-frozen='true'] strong {
+.contest-progress-status__scoreboard[data-frozen='true'] strong {
   color: #b45309;
 }
-.operator-contest-status__scoreboard p {
+.contest-progress-status__scoreboard p {
   margin-top: 0.35rem;
   font-size: 0.75rem;
   line-height: 1.6;
   color: var(--zoj-muted);
 }
-.operator-contest-status__note {
+.contest-progress-status__note {
   font-size: 0.6875rem;
   line-height: 1.6;
   color: var(--zoj-muted);
 }
-.operator-contest-status__note[role='status'] {
+.contest-progress-status__note[role='status'] {
   color: #b45309;
 }
 
 @media (min-width: 640px) {
-  .operator-contest-status__schedule {
+  .contest-progress-status__schedule {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .operator-contest-status__schedule > div {
+  .contest-progress-status__schedule > div {
     display: block;
   }
-  .operator-contest-status__schedule dd {
+  .contest-progress-status__schedule dd {
     margin-top: 0.25rem;
   }
 }
 @media (min-width: 960px) {
-  .operator-contest-status__main {
+  .contest-progress-status__main {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   }
 }
-@keyframes operator-status-pulse {
+@keyframes contest-status-pulse {
   50% {
     box-shadow: 0 0 0 8px
       color-mix(in srgb, var(--status-color) 5%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .operator-contest-status__dot {
+  .contest-progress-status__dot {
     animation: none !important;
   }
-  .operator-contest-status__progress progress::-webkit-progress-value {
+  .contest-progress-status__progress progress::-webkit-progress-value {
     transition: none;
   }
 }

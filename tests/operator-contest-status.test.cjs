@@ -235,3 +235,60 @@ test('mounted status counts down, changes phase without reload, preserves settin
   root = null;
   assert.equal(ticks.size, 0);
 });
+
+test('participant progress follows the same phase, freeze and countdown boundaries without operator controls', async () => {
+  const ParticipantStatus = source(
+    'components/contest/ContestProgressStatus.tsx',
+  ).default;
+  let now = start - 1000;
+  Date.now = () => now;
+  const ticks = new Map();
+  window.setInterval = (callback) => {
+    ticks.set(1, callback);
+    return 1;
+  };
+  window.clearInterval = (id) => ticks.delete(id);
+  container = document.createElement('div');
+  document.body.append(container);
+  root = createRoot(container);
+  const render = async (overrides = {}) => {
+    await act(async () =>
+      root.render(
+        React.createElement(ParticipantStatus, {
+          contest: { ...contest, ...overrides },
+          canManageSettings: true,
+        }),
+      ),
+    );
+    await act(
+      async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
+    );
+  };
+  const tick = async (time) => {
+    now = time;
+    await act(async () => ticks.forEach((callback) => callback()));
+  };
+  await render();
+  assert.equal(container.querySelector('progress').value, 0);
+  assert.match(container.textContent, /대회 시작까지/);
+  assert.equal(container.querySelector('a'), null);
+  assert.doesNotMatch(
+    container.textContent,
+    /운영자만|대회 목록|후속 운영|15초/,
+  );
+  await tick(start + (end - start) / 2);
+  assert.equal(container.querySelector('progress').value, 50);
+  assert.match(container.textContent, /대회 종료까지/);
+  assert.match(container.textContent, /제출 가능/);
+  assert.equal(container.querySelectorAll('time').length, 3);
+  await tick(freeze);
+  assert.equal(container.querySelector('progress').value, 75);
+  assert.match(container.textContent, /프리즈 적용 중/);
+  await render({ scoreboard_freeze_mode: 'live' });
+  assert.doesNotMatch(container.textContent, /프리즈 적용 중/);
+  assert.match(container.textContent, /프리즈 해제/);
+  await tick(end);
+  assert.equal(container.querySelector('progress').value, 100);
+  assert.equal(container.querySelector('[role="timer"]'), null);
+  assert.match(container.textContent, /제출이 마감되었습니다/);
+});

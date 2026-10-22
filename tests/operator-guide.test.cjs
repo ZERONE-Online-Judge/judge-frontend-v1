@@ -477,17 +477,17 @@ test('operator guide separates the planned VM allocation from historical benchma
   );
   const guide = source('data/judgeServerGuide.ts').judgeServerGuide;
   const measured = guide.articles.find((a) => a.id === 'judge-hundred-million');
-  assert.equal(measured.table.rows.length, 16);
+  assert.equal(measured.table.rows.length, 36);
   const current = source('data/judgeTimeBenchmark.ts').judgeTimeBenchmark;
   const memory = current.cases.find(
-    (c) => c.profile === 'memory' && c.language === 'cpp17',
+    (c) => c.profile === 'pointer' && c.language === 'cpp17',
   );
   assert.ok(
     JSON.stringify(measured).includes(
       (memory.serialMaxMs / 1000).toFixed(3) + '초',
     ),
   );
-  assert.match(JSON.stringify(measured), /2.2GHz 고정/);
+  assert.match(JSON.stringify(measured), /ZOJ 실행 정책 v1/);
   assert.match(JSON.stringify(measured), /isolate CPU 시간/);
   assert.match(JSON.stringify(measured), /보장 상한이 아닙니다/);
   assert.match(

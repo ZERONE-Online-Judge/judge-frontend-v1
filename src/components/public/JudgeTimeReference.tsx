@@ -19,7 +19,7 @@ const number = (n: number) =>
 
 export default function JudgeTimeReference() {
   const [language, setLanguage] = useState('cpp17');
-  const [profileId, setProfile] = useState('memory');
+  const [profileId, setProfile] = useState('pointer');
   const [complexity, setComplexity] = useState<TimeComplexity>('quadratic');
   const [inputSize, setInputSize] = useState('10000');
   const [factor, setFactor] = useState('2');
@@ -43,7 +43,7 @@ export default function JudgeTimeReference() {
         <div className="experience-section-heading">
           <div>
             <p className="experience-eyebrow">A FEEL FOR SPEED</p>
-            <h2>같은 1억 번도, 하는 일에 따라 달라요.</h2>
+            <h2>하는 일에 따라 달라지는 실행 시간</h2>
           </div>
           <p>반복문 안에서 무엇을 하는지부터 살펴봐요.</p>
         </div>
@@ -60,8 +60,13 @@ export default function JudgeTimeReference() {
               </option>
             ))}
           </Select>
-          <span>2.2GHz 고정 · 단독 3회 중 최대 CPU 시간이에요.</span>
+          <span>작업별 단독 8회 평균 CPU 시간이에요.</span>
         </div>
+        <p className="judge-section-footnote">
+          {data.languages.find((item) => item.id === language)!.version}
+          <br />
+          {data.calibrationNote}
+        </p>
         <div className="judge-time-profiles">
           {data.profiles.map((p) => {
             const c = data.cases.find(
@@ -76,46 +81,52 @@ export default function JudgeTimeReference() {
                 onClick={() => setProfile(p.id)}
               >
                 <span>{p.label}</span>
-                <small>{p.countLabel}</small>
+                <small>
+                  {number(c.iterations)}회 {p.id === 'search' ? '탐색' : '반복'}
+                </small>
                 <span className="judge-time-comparison">
                   <span>
-                    <small>단독 실행 최대</small>
+                    <small>평균 CPU 시간</small>
                     <strong>
-                      {seconds(c.serialMaxMs)}
+                      {seconds(c.runtimeMs.mean)}
                       <small>초</small>
                     </strong>
                   </span>
                 </span>
+                <small>
+                  범위 {seconds(c.runtimeMs.min)}~{seconds(c.runtimeMs.max)}초
+                  {' · '}표준편차 {seconds(c.runtimeMs.sampleSd)}초
+                </small>
                 <span className="judge-time-description">{p.description}</span>
               </button>
             );
           })}
         </div>
         <p className="judge-section-footnote">
-          {data.displayDate} · 연산 4종 × 언어 4종 · 단독 3회씩, 총 48건. 이진
-          탐색은 <strong>100만 번의 탐색</strong>이에요. 다른 카드의 1억 회
-          반복과 단위가 달라요.
+          {data.displayDate} · 연산 6종 × 언어 6종 · 단독 8회씩, 총 288건. 이진
+          탐색은 탐색 1회 전체를 작업 1회로 셉니다.
         </p>
         <details className="judge-inline-details judge-time-source">
           <summary>선택한 작업의 코드·입력·반복 측정값 보기</summary>
           <div>
             <p>
-              단독 3회:{' '}
+              단독 8회:{' '}
               {evidence.serialMs.map((ms) => seconds(ms) + '초').join(' · ')}
             </p>
-            {language === 'python313' && (
+            {(language === 'python311' || language === 'pypy3') && (
               <p>
-                이 Python 코드는 파일 최상위의 for 반복문입니다. 표시 시간에는
-                반복 제어와 선택한 작업의 본문 연산 비용이 함께 포함됩니다. 함수
-                안의 반복, 내장 함수, 다른 알고리즘의 실행 시간은 이 코드와 다를
-                수 있어요.
+                CPython과 PyPy는 같은 Python 3.11.17 문법을 사용합니다. PyPy의
+                JIT 준비와 Python 객체 처리 비용도 측정에 포함돼요. 함수
+                배치·내장 함수·알고리즘이 다르면 실행 시간도 달라집니다.
               </p>
             )}
             <span className="judge-small-label">실제로 제출한 코드</span>
             <pre>
               <code>{evidence.source}</code>
             </pre>
-            <span className="judge-small-label">입력 · 반복 횟수와 시작값</span>
+            <span className="judge-small-label">
+              입력 · 작업 번호·반복 횟수·시드·시작 시각(0)
+            </span>
             <pre>{evidence.input}</pre>
             <span className="judge-small-label">검증한 기대 출력</span>
             <pre>{evidence.output}</pre>
@@ -129,7 +140,8 @@ export default function JudgeTimeReference() {
             <h3>내 반복문에는 시간이 얼마나 필요할까요?</h3>
             <p>
               선택한 작업: <strong>{profile.label}</strong>. 실제 코드의 반복문
-              본문과 비슷한 작업을 골라 주세요.
+              본문과 비슷한 작업을 골라 주세요. 아래 계산기는 평균 대신 8회 중
+              최댓값을 사용합니다.
             </p>
           </div>
           <div className="judge-time-fields">
@@ -209,14 +221,19 @@ export default function JudgeTimeReference() {
           </summary>
           <div>
             <p>
-              채점기는 Intel Xeon E5-2698 v4 서버의 VM 6대이며, CPU 클럭은
-              2.2GHz 고정 정책입니다. C/C++은 GCC 14.2.0의 -O2, Python은 CPython
-              3.13.16, Java는 Java 8 호환 환경입니다.
+              채점기는 Intel Xeon E5-2698 v4 @ 2.20GHz 서버의 VM 6대이며,
+              에이전트 0.3.0의 ZOJ 실행 정책 v1을 사용합니다. 각 실행에는 게스트
+              논리 CPU 하나를 배정합니다. C/C++은 GCC 14.2.0의 -O2, CPython은
+              3.11.17, PyPy는 8.0.1(Python 3.11.17)입니다. Java는 JDK 21에서
+              Java 8 호환 대상으로 빌드하며, Kotlin 1.9.24도 같은 Temurin
+              21.0.12.1 JVM을 사용합니다.
             </p>
             <p>
-              각 작업·언어를 단독으로 3번 실행했습니다. 총 48개 제출이 모두
-              정답이고 다른 채점 작업 유입은 없었습니다. 카드와 계산기는 단독
-              실행 3회 중 최댓값을 기준으로 합니다.
+              각 작업·언어를 단독으로 8번 실행했습니다. 총 288개 제출이 모두
+              정답이고 다른 채점 작업 유입은 없었습니다. 카드는 산술평균과
+              최솟값·최댓값·표본 표준편차를, 계산기는 8회 중 최댓값을
+              사용합니다. 언어·작업마다 반복 횟수가 다르며, 8회 동안에는 같은
+              코드와 입력을 유지했습니다.
             </p>
             <p>
               표에 기록된 각 실행은 새 프로세스를 사용합니다. 입력으로 반복
@@ -224,9 +241,7 @@ export default function JudgeTimeReference() {
               비교했습니다. 표시값은 isolate가 기록한 CPU 시간입니다. 배열
               생성·프로그램 초기화·JVM/JIT의 CPU 사용을 포함하고, CPU 배정
               대기·sleep·격리 준비·큐 대기·컴파일·checker는 제외합니다. 실험
-              제한은 모든 언어 120초·512MiB이며 대회 문제의 제한과 별개입니다.
-              과거 경과 시간 기록과는 집계 기준이 달라 직접 비율로 비교하지
-              않아요.
+              제한은 모든 언어 120초·1024MiB이며 대회 문제의 제한과 별개입니다.
             </p>
             <p>
               <strong>최악의 입력에서는 실제 반복 횟수를 세세요.</strong>{' '}

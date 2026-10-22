@@ -44,7 +44,7 @@ export const judgeServerGuide: GuideCategory = {
         '채점 서버 설치·VM 자원 배정·에이전트 연결과 업데이트는 ZOJ가 담당합니다. 대회 운영자가 서버 사양을 직접 맞추거나 VM을 구성할 필요는 없습니다.',
         `물리 서버에는 Intel Xeon E5-2698 v4 CPU 2소켓과 256GB DDR4-2933Y ECC 메모리가 장착되어 있습니다. CPU 클럭은 2.2GHz 고정 정책입니다. 채점 VM의 CPU 할당은 ${infrastructure.vm.vcpus_per_agent} vCPU, 메모리 할당은 26GiB입니다. DDR4-2933Y는 장착 모듈 규격이며 실제 동작 클럭을 뜻하는 표기는 아닙니다.`,
         `6대의 제출 슬롯은 각 ${infrastructure.vm.submission_slots_per_agent}개, 합계 ${infrastructure.vm.planned_submission_slots}개입니다. 슬롯은 동시에 맡을 제출 수입니다. vCPU 수로 단일 스레드 풀이의 실행 시간을 나누지 않습니다.`,
-        'ZOJ 실행 정책 v1은 CPython과 PyPy를 Python 3.11.17로 맞추고, Java와 Kotlin에 같은 JDK 21과 JVM 자원 정책을 적용합니다. 각 테스트는 게스트 논리 CPU 하나에 배정하며, 아래 과거 벤치마크의 Python 3.13 측정값과 구분합니다.',
+        'ZOJ 실행 정책 v1은 CPython과 PyPy를 Python 3.11.17로 맞추고, Java와 Kotlin에 같은 JDK 21과 JVM 자원 정책을 적용합니다. 각 테스트는 게스트 논리 CPU 하나에 배정하며, 전체 채점 VM이 같은 실행 환경을 사용하며 최신 CPU 벤치마크도 이 환경에서 측정했습니다.',
         `각 에이전트는 제출당 테스트를 최대 ${infrastructure.agent_configuration.testcases_parallel_per_submission}개 병렬 실행하는 정책입니다. 노드당 테스트 작업은 최대 ${infrastructure.agent_configuration.max_parallel_testcases_per_agent}개이며 실제 개수는 테스트 수와 준비 상태에 따라 다릅니다. 이번 연산별 TLE 기준은 제출당 테스트 1개를 전체 큐에서 단독으로 실행한 자료입니다.`,
         '같은 코드도 서버 성능과 실행 환경에 따라 시간이 달라집니다. 출제자 PC의 측정값을 그대로 시간 제한으로 옮기기보다 아래 실측 예제를 참고하고, 본인의 문제는 ZOJ 검증 코드 채점으로 확인하세요.',
       ],
@@ -96,6 +96,7 @@ export const judgeServerGuide: GuideCategory = {
             'Temurin 21.0.12.1 · Java / Kotlin 공통',
             'SerialGC · 스택 8MiB · 힙 외 메모리 여유 확보',
           ],
+          ['Kotlin 빌드', 'Kotlin 1.9.24', 'Java와 같은 Temurin 21 JVM 사용'],
           ['C / C++ 빌드', 'C99 / C++17 · -O2', '현재 에이전트의 컴파일 옵션'],
           [
             'Java 빌드',
@@ -151,7 +152,7 @@ export const judgeServerGuide: GuideCategory = {
       effectTitle: '화면에 표시되는 상태의 의미',
       steps: [
         '문제의 제한과 활성 테스트 세트, checker와 공용 리소스를 준비합니다. 채점 번들이 있으면 파일을 묶어서 전달받고, 없으면 개별 자료를 읽는 경로를 사용합니다.',
-        'C/C++/Java 소스는 격리 환경에서 컴파일합니다. C/C++은 -O2 최적화를 사용하고 Java는 Java 8 호환 대상으로 빌드합니다. Python은 소스 파일을 준비해 인터프리터로 실행합니다. 컴파일이 실패하면 테스트 실행으로 넘어가지 않습니다.',
+        'C/C++/Java/Kotlin 소스는 격리 환경에서 컴파일합니다. C/C++은 -O2 최적화를 사용하고 Java는 Java 8 호환 대상으로 빌드합니다. CPython과 PyPy는 문법 검사를 거친 소스 파일을 인터프리터로 실행합니다. 컴파일이 실패하면 테스트 실행으로 넘어가지 않습니다.',
         '각 테스트 입력으로 프로그램을 새로 실행하고 해당 테스트의 유효 시간·메모리 제한을 적용합니다. 제출 프로그램에는 해당 테스트의 실행 파일이 보이며, 다른 테스트나 checker의 정답 파일을 함께 공개하지 않습니다.',
         '정상 종료했다면 checker로 출력을 검사합니다. checker가 없으면 줄바꿈 형식과 끝 공백을 정리한 기본 출력 비교를 사용합니다. 프로그램이 종료됐다는 이유만으로 정답 처리되지는 않습니다.',
         '테스트 실행 단위는 에이전트에 설정된 병렬 수입니다. 한 묶음에서 실패하면 그 묶음의 결과를 모은 뒤 테스트 번호 순으로 실패를 선택하고 다음 묶음은 실행하지 않습니다. 순차 실행은 첫 실패에서 멈춥니다.',
@@ -321,44 +322,37 @@ export const judgeServerGuide: GuideCategory = {
     },
     {
       id: 'judge-hundred-million',
-      title: '같은 1억 회도 연산에 따라 다른 실행 시간',
+      title: '6개 언어·6종 작업의 단독 실행 CPU 시간',
       summary:
-        '단순 계산·의존 산술·메모리 접근·이진 탐색을 단독으로 실제 채점했습니다. 각 작업의 3회 실행 중 최댓값으로 시간 예산을 잡습니다.',
+        '단순 계산·의존 산술·연속 및 무작위 메모리 접근·이진 탐색·분기 연산을 각각 8회 측정했습니다. 표에는 평균과 관측 최댓값을 표시합니다.',
       stepsTitle: '실측 조건과 단위',
       effectTitle: '최악 입력의 시간 예산 계산',
       steps: [
-        '작업 4종 × 언어 4종을 각각 단독 3회, 총 48건 실행했습니다. 모두 정답이며 다른 채점 작업 유입은 없었습니다. 표와 시간 예산 계산에는 단독 실행 최댓값을 사용합니다.',
-        '상수 나머지 누적·직전 결과에 의존하는 곱셈과 나머지·4194304개 인덱스 배열의 의존 접근은 각각 1억 회입니다. 이진 탐색은 1048576개 정렬 배열에서 100만 번 검색하며, 검색마다 최대 21회 비교합니다. 탐색 1회와 기본 비교 1회는 서로 다른 단위입니다.',
-        '입력으로 반복 횟수와 시작값을 받으며, 결과를 출력해 별도로 계산한 기대값과 비교했습니다. 결과가 사용되지 않는 반복문이나 정수 초 단위로 잘려 0초가 된 기록을 기준으로 삼지 않습니다. 컴파일러 최적화는 실제 채점과 같은 -O2를 유지합니다.',
-        'CPU 클럭은 2.2GHz 고정 정책이며, 모든 언어 실험 제한은 120초·512MiB입니다. 문제의 기본 제한이나 언어 보정과 별개입니다. 표에 기록된 각 실행은 새 프로세스를 사용합니다. 표시값은 isolate CPU 시간으로 배열 초기화·JVM/JIT의 CPU 사용을 포함하며 격리 준비·CPU 배정 대기·컴파일·checker는 제외합니다. 제출 요약은 테스트 시간의 최댓값입니다.',
+        timeBenchmark.method,
+        timeBenchmark.calibrationNote,
+        '연속 접근과 의존 무작위 접근은 4,194,304개 32비트 정수 배열(16MiB), 이진 탐색은 1,048,576개 정수 배열(4MiB)을 사용합니다. 반복 횟수와 시드 123456789를 입력으로 받고 기대 출력과 비교했습니다.',
+        '에이전트 0.3.0 · ZOJ 실행 정책 v1 · 실행당 게스트 논리 CPU 하나를 사용합니다. 모든 언어의 실험 제한은 120초·1024MiB이며 문제의 제한과 별개입니다. 표시값은 isolate CPU 시간이며 각 실행은 새 프로세스입니다.',
       ],
       table: {
-        headers: ['언어 · 작업', '작업 수', '단독 실행 최대'],
+        headers: ['언어 · 작업', '측정 작업 수', '평균 CPU 시간', '관측 최대'],
         rows: timeBenchmark.cases.map((item) => [
           `${timeBenchmark.languages.find((l) => l.id === item.language)!.label} · ${timeBenchmark.profiles.find((p) => p.id === item.profile)!.label}`,
-          timeBenchmark.profiles.find((p) => p.id === item.profile)!.countLabel,
+          `${item.iterations.toLocaleString('ko-KR')}회`,
+          `${(item.runtimeMs.mean / 1000).toFixed(3)}초`,
           `${(item.serialMaxMs / 1000).toFixed(3)}초`,
         ]),
       },
       effect:
-        '보수적 시간 예산 = 최악 입력의 작업 수 ÷ 측정 작업 수 × 단독 실행 최대 시간 × 여유 계수(기본 2). 먼저 반복문 본문과 비슷한 작업을 선택합니다. 계수 2는 계획상 여유이며 최악 실행시간의 보장 상한이 아닙니다. 채점 상태 페이지의 계산기에서 입력 크기·반복 구조·언어·연산 종류를 바꿔 볼 수 있습니다.',
-      note: `${timeBenchmark.displayDate} 실측입니다. 동일 구성의 6대 채점 VM을 사용하며, 실제 배정 노드는 원본 기록에 있습니다. 메모리 크기·캐시 경계·입력 분포가 달라지면 비례 추정도 벗어날 수 있습니다.`,
+        '보수적 시간 예산 = 최악 입력의 작업 수 ÷ 해당 언어·작업의 측정 작업 수 × 관측 최대 CPU 시간 × 여유 계수(기본 2). 실제 반복문과 비슷한 작업을 선택하세요. 계수 2는 계획상 여유이며 최악 실행시간의 보장 상한이 아닙니다. 채점 안내 계산기에서 입력 크기·반복 구조·언어·연산 종류를 바꿔 볼 수 있습니다.',
+      note: `${timeBenchmark.displayDate} 실측입니다. 메모리 크기·캐시 경계·입력 분포가 달라지면 비례 추정도 벗어날 수 있습니다. 평균은 언어 간 속도 순위가 아닙니다.`,
       references: [
         {
-          label: '소스·입력·기대 출력·전체 실험 기록',
+          label: '6개 언어 소스·입력·기대 출력·288회 단독 실행 기록',
           url: 'https://zoj.kr' + timeBenchmark.snapshotPath,
         },
         {
           label: '참가자용 연산별 시간 예산 계산기',
           url: 'https://zoj.kr/judge-status#judge-performance',
-        },
-        {
-          label: '실행 시간과 연산 수에 관한 참고 글',
-          url: 'https://tjdtls690.github.io/studycontents/algorithm/2022-08-28-time_complexity_real_time/',
-        },
-        {
-          label: 'OpenJDK: 사용하지 않는 계산과 벤치마크 최적화',
-          url: 'https://github.com/openjdk/jmh/blob/master/jmh-samples/src/main/java/org/openjdk/jmh/samples/JMHSample_08_DeadCode.java',
         },
       ],
     },

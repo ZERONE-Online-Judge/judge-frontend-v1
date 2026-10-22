@@ -1,3 +1,4 @@
+import useAdminView from '@/components/admin/useAdminView';
 import Select from '@/shared/ui/Select';
 import JudgeNodeWorkloads from '@/domains/auditMonitoring/components/JudgeNodeWorkloads';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
@@ -12,10 +13,10 @@ import {
   AdminAccessGate,
   AdminMetricCard,
   AdminPanel,
-  AdminTabs,
+  AdminLayout,
+  AdminViewTabs,
   JudgeIcon,
 } from '@/components/admin/AdminShell';
-import PageLayout from '@/components/common/PageLayout';
 import ContestSubmissionResultBadge from '@/components/contest/submissions/ContestSubmissionResultBadge';
 import {
   getAdminContestDivisions,
@@ -84,6 +85,10 @@ export default function AdminJudgePage() {
 }
 
 function AdminJudgeContent({ token }: { token: string }) {
+  const [view, setView] = useAdminView(
+    ['nodes', 'queue', 'submissions'] as const,
+    'nodes',
+  );
   const isVisible = useDocumentVisibility();
   const queryClient = useQueryClient();
   const queryIdentity = tokenQueryIdentity(token);
@@ -129,6 +134,7 @@ function AdminJudgeContent({ token }: { token: string }) {
   });
 
   const submissionsQuery = useQuery({
+    enabled: view === 'submissions',
     queryKey: [
       'admin',
       'judge-submissions',
@@ -203,7 +209,7 @@ function AdminJudgeContent({ token }: { token: string }) {
   }, [contestFilter, divisionFilter, divisionsQuery.data]);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || view !== 'submissions') return;
 
     const pendingIds =
       submissionsQuery.data?.data
@@ -246,6 +252,7 @@ function AdminJudgeContent({ token }: { token: string }) {
     selectedSubmissionId,
     submissionsQuery.data?.data,
     token,
+    view,
   ]);
 
   const dashboard = dashboardQuery.data;
@@ -290,15 +297,10 @@ function AdminJudgeContent({ token }: { token: string }) {
   }
 
   return (
-    <PageLayout
-      variant="management"
+    <AdminLayout
       description="채점 노드, 큐, 최근 제출을 실시간에 가깝게 확인합니다."
-      eyebrow="Service Master"
       title="채점 관리"
-      width="full"
     >
-      <AdminTabs />
-
       {dashboardQuery.error ||
       contestsQuery.error ||
       divisionsQuery.error ||
@@ -376,268 +378,284 @@ function AdminJudgeContent({ token }: { token: string }) {
         />
       </div>
 
+      <AdminViewTabs
+        label="채점 관리 작업"
+        value={view}
+        onChange={setView}
+        items={[
+          { label: '채점 노드', value: 'nodes' },
+          { label: '작업 큐', value: 'queue' },
+          { label: '제출 내역', value: 'submissions' },
+        ]}
+      />
       <div className="grid gap-6">
-        <details className="group rounded-lg border border-slate-200 bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 transition hover:bg-slate-50">
-            <span>
-              <span className="block text-xl font-semibold text-slate-950">
-                채점 노드 현황
-              </span>
-              <span className="mt-1 block text-sm font-medium text-slate-500">
-                노드 상태와 처리할 작업을 설정합니다.
-              </span>
-            </span>
-            <span className="text-sm font-semibold text-indigo-700 group-open:hidden">
-              펼치기
-            </span>
-            <span className="hidden text-sm font-semibold text-slate-500 group-open:inline">
-              접기
-            </span>
-          </summary>
-          <div className="border-t border-slate-100 p-6">
-            <p className="mb-4 text-sm text-slate-500">
-              선택은 다음 작업 배정부터 적용됩니다. 실행 중인 작업은 끝까지
-              처리합니다. 둘 다 선택하면 ZOJ 채점과 Editor 실행을 함께 처리하며,
-              ZOJ 채점 대기열을 먼저 확인합니다.
+        {view === 'nodes' && (
+          <AdminPanel
+            title="채점 노드"
+            description="노드별 연결 상태와 작업 배정을 관리합니다."
+          >
+            <p className="admin-node-note">
+              처리 범위 변경은 다음 작업부터 적용됩니다. 실행 중인 작업은 계속
+              처리합니다.
             </p>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[1250px] table-fixed border-collapse text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-                  <tr>
-                    <th className="w-72 border-r border-b border-slate-200 px-4 py-3">
-                      노드
-                    </th>
-                    <th className="w-56 border-r border-b border-slate-200 px-4 py-3">
-                      처리할 작업
-                    </th>
-                    <th className="border-r border-b border-slate-200 px-4 py-3">
-                      상태
-                    </th>
-                    <th className="border-r border-b border-slate-200 px-4 py-3">
-                      슬롯
-                    </th>
-                    <th className="border-r border-b border-slate-200 px-4 py-3">
-                      실행
-                    </th>
-                    <th className="border-r border-b border-slate-200 px-4 py-3">
-                      버전
-                    </th>
-                    <th className="border-r border-b border-slate-200 px-4 py-3">
-                      마지막 신호
-                    </th>
-                    <th className="w-24 border-b border-slate-200 px-4 py-3 text-center">
+            <div className="admin-node-grid">
+              {(dashboard?.nodes ?? []).map((node) => (
+                <article className="admin-node-card" key={node.judge_node_id}>
+                  <header>
+                    <div>
+                      <strong>{node.node_name}</strong>
+                      <span
+                        className="admin-node-id"
+                        title={node.judge_node_id}
+                      >
+                        {node.judge_node_id}
+                      </span>
+                    </div>
+                    <span
+                      className="admin-node-status"
+                      data-active={node.is_active && node.schedulable}
+                    >
+                      {node.is_active && node.schedulable ? '활성' : '비활성'}
+                    </span>
+                  </header>
+                  <dl className="admin-node-metrics">
+                    <div>
+                      <dt>가용 / 전체 슬롯</dt>
+                      <dd>
+                        {node.free_slots} / {node.total_slots}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>실행 중</dt>
+                      <dd>
+                        {node.actual_running_job_count ??
+                          node.running_job_count}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>마지막 신호</dt>
+                      <dd>{formatRelativeTime(node.last_heartbeat_at)}</dd>
+                    </div>
+                  </dl>
+                  {node.running_job_count_mismatch ? (
+                    <p className="admin-node-warning">
+                      실행 수 확인 필요 · 보고{' '}
+                      {node.reported_running_job_count ??
+                        node.running_job_count}
+                      건 / 실제{' '}
+                      {node.actual_running_job_count ?? node.running_job_count}
+                      건
+                    </p>
+                  ) : null}
+                  <div className="admin-node-workloads">
+                    <JudgeNodeWorkloads node={node} token={token} />
+                  </div>
+                  <footer>
+                    <span>에이전트 {node.agent_version || '버전 확인 중'}</span>
+                    <button
+                      className="admin-action"
+                      onClick={() => setSelectedLogNodeId(node.judge_node_id)}
+                      type="button"
+                    >
                       로그
-                    </th>
+                    </button>
+                  </footer>
+                </article>
+              ))}
+            </div>
+            {!dashboard?.nodes.length && (
+              <p className="admin-empty">
+                {dashboardQuery.isLoading
+                  ? '채점 노드를 불러오는 중입니다.'
+                  : '등록된 채점 노드가 없습니다.'}
+              </p>
+            )}
+          </AdminPanel>
+        )}
+        {view === 'queue' && (
+          <AdminPanel
+            title="작업 큐"
+            description="채점기에 배정 중이거나 실행을 기다리는 최근 작업입니다."
+          >
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3">작업</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">대회</th>
+                    <th className="px-4 py-3">배정 노드</th>
+                    <th className="px-4 py-3">등록 시각</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(dashboard?.nodes ?? []).length > 0 ? (
-                    (dashboard?.nodes ?? []).map((node) => (
-                      <tr
-                        className="hover:bg-indigo-50/40"
-                        key={node.judge_node_id}
-                      >
-                        <td className="border-r border-slate-100 px-4 py-4">
-                          <strong
-                            className="zoj-truncate-safe max-w-full font-semibold text-slate-950"
-                            title={node.node_name}
-                          >
-                            {node.node_name}
-                          </strong>
-                          <p
-                            className="zoj-truncate-safe mt-1 max-w-full text-xs font-medium text-slate-400"
-                            title={node.judge_node_id}
-                          >
-                            {node.judge_node_id}
-                          </p>
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4">
-                          <JudgeNodeWorkloads node={node} token={token} />
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4">
-                          <span
-                            className={[
-                              'rounded-full px-3 py-1 text-xs font-semibold',
-                              node.is_active && node.schedulable
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-rose-50 text-rose-600',
-                            ].join(' ')}
-                          >
-                            {node.is_active && node.schedulable
-                              ? '활성'
-                              : '비활성'}
-                          </span>
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4 font-medium text-slate-700">
-                          {node.free_slots}/{node.total_slots}
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4 font-medium text-slate-700">
-                          {node.actual_running_job_count ??
-                            node.running_job_count}
-                          {node.running_job_count_mismatch ? (
-                            <span className="ml-2 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
-                              보고{' '}
-                              {node.reported_running_job_count ??
-                                node.running_job_count}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4 font-mono text-xs font-medium text-slate-600">
-                          {node.agent_version || '-'}
-                        </td>
-                        <td className="border-r border-slate-100 px-4 py-4 font-medium text-slate-500">
-                          {formatRelativeTime(node.last_heartbeat_at)}
-                        </td>
-                        <td className="px-4 py-4 text-center align-top">
-                          <button
-                            className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold whitespace-nowrap text-indigo-700 transition hover:bg-indigo-50"
-                            onClick={() =>
-                              setSelectedLogNodeId(node.judge_node_id)
-                            }
-                            type="button"
-                          >
-                            로그
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+                <tbody>
+                  {(dashboard?.queue ?? []).map((job) => (
+                    <tr key={job.judge_job_id}>
+                      <td className="px-4 py-3 font-mono">
+                        {job.judge_job_id.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {job.status === 'pending'
+                          ? '대기 중'
+                          : job.status === 'running'
+                            ? '실행 중'
+                            : job.status}
+                      </td>
+                      <td className="px-4 py-3">
+                        {contestOptions.find(
+                          (contest) => contest.contest_id === job.contest_id,
+                        )?.title ?? job.contest_id}
+                      </td>
+                      <td className="px-4 py-3">
+                        {dashboard?.nodes.find(
+                          (node) => node.judge_node_id === job.assigned_node_id,
+                        )?.node_name ?? '배정 대기'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatDateTime(job.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                  {!dashboard?.queue.length && (
                     <tr>
-                      <td
-                        className="px-4 py-8 text-center text-sm font-medium text-slate-500"
-                        colSpan={8}
-                      >
-                        등록된 채점 노드가 없습니다.
+                      <td colSpan={5} className="px-4 py-10 text-center">
+                        {dashboardQuery.isLoading
+                          ? '작업 큐를 불러오는 중입니다.'
+                          : '대기 중인 작업이 없습니다.'}
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
-        </details>
-
-        <AdminPanel
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-                onChange={(event) => updateContestFilter(event.target.value)}
-                value={contestFilter}
-              >
-                <option value="">전체 대회</option>
-                {contestOptions.map((contest) => (
-                  <option key={contest.contest_id} value={contest.contest_id}>
-                    {contest.title}
+          </AdminPanel>
+        )}
+        {view === 'submissions' && (
+          <AdminPanel
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                  onChange={(event) => updateContestFilter(event.target.value)}
+                  value={contestFilter}
+                >
+                  <option value="">전체 대회</option>
+                  {contestOptions.map((contest) => (
+                    <option key={contest.contest_id} value={contest.contest_id}>
+                      {contest.title}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled={!contestFilter}
+                  onChange={(event) => updateDivisionFilter(event.target.value)}
+                  value={divisionFilter}
+                >
+                  <option value="">
+                    {contestFilter ? '전체 유형' : '대회 선택 후 유형'}
                   </option>
-                ))}
-              </Select>
-              <Select
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                disabled={!contestFilter}
-                onChange={(event) => updateDivisionFilter(event.target.value)}
-                value={divisionFilter}
-              >
-                <option value="">
-                  {contestFilter ? '전체 유형' : '대회 선택 후 유형'}
-                </option>
-                {divisionOptions.map((division) => (
-                  <option
-                    key={division.division_id}
-                    value={division.division_id}
-                  >
-                    {division.name}
-                  </option>
-                ))}
-              </Select>
-              <button
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
-                disabled={cursorHistory.length === 0}
-                onClick={goPreviousPage}
-                type="button"
-              >
-                이전
-              </button>
-              <button
-                className="h-9 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:text-slate-300"
-                disabled={!nextCursor}
-                onClick={goNextPage}
-                type="button"
-              >
-                다음
-              </button>
-            </div>
-          }
-          description="결과는 간단히 보고, 보기 버튼으로 소스와 채점 로그를 확인합니다."
-          title="최근 제출"
-        >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm font-medium text-slate-600">
-            <span>
-              {page?.total_count === undefined || page.total_count === null
-                ? `${Number(page?.current_cursor ?? cursor ?? 0) + (submissions.length ? 1 : 0)}-${Number(page?.current_cursor ?? cursor ?? 0) + submissions.length}`
-                : `${Number(page.current_cursor ?? cursor ?? 0) + (submissions.length ? 1 : 0)}-${Number(page.current_cursor ?? cursor ?? 0) + submissions.length} / ${page.total_count.toLocaleString('ko-KR')}`}
-              {submissionsQuery.isFetching ? ' · 갱신 중' : ''}
-            </span>
-            <span>페이지당 {ADMIN_JUDGE_PAGE_SIZE}개</span>
-          </div>
-          <div className="zoj-horizontal-scroll rounded-lg border border-slate-200">
-            <table className="w-full min-w-[1040px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-                <tr>
-                  <th className="w-28 border-r border-b border-slate-200 px-4 py-3">
-                    제출
-                  </th>
-                  <th className="w-56 border-r border-b border-slate-200 px-4 py-3">
-                    대회/유형
-                  </th>
-                  <th className="w-24 border-r border-b border-slate-200 px-4 py-3">
-                    언어
-                  </th>
-                  <th className="w-48 border-r border-b border-slate-200 px-4 py-3">
-                    에이전트
-                  </th>
-                  <th className="w-52 border-r border-b border-slate-200 px-4 py-3">
-                    결과
-                  </th>
-                  <th className="w-24 border-r border-b border-slate-200 px-4 py-3">
-                    시간
-                  </th>
-                  <th className="w-28 border-r border-b border-slate-200 px-4 py-3">
-                    메모리
-                  </th>
-                  <th className="w-24 border-b border-slate-200 px-4 py-3 text-center">
-                    보기
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {submissions.length > 0 ? (
-                  submissions.map((entry) => (
-                    <SubmissionRow
-                      entry={entry}
-                      isSelected={
-                        selectedSubmissionId === entry.submission.submission_id
-                      }
-                      key={entry.submission.submission_id}
-                      onSelect={() =>
-                        setSelectedSubmissionId(entry.submission.submission_id)
-                      }
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      className="px-4 py-10 text-center text-sm font-medium text-slate-500"
-                      colSpan={8}
+                  {divisionOptions.map((division) => (
+                    <option
+                      key={division.division_id}
+                      value={division.division_id}
                     >
-                      표시할 제출이 없습니다.
-                    </td>
+                      {division.name}
+                    </option>
+                  ))}
+                </Select>
+                <button
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:text-slate-300"
+                  disabled={cursorHistory.length === 0}
+                  onClick={goPreviousPage}
+                  type="button"
+                >
+                  이전
+                </button>
+                <button
+                  className="h-9 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:text-slate-300"
+                  disabled={!nextCursor}
+                  onClick={goNextPage}
+                  type="button"
+                >
+                  다음
+                </button>
+              </div>
+            }
+            description="결과는 간단히 보고, 보기 버튼으로 소스와 채점 로그를 확인합니다."
+            title="최근 제출"
+          >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm font-medium text-slate-600">
+              <span>
+                {page?.total_count === undefined || page.total_count === null
+                  ? `${Number(page?.current_cursor ?? cursor ?? 0) + (submissions.length ? 1 : 0)}-${Number(page?.current_cursor ?? cursor ?? 0) + submissions.length}`
+                  : `${Number(page.current_cursor ?? cursor ?? 0) + (submissions.length ? 1 : 0)}-${Number(page.current_cursor ?? cursor ?? 0) + submissions.length} / ${page.total_count.toLocaleString('ko-KR')}`}
+                {submissionsQuery.isFetching ? ' · 갱신 중' : ''}
+              </span>
+              <span>페이지당 {ADMIN_JUDGE_PAGE_SIZE}개</span>
+            </div>
+            <div className="zoj-horizontal-scroll rounded-lg border border-slate-200">
+              <table className="w-full min-w-[1040px] table-fixed border-collapse text-left text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
+                  <tr>
+                    <th className="w-28 border-r border-b border-slate-200 px-4 py-3">
+                      제출
+                    </th>
+                    <th className="w-56 border-r border-b border-slate-200 px-4 py-3">
+                      대회/유형
+                    </th>
+                    <th className="w-24 border-r border-b border-slate-200 px-4 py-3">
+                      언어
+                    </th>
+                    <th className="w-48 border-r border-b border-slate-200 px-4 py-3">
+                      에이전트
+                    </th>
+                    <th className="w-52 border-r border-b border-slate-200 px-4 py-3">
+                      결과
+                    </th>
+                    <th className="w-24 border-r border-b border-slate-200 px-4 py-3">
+                      시간
+                    </th>
+                    <th className="w-28 border-r border-b border-slate-200 px-4 py-3">
+                      메모리
+                    </th>
+                    <th className="w-24 border-b border-slate-200 px-4 py-3 text-center">
+                      보기
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </AdminPanel>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {submissions.length > 0 ? (
+                    submissions.map((entry) => (
+                      <SubmissionRow
+                        entry={entry}
+                        isSelected={
+                          selectedSubmissionId ===
+                          entry.submission.submission_id
+                        }
+                        key={entry.submission.submission_id}
+                        onSelect={() =>
+                          setSelectedSubmissionId(
+                            entry.submission.submission_id,
+                          )
+                        }
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        className="px-4 py-10 text-center text-sm font-medium text-slate-500"
+                        colSpan={8}
+                      >
+                        표시할 제출이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </AdminPanel>
+        )}
       </div>
 
       {selectedSubmissionId ? (
@@ -659,7 +677,7 @@ function AdminJudgeContent({ token }: { token: string }) {
           onRefresh={() => void nodeLogsQuery.refetch()}
         />
       ) : null}
-    </PageLayout>
+    </AdminLayout>
   );
 }
 
@@ -683,7 +701,6 @@ function JudgeNodeLogsModal({
       aria-label="채점기 로그"
       onClose={onClose}
       title={node?.node_name ?? '채점기 로그'}
-      eyebrow="채점기 로그"
       description={node?.judge_node_id ?? '노드 정보를 불러오는 중입니다.'}
       size="xl"
       fill

@@ -1,12 +1,11 @@
 import Select from '@/shared/ui/Select';
 import { useId, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import PageLayout from '@/components/common/PageLayout';
 import {
   AdminAccessGate,
   AdminMetricCard,
   AdminPanel,
-  AdminTabs,
+  AdminLayout,
   AnalyticsIcon,
   ContestIcon,
   JudgeIcon,
@@ -132,24 +131,20 @@ function AnalyticsContent({ token }: { token: string }) {
     setFilters(next);
   }
   return (
-    <PageLayout
-      variant="management"
-      width="full"
-      eyebrow="Operations Analytics"
+    <AdminLayout
       title="운영 통계"
-      description="사람들이 언제 찾아오고, 어떤 대회와 화면을 이용하는지 살펴보세요."
+      description="방문 추이와 대회별 이용 현황을 조회합니다."
     >
-      <AdminTabs />
-      <section className="analytics-hero">
+      <section className="admin-analytics-summary">
         <div>
-          <span className="analytics-kicker">ZOJ INSIGHTS</span>
-          <h2>다음 운영을 준비하는 기록.</h2>
+          <h2>방문·이용 현황</h2>
           <p>
-            방문 흐름과 대회 참여를 함께 보고, 필요한 곳에 운영 역량을 더하세요.
+            {report
+              ? `${report.period.start} ~ ${report.period.end} · 한국시간 기준`
+              : '조회 기간의 이용 현황을 불러오는 중입니다.'}
           </p>
         </div>
-        <div className="analytics-live">
-          <span className="analytics-live-dot" aria-hidden="true" />
+        <div>
           <span>최근 5분 방문자</span>
           <strong>
             {report ? number(report.summary.active_visitors) : '—'}
@@ -567,7 +562,7 @@ function AnalyticsContent({ token }: { token: string }) {
           </details>
         </>
       ) : null}
-    </PageLayout>
+    </AdminLayout>
   );
 }
 function Empty() {
@@ -605,6 +600,7 @@ function Timeline({ report }: { report: UsageReport }) {
   const max = Math.max(1, ...rows.map((row) => row.views));
   const [focused, setFocused] = useState<number | null>(null);
   const item = focused === null ? null : rows[focused];
+  if (!rows.length) return <Empty />;
   const label = (period: string) =>
     report.period.interval === 'hour'
       ? `${period.slice(11, 13)}시`
@@ -742,6 +738,7 @@ function Timeline({ report }: { report: UsageReport }) {
   );
 }
 function HourChart({ rows }: { rows: UsageReport['hours'] }) {
+  if (!rows.length) return <Empty />;
   const max = Math.max(1, ...rows.map((row) => row.views));
   const peak = rows.reduce(
     (top, row) => (row.views > top.views ? row : top),
@@ -776,6 +773,7 @@ function HourChart({ rows }: { rows: UsageReport['hours'] }) {
   );
 }
 function Heatmap({ rows }: { rows: UsageReport['heatmap'] }) {
+  if (!rows.length) return <Empty />;
   const days = ['월', '화', '수', '목', '금', '토', '일'];
   const max = Math.max(1, ...rows.map((row) => row.views));
   return (

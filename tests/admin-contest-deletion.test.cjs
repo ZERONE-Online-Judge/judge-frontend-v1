@@ -25,7 +25,8 @@ const mocks = {
   '@/components/admin/AdminShell': {
     AdminAccessGate: ({ children }) => children({ accessToken: 'master' }),
     AdminPanel: ({ children }) => h('section', null, children),
-    AdminTabs: () => null,
+    AdminLayout: ({ children }) => h('main', null, children),
+    AdminViewTabs: () => null,
     ContestIcon: () => null,
   },
   '@/components/common/PageLayout': {

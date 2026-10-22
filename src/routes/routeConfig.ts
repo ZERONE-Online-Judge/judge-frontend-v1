@@ -2,6 +2,7 @@ import { lazy, type ElementType } from 'react';
 import { routeText } from '@/data/uiText';
 
 const AdminContestsPage = lazy(() => import('@/pages/admin/AdminContestsPage'));
+const AdminNoticesPage = lazy(() => import('@/pages/admin/AdminNoticesPage'));
 const AdminHomePage = lazy(() => import('@/pages/admin/AdminHomePage'));
 const AdminAuditLogsPage = lazy(
   () => import('@/pages/admin/AdminAuditLogsPage'),
@@ -299,6 +300,13 @@ export const appRoutes: readonly AppRoute[] = [
     Component: OperatorAuditLogsPage,
     showInNavigation: false,
   },
+  ...['/admin/notices', '/admin/notices/new'].map((path) => ({
+    access: 'admin' as const,
+    name: '서비스 공지',
+    path,
+    Component: AdminNoticesPage,
+    showInNavigation: false,
+  })),
   {
     access: 'admin',
     name: routeText.adminContests,

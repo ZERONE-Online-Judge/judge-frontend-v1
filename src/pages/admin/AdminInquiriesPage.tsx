@@ -1,11 +1,12 @@
+import useAdminView from '@/components/admin/useAdminView';
 import { type FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AdminAccessGate,
   AdminPanel,
-  AdminTabs,
+  AdminLayout,
+  AdminViewTabs,
 } from '@/components/admin/AdminShell';
-import PageLayout from '@/components/common/PageLayout';
 import {
   answerAdminContactInquiry,
   listAdminContactInquiries,
@@ -29,7 +30,10 @@ function AdminInquiriesContent({ token }: { token: string }) {
   const queryIdentity = tokenQueryIdentity(token);
   const [expandedId, setExpandedId] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [pendingOnly, setPendingOnly] = useState(false);
+  const [view, setView] = useAdminView(
+    ['all', 'pending', 'answered'] as const,
+    'all',
+  );
 
   const inquiriesQuery = useQuery({
     queryKey: ['admin', 'contact-inquiries', queryIdentity],
@@ -60,9 +64,13 @@ function AdminInquiriesContent({ token }: { token: string }) {
   const pendingCount = inquiries.filter(
     (inquiry) => inquiry.status !== 'answered',
   ).length;
-  const visibleInquiries = pendingOnly
-    ? inquiries.filter((inquiry) => inquiry.status !== 'answered')
-    : inquiries;
+  const visibleInquiries = inquiries.filter(
+    (inquiry) =>
+      view === 'all' ||
+      (view === 'answered'
+        ? inquiry.status === 'answered'
+        : inquiry.status !== 'answered'),
+  );
 
   function submitAnswer(event: FormEvent<HTMLFormElement>, inquiryId: string) {
     event.preventDefault();
@@ -72,15 +80,10 @@ function AdminInquiriesContent({ token }: { token: string }) {
   }
 
   return (
-    <PageLayout
-      variant="management"
+    <AdminLayout
       description="서비스 문의를 최근순으로 확인하고 답변 메일을 발송합니다."
-      eyebrow="Service Master"
       title="문의 관리"
-      width="full"
     >
-      <AdminTabs />
-
       {inquiriesQuery.error ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
           {formatApiError(
@@ -90,19 +93,20 @@ function AdminInquiriesContent({ token }: { token: string }) {
         </div>
       ) : null}
 
+      <AdminViewTabs
+        label="문의 처리 상태"
+        value={view}
+        onChange={setView}
+        items={[
+          { label: '전체 문의', value: 'all' },
+          { label: `답변 필요 ${pendingCount}`, value: 'pending' },
+          { label: '답변 완료', value: 'answered' },
+        ]}
+      />
       <AdminPanel
         description={`최근 접수된 문의입니다. 답변 필요 ${pendingCount.toLocaleString('ko-KR')}건`}
         title="서비스 문의"
       >
-        <label className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
-          <input
-            className="size-4 accent-violet-600"
-            type="checkbox"
-            checked={pendingOnly}
-            onChange={(event) => setPendingOnly(event.target.checked)}
-          />
-          답변 필요한 문의만 보기 ({pendingCount}건)
-        </label>
         <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
           {visibleInquiries.length > 0 ? (
             visibleInquiries.map((inquiry) => {
@@ -203,14 +207,14 @@ function AdminInquiriesContent({ token }: { token: string }) {
             <p className="px-4 py-10 text-center text-sm font-medium text-slate-500">
               {inquiriesQuery.isLoading
                 ? '문의를 불러오는 중입니다.'
-                : pendingOnly
-                  ? '답변이 필요한 문의가 없습니다. 체크를 해제하면 전체 문의를 볼 수 있습니다.'
+                : view !== 'all'
+                  ? '해당 상태의 문의가 없습니다.'
                   : '접수된 문의가 없습니다.'}
             </p>
           )}
         </div>
       </AdminPanel>
-    </PageLayout>
+    </AdminLayout>
   );
 }
 

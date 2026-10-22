@@ -1,15 +1,16 @@
+import useAdminView from '@/components/admin/useAdminView';
 import Select from '@/shared/ui/Select';
 import ContestVisibilitySettings from '@/components/operator/ContestVisibilitySettings';
-import { type FormEvent, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AdminAccessGate,
   AdminPanel,
-  AdminTabs,
+  AdminLayout,
+  AdminViewTabs,
   ContestIcon,
 } from '@/components/admin/AdminShell';
-import PageLayout from '@/components/common/PageLayout';
 import {
   assignAdminContestOperator,
   createAdminContest,
@@ -80,7 +81,10 @@ export default function AdminContestsPage() {
 function AdminContestsContent({ token }: { token: string }) {
   const queryClient = useQueryClient();
   const queryIdentity = tokenQueryIdentity(token);
-  const createContestSectionRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useAdminView(
+    ['list', 'create', 'masters'] as const,
+    'list',
+  );
   const [contestForm, setContestForm] = useState(emptyContestForm);
   const [operatorForm, setOperatorForm] = useState(emptyOperatorForm);
   const [contestFormError, setContestFormError] = useState('');
@@ -217,21 +221,24 @@ function AdminContestsContent({ token }: { token: string }) {
   }
 
   function scrollToCreateContest() {
-    createContestSectionRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
+    setView('create');
   }
 
   return (
-    <PageLayout
-      variant="management"
+    <AdminLayout
       description="서비스 마스터가 대회를 만들고 모든 권한을 가진 대회 마스터를 배정합니다."
-      eyebrow="Service Master"
       title="대회 관리"
-      width="full"
     >
-      <AdminTabs />
+      <AdminViewTabs
+        label="대회 관리 작업"
+        value={view}
+        onChange={setView}
+        items={[
+          { label: '대회 목록', value: 'list' },
+          { label: '대회 생성', value: 'create' },
+          { label: '마스터 배정', value: 'masters' },
+        ]}
+      />
       {deleteNotice && (
         <p
           role="status"
@@ -251,357 +258,363 @@ function AdminContestsContent({ token }: { token: string }) {
       ) : null}
 
       <div className="grid gap-6">
-        <AdminPanel
-          actions={
-            <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-              onClick={scrollToCreateContest}
-              type="button"
-            >
-              <ContestIcon />
-              대회 생성
-            </button>
-          }
-          description="시작 시간이 최근인 대회부터 표시됩니다. 대회명이나 주최 기관으로 검색하고 ‘운영 설정’에서 일정·문제·참가팀을 관리하세요."
-          title="대회 목록"
-        >
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="grid min-w-0 flex-1 gap-2 text-xs font-medium text-slate-600">
-              대회 검색
-              <input
-                className="h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                type="search"
-                placeholder="대회명 또는 주최 기관"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2 text-xs font-medium text-slate-600">
-              대회 상태
-              <Select
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                <option value="all">전체 상태</option>
-                {[...new Set(Object.values(statusLabels))].map((label) => (
-                  <option key={label} value={label}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            {search || statusFilter !== 'all' ? (
+        {view === 'list' && (
+          <AdminPanel
+            actions={
               <button
-                className="h-11 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600"
-                onClick={() => {
-                  setSearch('');
-                  setStatusFilter('all');
-                }}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                onClick={scrollToCreateContest}
                 type="button"
               >
-                검색 초기화
+                <ContestIcon />
+                대회 생성
               </button>
-            ) : null}
-            <span className="py-3 text-xs text-slate-500" role="status">
-              {filteredContests.length} / {contests.length}개
-            </span>
-          </div>
-          <div className="max-h-[560px] overflow-auto rounded-lg border border-slate-200">
-            <table className="w-full min-w-[960px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-                <tr>
-                  <th className="w-72 border-r border-b border-slate-200 px-4 py-3">
-                    대회
-                  </th>
-                  <th className="w-44 border-r border-b border-slate-200 px-4 py-3">
-                    주최
-                  </th>
-                  <th className="w-32 border-r border-b border-slate-200 px-4 py-3">
-                    상태
-                  </th>
-                  <th className="w-40 border-r border-b border-slate-200 px-4 py-3">
-                    시작
-                  </th>
-                  <th className="w-40 border-r border-b border-slate-200 px-4 py-3">
-                    종료
-                  </th>
-                  <th className="w-28 border-b border-slate-200 px-4 py-3">
-                    관리
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredContests.length > 0 ? (
-                  filteredContests.map((contest) => (
-                    <ContestRow
-                      contest={contest}
-                      key={contest.contest_id}
-                      onDelete={() => {
-                        deleteContestMutation.reset();
-                        setConfirmTitle('');
-                        setDeletingContest(contest);
-                      }}
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      className="px-4 py-10 text-center text-sm font-medium text-slate-500"
-                      colSpan={6}
-                    >
-                      {contestsQuery.isLoading
-                        ? '대회 목록을 불러오는 중입니다.'
-                        : contests.length
-                          ? '조건에 맞는 대회가 없습니다. 검색어나 상태 필터를 변경하세요.'
-                          : '등록된 대회가 없습니다. 대회 생성 버튼으로 첫 대회를 만들어보세요.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </AdminPanel>
-
-        <AdminPanel
-          description="처음 배정하는 계정은 대회 총괄, 이후 배정하는 계정은 대회 마스터가 됩니다. 두 역할 모두 대회의 모든 권한을 가집니다. 총괄 변경은 현재 총괄의 위임으로만 가능합니다."
-          title="대회 마스터 배정"
-        >
-          <form
-            className="grid gap-4 lg:grid-cols-3"
-            onSubmit={handleAssignOperator}
+            }
+            description="시작 시간이 최근인 대회부터 표시됩니다. 대회명이나 주최 기관으로 검색하고 ‘운영 설정’에서 일정·문제·참가팀을 관리하세요."
+            title="대회 목록"
           >
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">
-              대회
-              <Select
-                className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                onChange={(event) =>
-                  setOperatorForm((prev) => ({
-                    ...prev,
-                    contestId: event.target.value,
-                  }))
-                }
-                value={operatorForm.contestId}
-              >
-                <option value="">대회 선택</option>
-                {contests.map((contest) => (
-                  <option key={contest.contest_id} value={contest.contest_id}>
-                    {contest.title || contest.organization_name}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">
-              대회 마스터 이메일
-              <input
-                disabled={
-                  !operatorForm.contestId || assignOperatorMutation.isPending
-                }
-                className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                onChange={(event) =>
-                  setOperatorForm((prev) => ({
-                    ...prev,
-                    email: event.target.value,
-                  }))
-                }
-                placeholder="operator@example.com"
-                type="email"
-                value={operatorForm.email}
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">
-              표시 이름 (선택)
-              <input
-                disabled={
-                  !operatorForm.contestId || assignOperatorMutation.isPending
-                }
-                className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                onChange={(event) =>
-                  setOperatorForm((prev) => ({
-                    ...prev,
-                    displayName: event.target.value,
-                  }))
-                }
-                placeholder="예: 대회 운영팀"
-                value={operatorForm.displayName}
-              />
-            </label>
-
-            {operatorFormError || assignOperatorMutation.error ? (
-              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 lg:col-span-3">
-                {operatorFormError ||
-                  formatApiError(
-                    assignOperatorMutation.error,
-                    '운영자 배정에 실패했습니다',
-                  )}
-              </p>
-            ) : null}
-
-            <div className="flex justify-end lg:col-span-3">
-              <button
-                className="h-11 rounded-lg border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:text-slate-400"
-                disabled={
-                  assignOperatorMutation.isPending ||
-                  !operatorForm.contestId ||
-                  !operatorForm.email.trim()
-                }
-                type="submit"
-              >
-                {assignOperatorMutation.isPending
-                  ? '배정 중'
-                  : '대회 마스터 배정'}
-              </button>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="grid min-w-0 flex-1 gap-2 text-xs font-medium text-slate-600">
+                대회 검색
+                <input
+                  className="h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  type="search"
+                  placeholder="대회명 또는 주최 기관"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+              <label className="grid gap-2 text-xs font-medium text-slate-600">
+                대회 상태
+                <Select
+                  className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                >
+                  <option value="all">전체 상태</option>
+                  {[...new Set(Object.values(statusLabels))].map((label) => (
+                    <option key={label} value={label}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              {search || statusFilter !== 'all' ? (
+                <button
+                  className="h-11 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600"
+                  onClick={() => {
+                    setSearch('');
+                    setStatusFilter('all');
+                  }}
+                  type="button"
+                >
+                  검색 초기화
+                </button>
+              ) : null}
+              <span className="py-3 text-xs text-slate-500" role="status">
+                {filteredContests.length} / {contests.length}개
+              </span>
             </div>
-          </form>
-          {operatorNotice ? (
-            <p
-              role="status"
-              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-            >
-              {operatorNotice}
-            </p>
-          ) : null}
-        </AdminPanel>
+            <div className="max-h-[560px] overflow-auto rounded-lg border border-slate-200">
+              <table className="admin-contest-table w-full table-fixed border-collapse text-left text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
+                  <tr>
+                    <th className="w-72 border-r border-b border-slate-200 px-4 py-3">
+                      대회
+                    </th>
+                    <th className="w-44 border-r border-b border-slate-200 px-4 py-3">
+                      주최
+                    </th>
+                    <th className="w-32 border-r border-b border-slate-200 px-4 py-3">
+                      상태
+                    </th>
+                    <th className="w-40 border-r border-b border-slate-200 px-4 py-3">
+                      시작
+                    </th>
+                    <th className="w-40 border-r border-b border-slate-200 px-4 py-3">
+                      종료
+                    </th>
+                    <th className="w-28 border-b border-slate-200 px-4 py-3">
+                      관리
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredContests.length > 0 ? (
+                    filteredContests.map((contest) => (
+                      <ContestRow
+                        contest={contest}
+                        key={contest.contest_id}
+                        onDelete={() => {
+                          deleteContestMutation.reset();
+                          setConfirmTitle('');
+                          setDeletingContest(contest);
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        className="px-4 py-10 text-center text-sm font-medium text-slate-500"
+                        colSpan={6}
+                      >
+                        {contestsQuery.isLoading
+                          ? '대회 목록을 불러오는 중입니다.'
+                          : contests.length
+                            ? '조건에 맞는 대회가 없습니다. 검색어나 상태 필터를 변경하세요.'
+                            : '등록된 대회가 없습니다. 대회 생성 버튼으로 첫 대회를 만들어보세요.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </AdminPanel>
+        )}
 
-        <div ref={createContestSectionRef}>
+        {view === 'masters' && (
           <AdminPanel
-            description="대회는 초안 상태로 생성하고, 이후 운영 페이지에서 일정과 공개 상태를 설정합니다."
-            title="대회 생성"
+            description="처음 배정하는 계정은 대회 총괄, 이후 배정하는 계정은 대회 마스터가 됩니다. 두 역할 모두 대회의 모든 권한을 가집니다. 총괄 변경은 현재 총괄의 위임으로만 가능합니다."
+            title="대회 마스터 배정"
           >
-            <form className="grid gap-4" onSubmit={handleCreateContest}>
-              <p className="text-sm text-slate-500">
-                주최 기관은 필수입니다. 초기 계정은 모든 권한을 가진 대회 총괄로
-                등록되며, 나중에 배정할 수도 있습니다.
-              </p>
-              <ContestVisibilitySettings
-                visibility={contestForm.visibility}
-                afterEnd={contestForm.visibility_after_end}
-                onChange={(field, value) =>
-                  setContestForm((prev) => ({ ...prev, [field]: value }))
-                }
-              />
-              <p className="zoj-settings-note">
-                상태: 초안 · 생성 후 운영 설정에서 상태와 일정을 변경할 수
-                있습니다.
-              </p>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  대회명
-                  <input
-                    className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                    onChange={(event) =>
-                      setContestForm((prev) => ({
-                        ...prev,
-                        title: event.target.value,
-                      }))
-                    }
-                    placeholder="예: HEPC 1"
-                    value={contestForm.title}
-                  />
-                </label>
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  주최 기관 (필수)
-                  <input
-                    className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                    onChange={(event) =>
-                      setContestForm((prev) => ({
-                        ...prev,
-                        organizationName: event.target.value,
-                      }))
-                    }
-                    placeholder="예: COSS"
-                    value={contestForm.organizationName}
-                  />
-                </label>
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  초기 대회 총괄 이메일 (선택)
-                  <input
-                    className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                    onChange={(event) =>
-                      setContestForm((prev) => ({
-                        ...prev,
-                        operatorEmail: event.target.value,
-                      }))
-                    }
-                    placeholder="operator@example.com"
-                    type="email"
-                    value={contestForm.operatorEmail}
-                  />
-                </label>
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  초기 총괄 표시 이름
-                  <input
-                    className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                    maxLength={120}
-                    placeholder="예: 손동열"
-                    onChange={(event) =>
-                      setContestForm((prev) => ({
-                        ...prev,
-                        operatorDisplayName: event.target.value,
-                      }))
-                    }
-                    value={contestForm.operatorDisplayName}
-                  />
-                  <span className="text-xs font-normal text-slate-500">
-                    이메일과 함께 입력하세요. 비워 두면 이메일을 표시합니다.
-                  </span>
-                </label>
-              </div>
+            <form
+              className="grid gap-4 lg:grid-cols-3"
+              onSubmit={handleAssignOperator}
+            >
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                개요
-                <textarea
-                  className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                대회
+                <Select
+                  className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                   onChange={(event) =>
-                    setContestForm((prev) => ({
+                    setOperatorForm((prev) => ({
                       ...prev,
-                      overview: event.target.value,
+                      contestId: event.target.value,
                     }))
                   }
-                  placeholder="대회 소개를 입력하세요."
-                  value={contestForm.overview}
+                  value={operatorForm.contestId}
+                >
+                  <option value="">대회 선택</option>
+                  {contests.map((contest) => (
+                    <option key={contest.contest_id} value={contest.contest_id}>
+                      {contest.title || contest.organization_name}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                대회 마스터 이메일
+                <input
+                  disabled={
+                    !operatorForm.contestId || assignOperatorMutation.isPending
+                  }
+                  className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                  onChange={(event) =>
+                    setOperatorForm((prev) => ({
+                      ...prev,
+                      email: event.target.value,
+                    }))
+                  }
+                  placeholder="operator@example.com"
+                  type="email"
+                  value={operatorForm.email}
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                표시 이름 (선택)
+                <input
+                  disabled={
+                    !operatorForm.contestId || assignOperatorMutation.isPending
+                  }
+                  className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                  onChange={(event) =>
+                    setOperatorForm((prev) => ({
+                      ...prev,
+                      displayName: event.target.value,
+                    }))
+                  }
+                  placeholder="예: 대회 운영팀"
+                  value={operatorForm.displayName}
                 />
               </label>
 
-              {contestFormError || createContestMutation.error ? (
-                <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                  {contestFormError ||
+              {operatorFormError || assignOperatorMutation.error ? (
+                <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 lg:col-span-3">
+                  {operatorFormError ||
                     formatApiError(
-                      createContestMutation.error,
-                      '대회 생성에 실패했습니다',
+                      assignOperatorMutation.error,
+                      '운영자 배정에 실패했습니다',
                     )}
                 </p>
               ) : null}
 
-              <div className="flex justify-end">
+              <div className="flex justify-end lg:col-span-3">
                 <button
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:bg-slate-300"
-                  disabled={createContestMutation.isPending}
+                  className="h-11 rounded-lg border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:text-slate-400"
+                  disabled={
+                    assignOperatorMutation.isPending ||
+                    !operatorForm.contestId ||
+                    !operatorForm.email.trim()
+                  }
                   type="submit"
                 >
-                  <ContestIcon />
-                  {createContestMutation.isPending ? '생성 중' : '대회 생성'}
+                  {assignOperatorMutation.isPending
+                    ? '배정 중'
+                    : '대회 마스터 배정'}
                 </button>
               </div>
             </form>
-            {createdContest ? (
-              <div
+            {operatorNotice ? (
+              <p
                 role="status"
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
               >
-                <span>
-                  {createdContest.title} 대회를 초안으로 생성했습니다. 다음으로
-                  일정과 참가 유형을 설정하세요.
-                </span>
-                <Link
-                  className="rounded-lg border border-emerald-300 bg-white px-3 py-2 font-medium"
-                  to={`/operator/contests/${createdContest.contest_id}/settings`}
-                >
-                  운영 설정으로 이동
-                </Link>
-              </div>
+                {operatorNotice}
+              </p>
             ) : null}
           </AdminPanel>
-        </div>
+        )}
+
+        {view === 'create' && (
+          <div>
+            <AdminPanel
+              description="대회는 초안 상태로 생성하고, 이후 운영 페이지에서 일정과 공개 상태를 설정합니다."
+              title="대회 생성"
+            >
+              <form className="grid gap-4" onSubmit={handleCreateContest}>
+                <p className="text-sm text-slate-500">
+                  주최 기관은 필수입니다. 초기 계정은 모든 권한을 가진 대회
+                  총괄로 등록되며, 나중에 배정할 수도 있습니다.
+                </p>
+                <ContestVisibilitySettings
+                  visibility={contestForm.visibility}
+                  afterEnd={contestForm.visibility_after_end}
+                  onChange={(field, value) =>
+                    setContestForm((prev) => ({ ...prev, [field]: value }))
+                  }
+                />
+                <p className="zoj-settings-note">
+                  상태: 초안 · 생성 후 운영 설정에서 상태와 일정을 변경할 수
+                  있습니다.
+                </p>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                    대회명
+                    <input
+                      className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      onChange={(event) =>
+                        setContestForm((prev) => ({
+                          ...prev,
+                          title: event.target.value,
+                        }))
+                      }
+                      placeholder="예: HEPC 1"
+                      value={contestForm.title}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                    주최 기관 (필수)
+                    <input
+                      className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      onChange={(event) =>
+                        setContestForm((prev) => ({
+                          ...prev,
+                          organizationName: event.target.value,
+                        }))
+                      }
+                      placeholder="예: COSS"
+                      value={contestForm.organizationName}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                    초기 대회 총괄 이메일 (선택)
+                    <input
+                      className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      onChange={(event) =>
+                        setContestForm((prev) => ({
+                          ...prev,
+                          operatorEmail: event.target.value,
+                        }))
+                      }
+                      placeholder="operator@example.com"
+                      type="email"
+                      value={contestForm.operatorEmail}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                    초기 총괄 표시 이름
+                    <input
+                      className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      maxLength={120}
+                      placeholder="예: 손동열"
+                      onChange={(event) =>
+                        setContestForm((prev) => ({
+                          ...prev,
+                          operatorDisplayName: event.target.value,
+                        }))
+                      }
+                      value={contestForm.operatorDisplayName}
+                    />
+                    <span className="text-xs font-normal text-slate-500">
+                      이메일과 함께 입력하세요. 비워 두면 이메일을 표시합니다.
+                    </span>
+                  </label>
+                </div>
+                <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                  개요
+                  <textarea
+                    className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    onChange={(event) =>
+                      setContestForm((prev) => ({
+                        ...prev,
+                        overview: event.target.value,
+                      }))
+                    }
+                    placeholder="대회 소개를 입력하세요."
+                    value={contestForm.overview}
+                  />
+                </label>
+
+                {contestFormError || createContestMutation.error ? (
+                  <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                    {contestFormError ||
+                      formatApiError(
+                        createContestMutation.error,
+                        '대회 생성에 실패했습니다',
+                      )}
+                  </p>
+                ) : null}
+
+                <div className="flex justify-end">
+                  <button
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:bg-slate-300"
+                    disabled={createContestMutation.isPending}
+                    type="submit"
+                  >
+                    <ContestIcon />
+                    {createContestMutation.isPending ? '생성 중' : '대회 생성'}
+                  </button>
+                </div>
+              </form>
+              {createdContest ? (
+                <div
+                  role="status"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                >
+                  <span>
+                    {createdContest.title} 대회를 초안으로 생성했습니다.
+                    다음으로 일정과 참가 유형을 설정하세요.
+                  </span>
+                  <Link
+                    className="rounded-lg border border-emerald-300 bg-white px-3 py-2 font-medium"
+                    to={`/operator/contests/${createdContest.contest_id}/settings`}
+                  >
+                    운영 설정으로 이동
+                  </Link>
+                </div>
+              ) : null}
+            </AdminPanel>
+          </div>
+        )}
       </div>
       {deletingContest && (
         <ModalDialog
@@ -676,7 +689,7 @@ function AdminContestsContent({ token }: { token: string }) {
           </div>
         </ModalDialog>
       )}
-    </PageLayout>
+    </AdminLayout>
   );
 }
 

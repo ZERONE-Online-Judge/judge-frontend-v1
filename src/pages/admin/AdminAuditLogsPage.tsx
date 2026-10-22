@@ -1,15 +1,16 @@
+import useAdminView from '@/components/admin/useAdminView';
 import Select from '@/shared/ui/Select';
 import { type FormEvent, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   AdminAccessGate,
   AdminPanel,
-  AdminTabs,
+  AdminLayout,
+  AdminViewTabs,
 } from '@/components/admin/AdminShell';
 import AccessLogTable from '@/components/audit/AccessLogTable';
 import MailDeliveryLogPanel from '@/components/audit/MailDeliveryLogPanel';
 import OperationalAuditLogTable from '@/components/audit/OperationalAuditLogTable';
-import PageLayout from '@/components/common/PageLayout';
 import {
   getAdminAccessLogStats,
   listAdminAccessLogs,
@@ -32,7 +33,8 @@ export default function AdminAuditLogsPage() {
 function AdminAuditLogsContent({ token }: { token: string }) {
   const isVisible = useDocumentVisibility();
   const queryIdentity = tokenQueryIdentity(token);
-  const [logType, setLogType] = useState<'operations' | 'access' | 'email'>(
+  const [logType, setLogType] = useAdminView(
+    ['operations', 'access', 'email'] as const,
     'operations',
   );
   const [scopeFilter, setScopeFilter] = useState('');
@@ -130,14 +132,20 @@ function AdminAuditLogsContent({ token }: { token: string }) {
   }
 
   return (
-    <PageLayout
-      variant="management"
+    <AdminLayout
       description="서비스 전체의 운영 작업, 접속 기록과 이메일 발송 기록을 확인합니다."
-      eyebrow="Admin Audit"
       title="운영 로그"
-      width="full"
     >
-      <AdminTabs />
+      <AdminViewTabs
+        label="운영 로그 종류"
+        value={logType}
+        onChange={setLogType}
+        items={[
+          { label: '작업 로그', value: 'operations' },
+          { label: '접속 로그', value: 'access' },
+          { label: '이메일 발송', value: 'email' },
+        ]}
+      />
       <AdminPanel
         description={
           logType === 'email'
@@ -169,29 +177,6 @@ function AdminAuditLogsContent({ token }: { token: string }) {
           ) : undefined
         }
       >
-        <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {[
-            ['operations', '작업 로그'],
-            ['access', '접속 로그'],
-            ['email', '이메일 발송 로그'],
-          ].map(([value, label]) => (
-            <button
-              className={[
-                'rounded-lg px-4 py-2 text-sm font-semibold transition',
-                logType === value
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800',
-              ].join(' ')}
-              key={value}
-              onClick={() =>
-                setLogType(value as 'operations' | 'access' | 'email')
-              }
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         {logType === 'email' ? (
           <MailDeliveryLogPanel token={token} />
         ) : (
@@ -362,6 +347,6 @@ function AdminAuditLogsContent({ token }: { token: string }) {
           </>
         )}
       </AdminPanel>
-    </PageLayout>
+    </AdminLayout>
   );
 }

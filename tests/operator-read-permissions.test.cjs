@@ -791,7 +791,7 @@ test('service masters query all mail instead of the contest-specific endpoint', 
   session = withScopes([]);
   session.operatorSession.staff.is_service_master = true;
   await render(AdminAuditPage, '/audit-logs');
-  await click(button('이메일 발송 로그'));
+  await click(button('이메일 발송'));
   assert.equal(requests('mail').at(-1).contestId, undefined);
   assert.ok(
     container.querySelector('input[placeholder="받는 이메일, 제목, 대회명"]'),

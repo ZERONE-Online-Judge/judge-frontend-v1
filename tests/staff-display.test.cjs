@@ -169,7 +169,8 @@ const mocks = {
     AdminAccessGate: ({ children }) => children(operatorSession),
     AdminMetricCard: () => null,
     AdminPanel: wrapper,
-    AdminTabs: () => null,
+    AdminLayout: wrapper,
+    AdminViewTabs: () => null,
     JudgeIcon: () => null,
   },
   '@/domains/identityAccess/queryIdentity': {
@@ -488,7 +489,7 @@ test('participant submission table displays titles only for operator tests inclu
   assert.equal(submissions[0].submitted_by_name, '손동열');
 });
 test('admin judge submission details use the same operator title and preserve mock and participant labels', async () => {
-  await render(h(AdminJudge), '/admin/judge');
+  await render(h(AdminJudge), '/admin/judge?view=submissions');
   for (let index = 0; index < submissionCases.length; index++) {
     const openButtons = [...container.querySelectorAll('button')].filter(
       (item) => item.textContent.trim() === '보기',

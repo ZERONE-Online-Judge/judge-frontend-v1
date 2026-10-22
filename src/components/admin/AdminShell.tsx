@@ -2,177 +2,244 @@ import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import PageLayout from '@/components/common/PageLayout';
 import { ManagementPanel } from '@/components/common/ManagementCards';
-import { accessText, routeText } from '@/data/uiText';
+import { accessText } from '@/data/uiText';
 import { isServiceMaster } from '@/domains/identityAccess/permissions';
 import type { StaffSession } from '@/domains/identityAccess/types';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
+import './AdminConsole.css';
 
-type AdminAccessGateProps = {
+const adminGroups = [
+  {
+    label: '워크스페이스',
+    items: [
+      { label: '대시보드', path: '/admin', icon: DashboardIcon, end: true },
+      { label: '서비스 공지', path: '/admin/notices', icon: NoticeIcon },
+      { label: '대회 관리', path: '/admin/contests', icon: ContestIcon },
+      { label: '문의 관리', path: '/admin/inquiries', icon: NoticeIcon },
+    ],
+  },
+  {
+    label: '시스템 · 기록',
+    items: [
+      { label: '채점 관리', path: '/admin/judge', icon: JudgeIcon },
+      { label: '운영 통계', path: '/admin/analytics', icon: AnalyticsIcon },
+      { label: '운영 로그', path: '/admin/audit-logs', icon: ContestIcon },
+    ],
+  },
+];
+
+export function AdminAccessGate({
+  children,
+}: {
   children: (session: StaffSession) => ReactNode;
-};
+}) {
+  const generalSession = useSessionStore((state) => state.generalSession);
+  const staffSession = generalSession?.operatorSession;
+  if (!staffSession || !isServiceMaster(generalSession)) {
+    return (
+      <PageLayout
+        variant="management"
+        title={
+          staffSession
+            ? accessText.adminNoPermissionTitle
+            : accessText.adminLoginTitle
+        }
+        description={
+          staffSession
+            ? accessText.adminNoPermissionDescription
+            : accessText.adminLoginDescription
+        }
+      >
+        {staffSession ? (
+          <p>{accessText.adminNoPermissionMessage}</p>
+        ) : (
+          <Link className="admin-action admin-action--primary" to="/login">
+            {accessText.loginPageLink}
+          </Link>
+        )}
+      </PageLayout>
+    );
+  }
+  return children(staffSession);
+}
 
-type AdminMetricCardProps = {
-  accent?: 'violet' | 'amber' | 'emerald' | 'rose' | 'slate';
+export function AdminLayout({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string;
   description?: ReactNode;
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-};
-
-type AdminPanelProps = {
   actions?: ReactNode;
   children: ReactNode;
-  description?: ReactNode;
+}) {
+  return (
+    <section className="admin-console">
+      <aside className="admin-sidebar">
+        <Link to="/admin" className="admin-brand">
+          <span className="admin-brand-mark">Z</span>
+          <span>
+            <strong>ZOJ Admin</strong>
+            <small>서비스 관리 콘솔</small>
+          </span>
+        </Link>
+        <AdminTabs />
+        <Link className="admin-public-link" to="/">
+          서비스 홈페이지 <InterfaceIcon name="arrowUpRight" />
+        </Link>
+      </aside>
+      <div className="admin-workspace">
+        <header className="admin-page-header">
+          <div>
+            <p className="admin-breadcrumb">
+              <Link to="/admin">관리자 콘솔</Link>
+              <span>/</span>
+              <span>{title}</span>
+            </p>
+            <h1>{title}</h1>
+            {description ? (
+              <p className="admin-page-description">{description}</p>
+            ) : null}
+          </div>
+          {actions ? <div className="admin-page-actions">{actions}</div> : null}
+        </header>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+export function AdminTabs() {
+  return (
+    <nav aria-label="관리자 메뉴" className="admin-navigation">
+      {adminGroups.map((group) => (
+        <div className="admin-navigation-group" key={group.label}>
+          <p>{group.label}</p>
+          {group.items.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <NavLink
+                key={tab.path}
+                end={'end' in tab && tab.end}
+                to={tab.path}
+                className={({ isActive }) =>
+                  ['admin-navigation-link', isActive && 'is-active']
+                    .filter(Boolean)
+                    .join(' ')
+                }
+              >
+                <Icon />
+                <span>{tab.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+export function AdminSectionTabs({
+  items,
+  label = '작업 메뉴',
+}: {
+  label?: string;
+  items: { label: string; value: string }[];
+}) {
+  return (
+    <nav className="admin-section-tabs" aria-label={label}>
+      {items.map((item) => (
+        <NavLink
+          to={item.value}
+          key={item.value}
+          end
+          className={({ isActive }) =>
+            ['admin-section-link', isActive && 'is-active']
+              .filter(Boolean)
+              .join(' ')
+          }
+        >
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+export function AdminViewTabs<T extends string>({
+  items,
+  value,
+  onChange,
+  label = '작업 메뉴',
+}: {
+  items: { label: string; value: T }[];
+  value: T;
+  onChange: (value: T) => void;
+  label?: string;
+}) {
+  return (
+    <div className="admin-section-tabs" role="group" aria-label={label}>
+      {items.map((item) => (
+        <button
+          type="button"
+          aria-pressed={value === item.value}
+          key={item.value}
+          className={['admin-section-link', value === item.value && 'is-active']
+            .filter(Boolean)
+            .join(' ')}
+          onClick={() => onChange(item.value)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function AdminPanel(props: {
   title: string;
-};
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return <ManagementPanel {...props} />;
+}
 
-const adminTabs = [
-  {
-    label: routeText.adminHome,
-    path: '/admin',
-    icon: DashboardIcon,
-    end: true,
-  },
-  {
-    label: routeText.adminContests,
-    path: '/admin/contests',
-    icon: ContestIcon,
-  },
-  { label: routeText.adminJudge, path: '/admin/judge', icon: JudgeIcon },
-  { label: '운영 통계', path: '/admin/analytics', icon: AnalyticsIcon },
-  {
-    label: routeText.adminAuditLogs,
-    path: '/admin/audit-logs',
-    icon: NoticeIcon,
-  },
-  { label: '문의', path: '/admin/inquiries', icon: NoticeIcon },
-] as const;
-
-const accentClassNames = {
-  violet: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  amber: 'border-amber-200 bg-amber-50 text-amber-700',
-  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  rose: 'border-rose-200 bg-rose-50 text-rose-700',
-  slate: 'border-slate-200 bg-slate-50 text-slate-700',
-} as const;
-
+type AdminAccent = 'violet' | 'amber' | 'emerald' | 'rose' | 'slate';
 export function AdminIconBadge({
   children,
   tone = 'violet',
 }: {
   children: ReactNode;
-  tone?: keyof typeof accentClassNames;
+  tone?: AdminAccent;
 }) {
-  return (
-    <span
-      className={[
-        'inline-flex size-9 shrink-0 items-center justify-center rounded-lg border',
-        accentClassNames[tone],
-      ].join(' ')}
-    >
-      {children}
-    </span>
-  );
+  return <span className={`admin-icon-badge is-${tone}`}>{children}</span>;
 }
-
-export function AdminAccessGate({ children }: AdminAccessGateProps) {
-  const generalSession = useSessionStore((state) => state.generalSession);
-  const staffSession = generalSession?.operatorSession;
-
-  if (!staffSession) {
-    return (
-      <PageLayout
-        variant="management"
-        description={accessText.adminLoginDescription}
-        title={accessText.adminLoginTitle}
-      >
-        <Link
-          className="w-fit rounded-lg border border-indigo-200 bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-          to="/login"
-        >
-          {accessText.loginPageLink}
-        </Link>
-      </PageLayout>
-    );
-  }
-
-  if (!isServiceMaster(generalSession)) {
-    return (
-      <PageLayout
-        variant="management"
-        description={accessText.adminNoPermissionDescription}
-        title={accessText.adminNoPermissionTitle}
-      >
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800">
-          {accessText.adminNoPermissionMessage}
-        </div>
-      </PageLayout>
-    );
-  }
-
-  return children(staffSession);
-}
-
-export function AdminTabs() {
-  return (
-    <nav
-      aria-label="관리자 메뉴"
-      className="zoj-management-tabs flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5"
-    >
-      {adminTabs.map((tab) => {
-        const Icon = tab.icon;
-
-        return (
-          <NavLink
-            className={({ isActive }) =>
-              [
-                'inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition',
-                'shrink-0 whitespace-nowrap',
-                isActive
-                  ? 'border-indigo-100 bg-indigo-50 text-indigo-700'
-                  : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-              ].join(' ')
-            }
-            end={'end' in tab ? tab.end : undefined}
-            key={tab.path}
-            to={tab.path}
-          >
-            <Icon />
-            {tab.label}
-          </NavLink>
-        );
-      })}
-    </nav>
-  );
-}
-
 export function AdminMetricCard({
   accent = 'violet',
   description,
   icon,
   label,
   value,
-}: AdminMetricCardProps) {
+}: {
+  accent?: AdminAccent;
+  description?: ReactNode;
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+}) {
   return (
-    <article className="zoj-card flex items-start gap-4 sm:grid">
-      <AdminIconBadge tone={accent}>{icon}</AdminIconBadge>
-      <div className="grid min-w-0 gap-1">
-        <p className="text-sm font-semibold text-slate-500">{label}</p>
-        <strong className="text-2xl font-semibold tracking-tight text-slate-950 tabular-nums">
-          {value}
-        </strong>
-        {description ? (
-          <p className="text-sm leading-6 font-normal text-slate-500">
-            {description}
-          </p>
-        ) : null}
+    <article className="admin-metric">
+      <div className="admin-metric-heading">
+        <span>{label}</span>
+        <AdminIconBadge tone={accent}>{icon}</AdminIconBadge>
       </div>
+      <strong>{value}</strong>
+      {description ? <p>{description}</p> : null}
     </article>
   );
-}
-
-export function AdminPanel(props: AdminPanelProps) {
-  return <ManagementPanel {...props} />;
 }
 
 export function DashboardIcon() {

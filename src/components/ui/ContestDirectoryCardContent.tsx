@@ -84,9 +84,17 @@ export default function ContestDirectoryCardContent({
             <span className="directory-private">비공개</span>
           ) : null}
         </div>
-        {countdown && !meta.scheduleTbd ? (
-          <span className="directory-countdown">{countdown}</span>
-        ) : null}
+        <div className="directory-card-trailing">
+          {countdown && !meta.scheduleTbd ? (
+            <span className="directory-countdown">{countdown}</span>
+          ) : null}
+          <span className="directory-card-action">
+            <span className="directory-card-action-label">
+              {operator ? '운영 화면' : '대회 보기'}
+            </span>
+            <ExperienceArrow />
+          </span>
+        </div>
       </div>
       <div className="directory-card-heading">
         <div className="directory-card-date" aria-hidden="true">
@@ -114,23 +122,23 @@ export default function ContestDirectoryCardContent({
             const schedule = moment(value);
             return (
               <li key={label}>
+                <span className="directory-schedule-label">{label}</span>
                 <div className="directory-schedule-detail">
-                  <span>{label}</span>
+                  <time
+                    className="directory-schedule-time"
+                    dateTime={schedule.dateTime}
+                  >
+                    {schedule.time}
+                  </time>
                   <time dateTime={schedule.dateTime}>{schedule.date}</time>
                 </div>
-                <time
-                  className="directory-schedule-time"
-                  dateTime={schedule.dateTime}
-                >
-                  {schedule.time}
-                </time>
               </li>
             );
           })}
         </ol>
       )}
-      <div className="directory-card-footer">
-        {publicLabels.length ? (
+      {publicLabels.length ? (
+        <div className="directory-card-footer">
           <dl className="directory-resources" aria-label="자료 공개 범위">
             {resourceGroups(publicLabels).map(([access, names]) => (
               <div key={access}>
@@ -139,12 +147,8 @@ export default function ContestDirectoryCardContent({
               </div>
             ))}
           </dl>
-        ) : null}
-        <span className="directory-card-action">
-          {operator ? '운영 화면' : '대회 보기'}
-          <ExperienceArrow />
-        </span>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

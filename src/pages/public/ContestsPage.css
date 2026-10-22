@@ -371,29 +371,68 @@
 }
 .contest-directory .directory-card-schedule {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
   margin: 0;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--zoj-surface);
+  padding: 0 0 0 4px;
+  list-style: none;
   font-size: 12px;
   line-height: 1.6;
 }
-.contest-directory .directory-card-schedule > div {
-  display: grid;
+.contest-directory .directory-card-schedule > li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-width: 0;
-  gap: 3px;
+  gap: 16px;
+  padding: 8px 0 8px 26px;
 }
-.contest-directory .directory-card-schedule dt {
+.contest-directory .directory-card-schedule > li::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--zoj-accent);
+  border-radius: 50%;
+  background: var(--zoj-accent);
+  outline: 4px solid var(--zoj-surface-raised);
+  transform: translateY(-50%);
+}
+.contest-directory .directory-card-schedule > li:last-child::before {
+  background: var(--zoj-surface-raised);
+}
+.contest-directory .directory-card-schedule > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 1px;
+  height: 100%;
+  background: var(--zoj-border);
+}
+.contest-directory .directory-schedule-detail {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.contest-directory .directory-schedule-detail > span {
   color: #7c8393;
   font-size: 11px;
 }
-.contest-directory .directory-card-schedule dd {
-  color: #454e62;
-  margin: 0;
-  font-variant-numeric: tabular-nums;
+.contest-directory .directory-schedule-detail > time {
+  color: #747b8c;
   overflow-wrap: anywhere;
+}
+.contest-directory .directory-schedule-time {
+  flex-shrink: 0;
+  color: #363e52;
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 .contest-directory .directory-schedule-tbd {
   margin: 0;
@@ -675,15 +714,6 @@
   }
   .contest-directory .directory-card-info h3 {
     font-size: 19px;
-  }
-  .contest-directory .directory-card-schedule {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 7px;
-  }
-  .contest-directory .directory-card-schedule > div {
-    grid-template-columns: 28px minmax(0, 1fr);
-    align-items: baseline;
-    gap: 6px;
   }
   .contest-directory .directory-section > header h2 {
     font-size: 19px;

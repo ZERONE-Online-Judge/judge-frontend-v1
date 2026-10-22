@@ -48,7 +48,7 @@ const contestSections: Omit<ContestSection, 'contests'>[] = [
     title: '시작을 기다리는 대회',
   },
   {
-    description: '종료된 대회입니다. 자료 공개 범위는 대회 설정을 따릅니다.',
+    description: '종료된 대회입니다.',
     key: 'ended',
     title: '종료된 대회',
   },

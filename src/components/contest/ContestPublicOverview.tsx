@@ -199,7 +199,7 @@ export default function ContestPublicOverview({
             <h1 id="contest-public-title">{contest.title}</h1>
             <p className="contest-public-intro">
               {ended
-                ? '종료된 대회입니다. 자료 공개 범위는 대회 설정을 따릅니다.'
+                ? '종료된 대회입니다.'
                 : phase === 'running'
                   ? '대회가 진행 중입니다.'
                   : '시작 예정인 대회입니다.'}

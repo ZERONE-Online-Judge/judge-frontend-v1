@@ -9,6 +9,8 @@ import {
 import {
   getAdminUserDetail,
   listAdminUsers,
+  adminUserSortKeys,
+  type AdminUserSort,
 } from '@/domains/identityAccess/adminUsers';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { contestStatusLabel } from '@/domains/contestAdministration/logic';
@@ -51,10 +53,32 @@ function UserDirectory({ token }: { token: string }) {
       ? Math.min(rawPage, 1000000)
       : 1;
   const email = params.get('user');
+  const requestedSort = params.get('sort') ?? 'email';
+  const sort: AdminUserSort = adminUserSortKeys.includes(
+    requestedSort as AdminUserSort,
+  )
+    ? (requestedSort as AdminUserSort)
+    : 'email';
+  const order = params.get('order') === 'desc' ? 'desc' : 'asc';
   const query = useQuery({
-    queryKey: ['admin', 'users', tokenQueryIdentity(token), q, password, page],
+    queryKey: [
+      'admin',
+      'users',
+      tokenQueryIdentity(token),
+      q,
+      password,
+      sort,
+      order,
+      page,
+    ],
     queryFn: () =>
-      listAdminUsers(token, { q, password, offset: (page - 1) * 25 }),
+      listAdminUsers(token, {
+        q,
+        password,
+        sort,
+        order,
+        offset: (page - 1) * 25,
+      }),
   });
   function update(changes: Record<string, string | null>, replace = false) {
     setParams(
@@ -129,6 +153,55 @@ function UserDirectory({ token }: { token: string }) {
             검색
           </button>
         </form>
+        <div className="admin-users-order">
+          <label>
+            정렬 기준
+            <Select
+              value={sort}
+              onChange={(event) =>
+                update({
+                  sort:
+                    event.target.value === 'email' ? null : event.target.value,
+                  page: null,
+                })
+              }
+            >
+              <option value="email">이메일</option>
+              <option value="name">이름</option>
+              <option value="contest_count">참가 대회 수</option>
+              <option value="created_at">계정 생성일</option>
+              <option value="password_updated_at">비밀번호 설정일</option>
+            </Select>
+          </label>
+          <label>
+            정렬 방향
+            <Select
+              value={order}
+              onChange={(event) =>
+                update({
+                  order:
+                    event.target.value === 'asc' ? null : event.target.value,
+                  page: null,
+                })
+              }
+            >
+              <option value="asc">
+                {sort.endsWith('_at')
+                  ? '오래된 순'
+                  : sort === 'contest_count'
+                    ? '적은 순'
+                    : '오름차순'}
+              </option>
+              <option value="desc">
+                {sort.endsWith('_at')
+                  ? '최신 순'
+                  : sort === 'contest_count'
+                    ? '많은 순'
+                    : '내림차순'}
+              </option>
+            </Select>
+          </label>
+        </div>
         {query.isPending ? (
           <p className="admin-empty" role="status">
             사용자를 불러오는 중입니다.
@@ -165,6 +238,14 @@ function UserDirectory({ token }: { token: string }) {
                         <td>
                           <strong>{user.display_name}</strong>
                           <span className="admin-user-email">{user.email}</span>
+                          {sort === 'created_at' ? (
+                            <small className="admin-user-sort-date">
+                              계정 생성:{' '}
+                              {user.account_created_at
+                                ? formatDateTime(user.account_created_at)
+                                : '생성 전'}
+                            </small>
+                          ) : null}
                         </td>
                         <td>
                           <div className="admin-user-names">
@@ -183,6 +264,12 @@ function UserDirectory({ token }: { token: string }) {
                         <td>{user.participant_contest_count}개</td>
                         <td>
                           <PasswordBadge registered={user.has_password} />
+                          {sort === 'password_updated_at' &&
+                          user.password_updated_at ? (
+                            <small className="admin-user-sort-date">
+                              {formatDateTime(user.password_updated_at)}
+                            </small>
+                          ) : null}
                         </td>
                         <td>
                           <button

@@ -1,5 +1,14 @@
 import { apiPageRequest, apiRequest } from '@/shared/api/client';
 
+export const adminUserSortKeys = [
+  'email',
+  'name',
+  'contest_count',
+  'created_at',
+  'password_updated_at',
+] as const;
+export type AdminUserSort = (typeof adminUserSortKeys)[number];
+
 export type AdminUser = {
   email: string;
   display_name: string;
@@ -38,13 +47,21 @@ export type AdminUserDetail = AdminUser & {
 
 export function listAdminUsers(
   token: string,
-  filters: { q: string; password: string; offset: number },
+  filters: {
+    q: string;
+    password: string;
+    offset: number;
+    sort: AdminUserSort;
+    order: 'asc' | 'desc';
+  },
 ) {
   const query = new URLSearchParams({
     q: filters.q,
     password: filters.password,
     offset: String(filters.offset),
     limit: '25',
+    sort: filters.sort,
+    order: filters.order,
   });
   return apiPageRequest<AdminUser[]>(`/admin/users?${query}`, token);
 }

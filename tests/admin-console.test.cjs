@@ -79,6 +79,13 @@ function source(relative) {
     if (id === '@/domains/serviceCommunication/api') return serviceApi;
     if (id === '@/domains/identityAccess/adminUsers')
       return {
+        adminUserSortKeys: [
+          'email',
+          'name',
+          'contest_count',
+          'created_at',
+          'password_updated_at',
+        ],
         listAdminUsers: async (token, filters) => {
           calls.push({ type: 'users', token, filters });
           if (userFailure) throw userFailure;
@@ -581,7 +588,7 @@ test('user directory shows names, password status and email identity', async () 
   assert.deepEqual(calls[0], {
     type: 'users',
     token: 'master',
-    filters: { q: '', password: 'all', offset: 0 },
+    filters: { q: '', password: 'all', offset: 0, sort: 'email', order: 'asc' },
   });
 });
 test('user filters and pagination update URL and server query, search resets page', async () => {
@@ -652,4 +659,56 @@ test('user directory denies ordinary accounts before requesting personal data', 
   assert.equal(calls.length, 0);
   assert.equal(host.querySelector('table'), null);
   assert.equal(host.querySelector('[role=dialog]'), null);
+});
+
+test('user sorting resets pagination, preserves filters and survives page navigation and browser back', async () => {
+  await render(
+    Users,
+    '/admin/users?q=김&password=set&page=2&sort=contest_count&order=desc',
+  );
+  assert.equal(calls.at(-1).filters.sort, 'contest_count');
+  assert.equal(calls.at(-1).filters.order, 'desc');
+  assert.equal(
+    host.querySelector('.admin-users-order select').value,
+    'contest_count',
+  );
+  await fill(host.querySelector('.admin-users-order select'), 'created_at');
+  await flush();
+  assert.equal(calls.at(-1).filters.offset, 0);
+  assert.equal(calls.at(-1).filters.q, '김');
+  assert.equal(calls.at(-1).filters.password, 'set');
+  assert.equal(calls.at(-1).filters.sort, 'created_at');
+  assert.equal(calls.at(-1).filters.order, 'desc');
+  await click(button('다음'));
+  assert.equal(calls.at(-1).filters.offset, 25);
+  assert.equal(calls.at(-1).filters.sort, 'created_at');
+  assert.equal(new URLSearchParams(location.search).get('order'), 'desc');
+  await fill(host.querySelectorAll('.admin-users-order select')[1], 'asc');
+  await flush();
+  assert.equal(calls.at(-1).filters.order, 'asc');
+  assert.equal(calls.at(-1).filters.offset, 0);
+  await act(() => navigate(-1));
+  await flush();
+  assert.equal(
+    host.querySelectorAll('.admin-users-order select')[1].value,
+    'desc',
+  );
+  assert.equal(new URLSearchParams(location.search).get('page'), '2');
+});
+test('user sort parameters fall back safely and selected date is visible in the list', async () => {
+  await render(Users, '/admin/users?sort=unknown&order=unknown');
+  assert.equal(calls.at(-1).filters.sort, 'email');
+  assert.equal(calls.at(-1).filters.order, 'asc');
+  await fill(
+    host.querySelector('.admin-users-order select'),
+    'password_updated_at',
+  );
+  await flush();
+  assert.ok(host.querySelector('tbody .admin-user-sort-date'));
+  await fill(host.querySelector('.admin-users-order select'), 'created_at');
+  await flush();
+  assert.match(
+    host.querySelector('tbody .admin-user-sort-date').textContent,
+    /계정 생성: 생성 전/,
+  );
 });

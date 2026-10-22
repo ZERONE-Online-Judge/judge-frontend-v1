@@ -403,10 +403,7 @@
 .contest-directory .directory-card-schedule {
   display: grid;
   margin: 0;
-  padding: 11px 16px;
-  border: 1px solid #f0f1f6;
-  border-radius: 12px;
-  background: #fafbfe;
+  padding: 4px 0 4px 12px;
   list-style: none;
   font-size: 12px;
   line-height: 1.6;
@@ -430,11 +427,11 @@
   border: 1.5px solid var(--directory-timeline-dot);
   border-radius: 50%;
   background: var(--directory-timeline-dot);
-  outline: 4px solid #fafbfe;
+  outline: 4px solid var(--zoj-surface-raised);
   transform: translateY(-50%);
 }
 .contest-directory .directory-card-schedule > li:last-child::before {
-  background: #fafbfe;
+  background: var(--zoj-surface-raised);
 }
 .contest-directory .directory-card-schedule > li:not(:last-child)::after {
   content: '';
@@ -474,12 +471,9 @@
 }
 .contest-directory .directory-schedule-tbd {
   margin: 0;
-  padding: 24px 18px;
-  border: 1px dashed #e7e9f1;
-  border-radius: 12px;
-  background: #fafbfe;
+  padding: 24px 12px;
   font-size: 12px;
-  color: #9299a8;
+  color: #697386;
   line-height: 1.6;
   text-align: center;
 }
@@ -495,7 +489,7 @@
   margin: 0;
   font-size: 11px;
   line-height: 1.7;
-  color: #7d8799;
+  color: #697386;
 }
 .contest-directory .directory-resources > div {
   display: grid;
@@ -503,7 +497,7 @@
   gap: 8px;
 }
 .contest-directory .directory-resources dt {
-  color: #a0a6b4;
+  color: #697386;
 }
 .contest-directory .directory-resources dd {
   margin: 0;
@@ -514,16 +508,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 9px;
-  border: 1px solid #ebe9f5;
-  border-radius: 7px;
+  padding: 4px 0;
   color: #7765b5;
-  background: #fff;
   font-size: 11px;
   font-weight: 550;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
+  transition: color 0.2s;
 }
 .contest-directory .directory-card-action svg {
   width: 14px;
@@ -531,8 +520,7 @@
   transition: transform 0.2s;
 }
 .contest-directory .directory-card:hover .directory-card-action {
-  background: #f8f6ff;
-  border-color: #dfd9f4;
+  color: #5f4ca4;
 }
 .contest-directory .directory-card:hover .directory-card-action svg {
   transform: translateX(2px);
@@ -686,7 +674,7 @@
     gap: 18px;
   }
   .contest-directory .directory-card-schedule {
-    padding: 9px 16px;
+    padding: 4px 0 4px 4px;
   }
   .contest-directory .directory-schedule-detail {
     gap: 12px;
@@ -770,7 +758,7 @@
     gap: 10px;
   }
   .contest-directory .directory-card-action {
-    padding: 7px;
+    padding: 7px 0 7px 7px;
   }
   .contest-directory .directory-card-action-label {
     position: absolute;
@@ -788,7 +776,7 @@
     padding: 4px 7px;
   }
   .contest-directory .directory-card-schedule {
-    padding: 9px 12px;
+    padding: 4px 0 4px 4px;
   }
   .contest-directory .directory-card-schedule > li {
     gap: 10px;

@@ -9,16 +9,22 @@ export type ContestDirectoryMeta = {
 
 function moment(value: string) {
   const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat('ko-KR', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(date)
-    : '일정 확인 중';
+  if (!Number.isFinite(date.getTime()))
+    return { date: '일정 확인 중', time: '—', dateTime: undefined };
+  return {
+    date: new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'short',
+    }).format(date),
+    time: new Intl.DateTimeFormat('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date),
+    dateTime: value,
+  };
 }
 
 function resourceGroups(labels: string[]) {
@@ -100,20 +106,28 @@ export default function ContestDirectoryCardContent({
       {meta.scheduleTbd ? (
         <p className="directory-schedule-tbd">대회 일정 미정</p>
       ) : (
-        <dl className="directory-card-schedule">
-          <div>
-            <dt>시작</dt>
-            <dd>
-              <time dateTime={meta.startAt}>{moment(meta.startAt)}</time>
-            </dd>
-          </div>
-          <div>
-            <dt>종료</dt>
-            <dd>
-              <time dateTime={meta.endAt}>{moment(meta.endAt)}</time>
-            </dd>
-          </div>
-        </dl>
+        <ol className="directory-card-schedule" aria-label="대회 일정">
+          {[
+            { label: '시작', value: meta.startAt },
+            { label: '종료', value: meta.endAt },
+          ].map(({ label, value }) => {
+            const schedule = moment(value);
+            return (
+              <li key={label}>
+                <div className="directory-schedule-detail">
+                  <span>{label}</span>
+                  <time dateTime={schedule.dateTime}>{schedule.date}</time>
+                </div>
+                <time
+                  className="directory-schedule-time"
+                  dateTime={schedule.dateTime}
+                >
+                  {schedule.time}
+                </time>
+              </li>
+            );
+          })}
+        </ol>
       )}
       <div className="directory-card-footer">
         {publicLabels.length ? (

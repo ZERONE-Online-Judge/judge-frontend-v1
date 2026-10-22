@@ -330,7 +330,7 @@ test('participant walkthrough autoplays and loops without controls or operator p
   }
 });
 
-test('time reference uses current serial CPU time and preserves every raw sample', () => {
+test('time reference publishes all six languages and verified solo CPU samples', () => {
   const { judgeTimeBenchmark: data } = source('data/judgeTimeBenchmark.ts');
   const raw = JSON.parse(
     fs.readFileSync(
@@ -339,73 +339,85 @@ test('time reference uses current serial CPU time and preserves every raw sample
     ),
   );
   const { judgeTimeSources: sources } = source('data/judgeTimeSources.ts');
-  assert.equal(raw.cases.length, 16);
-  assert.equal(raw.cases.flatMap((c) => c.runs).length, 48);
-  assert.equal(
-    raw.cases.flatMap((c) => c.runs).reduce((sum, r) => sum + r.testcases, 0),
-    48,
+  assert.equal(raw.cases.length, 36);
+  assert.equal(raw.cases.flatMap((c) => c.runs).length, 288);
+  assert.deepEqual(
+    data.languages.map((l) => l.id),
+    ['c99', 'cpp17', 'python311', 'pypy3', 'java8', 'kotlin'],
   );
   assert.equal(raw.runtimeMetric, 'isolate_cpu_time_ms');
-  assert.equal(raw.clockPolicy.target_mhz, 2200);
+  assert.equal(raw.environment.runtimePolicy, 'zoj-runtime-v1');
   assert.match(raw.method, /격리 준비.*제외/);
+  assert.match(raw.calibrationNote, /작업 수가 서로 다르므로/);
+  assert.doesNotMatch(
+    JSON.stringify(raw),
+    /load[14]|solo4|comparison_to_serial|increase_percent/,
+  );
+  const crypto = require('node:crypto');
   for (const c of data.cases) {
     const evidence = raw.cases.find((r) => r.id === c.id);
     assert.equal(sources[c.id].source, evidence.source);
+    assert.equal(sources[c.id].input, evidence.input);
+    assert.equal(sources[c.id].output, evidence.output);
+    for (const key of ['source', 'input', 'output'])
+      assert.equal(
+        crypto.createHash('sha256').update(evidence[key]).digest('hex'),
+        evidence[key + '_sha256'],
+      );
+    const values = evidence.runs.map((r) => r.runtime_ms);
+    assert.deepEqual(sources[c.id].serialMs, values);
+    assert.equal(c.sampleCount, 8);
+    assert.equal(values.length, 8);
     assert.deepEqual(
-      sources[c.id].serialMs,
-      evidence.runs
-        .filter((r) => r.condition === 'serial')
-        .map((r) => r.runtime_ms),
+      evidence.runs.map((r) => r.round),
+      [1, 2, 3, 4, 5, 6, 7, 8],
     );
-    assert.equal(c.sampleCount, 3);
     assert.ok(
       evidence.runs.every(
-        (r) => r.status === 'accepted' && r.other_jobs_observed === 0,
+        (r) =>
+          r.status === 'accepted' &&
+          r.other_jobs_observed === 0 &&
+          r.condition === 'serial' &&
+          r.testcases === 1,
       ),
     );
-    assert.equal(
-      c.runtimeMs.max,
-      Math.max(...evidence.runs.map((r) => r.runtime_ms)),
+    assert.equal(c.runtimeMs.max, Math.max(...values));
+    assert.equal(c.runtimeMs.min, Math.min(...values));
+    const mean = values.reduce((sum, value) => sum + value, 0) / 8;
+    assert.equal(c.runtimeMs.mean, mean);
+    const sd = Math.sqrt(
+      values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / 7,
     );
-    assert.equal(
-      c.serialMaxMs,
-      Math.max(
-        ...evidence.runs
-          .filter((r) => r.condition === 'serial')
-          .map((r) => r.runtime_ms),
-      ),
-    );
-    assert.ok(evidence.runs.every((r) => r.condition === 'serial'));
+    assert.ok(Math.abs(c.runtimeMs.sampleSd - sd) < 1e-9);
+    assert.equal(c.serialMaxMs, c.runtimeMs.max);
+    assert.equal(evidence.input.split(/\s+/)[1], String(c.iterations));
+    assert.equal(evidence.input.split(/\s+/)[3], '0');
     assert.equal('loadMaxMs' in c, false);
-    assert.equal(c.iterations, c.profile === 'search' ? 1000000 : 100000000);
-    assert.ok(
-      evidence.source.includes(
-        c.language === 'python313'
-          ? 'print('
-          : c.language === 'java8'
-            ? 'System.out.println'
-            : 'printf(',
-      ),
-    );
   }
   const html = render(status);
-  assert.match(html, /같은 1억 번도/);
+  assert.match(html, /평균 CPU 시간/);
+  assert.match(html, /표준편차/);
+  assert.match(html, /단독 8회/);
+  assert.match(html, /288건/);
+  assert.match(html, /PyPy 3.11/);
+  assert.match(html, /Kotlin/);
   assert.match(html, /보수적 시간 예산/);
-  assert.doesNotMatch(html, /동시 요청 최대|동시 요청 중 3개 제출/);
-  assert.match(html, /2.2GHz 고정/);
+  assert.doesNotMatch(
+    html,
+    /동시 요청 최대|단독.*병렬.*차이|단독 3회|CPython 3.13.16|같은 1억 번도/,
+  );
   assert.match(html, /isolate가 기록한 CPU 시간/);
   const selected = data.cases.find(
-    (c) => c.profile === 'memory' && c.language === 'cpp17',
+    (c) => c.profile === 'pointer' && c.language === 'cpp17',
   );
   assert.ok(
     html.includes(
-      ((selected.serialMaxMs * 2) / 1000).toLocaleString('ko-KR', {
+      (selected.runtimeMs.mean / 1000).toLocaleString('ko-KR', {
         maximumFractionDigits: 3,
       }),
     ),
   );
   assert.match(html, /최악 실행시간의 상한이 아니/);
-  assert.doesNotMatch(html, /1억 번 계산하면, 이만큼/);
 });
 
 test('time budget distinguishes full pairs, triangular pairs, search calls and extrapolation', () => {
@@ -413,21 +425,24 @@ test('time budget distinguishes full pairs, triangular pairs, search calls and e
     'data/judgeTimeBenchmark.ts',
   );
   const c = data.cases.find(
-    (c) => c.language === 'cpp17' && c.profile === 'memory',
+    (c) => c.language === 'cpp17' && c.profile === 'pointer',
   );
   assert.equal(calc(c, 'quadratic', 10000).count, 100000000);
-  assert.equal(calc(c, 'quadratic', 10000).budgetMs, c.runtimeMs.max * 2);
+  assert.equal(
+    calc(c, 'quadratic', 10000).budgetMs,
+    (100000000 / c.iterations) * c.runtimeMs.max * 2,
+  );
   assert.equal(calc(c, 'pairs', 10000).count, 49995000);
   assert.equal(calc(c, 'pairs', 1).budgetMs, 0);
   assert.equal(calc(c, 'n_log_n', 1).count, 0);
   assert.equal(calc(c, 'n_log_n', 3).count, 6);
-  assert.equal(calc(c, 'linear', 100000001).extrapolated, true);
+  assert.equal(calc(c, 'linear', c.iterations + 1).extrapolated, true);
   const search = data.cases.find(
     (c) => c.language === 'cpp17' && c.profile === 'search',
   );
   assert.equal(
     calc(search, 'linear', 1000000, 3).budgetMs,
-    search.runtimeMs.max * 3,
+    (1000000 / search.iterations) * search.runtimeMs.max * 3,
   );
   assert.equal(calc(search, 'n_log_n', 1000000), null);
   for (const n of [NaN, Infinity, 0, -1, 1.5, 1000000001])

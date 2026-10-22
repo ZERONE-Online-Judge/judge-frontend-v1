@@ -44,7 +44,7 @@ export const judgeServerGuide: GuideCategory = {
         '채점 서버 설치·VM 자원 배정·에이전트 연결과 업데이트는 ZOJ가 담당합니다. 대회 운영자가 서버 사양을 직접 맞추거나 VM을 구성할 필요는 없습니다.',
         `물리 서버에는 Intel Xeon E5-2698 v4 CPU 2소켓과 256GB DDR4-2933Y ECC 메모리가 장착되어 있습니다. CPU 클럭은 2.2GHz 고정 정책입니다. 채점 VM의 CPU 할당은 ${infrastructure.vm.vcpus_per_agent} vCPU, 메모리 할당은 26GiB입니다. DDR4-2933Y는 장착 모듈 규격이며 실제 동작 클럭을 뜻하는 표기는 아닙니다.`,
         `6대의 제출 슬롯은 각 ${infrastructure.vm.submission_slots_per_agent}개, 합계 ${infrastructure.vm.planned_submission_slots}개입니다. 슬롯은 동시에 맡을 제출 수입니다. vCPU 수로 단일 스레드 풀이의 실행 시간을 나누지 않습니다.`,
-        '모든 채점 VM의 CPU 모델은 Intel Xeon E5-2698 v4 @ 2.20GHz이며, C/C++ 컴파일러는 GCC 14.2.0, Python은 CPython 3.13.16입니다. 전체 채점 VM이 같은 실행 환경을 사용합니다. CPU 모델명과 별도로 클럭 2.2GHz 고정 정책을 적용합니다.',
+        'ZOJ 실행 정책 v1은 CPython과 PyPy를 Python 3.11.17로 맞추고, Java와 Kotlin에 같은 JDK 21과 JVM 자원 정책을 적용합니다. 각 테스트는 게스트 논리 CPU 하나에 배정하며, 아래 과거 벤치마크의 Python 3.13 측정값과 구분합니다.',
         `각 에이전트는 제출당 테스트를 최대 ${infrastructure.agent_configuration.testcases_parallel_per_submission}개 병렬 실행하는 정책입니다. 노드당 테스트 작업은 최대 ${infrastructure.agent_configuration.max_parallel_testcases_per_agent}개이며 실제 개수는 테스트 수와 준비 상태에 따라 다릅니다. 이번 연산별 TLE 기준은 제출당 테스트 1개를 전체 큐에서 단독으로 실행한 자료입니다.`,
         '같은 코드도 서버 성능과 실행 환경에 따라 시간이 달라집니다. 출제자 PC의 측정값을 그대로 시간 제한으로 옮기기보다 아래 실측 예제를 참고하고, 본인의 문제는 ZOJ 검증 코드 채점으로 확인하세요.',
       ],
@@ -86,7 +86,16 @@ export const judgeServerGuide: GuideCategory = {
           ],
           ['출력 상한', '10MiB', '에이전트 출력 제한 설정'],
           ['C/C++ 컴파일러', 'GCC 14.2.0', '전체 채점 에이전트 공통'],
-          ['Python', 'CPython 3.13.16', '전체 채점 에이전트 공통'],
+          [
+            'Python',
+            'CPython 3.11.17 / PyPy 8.0.1 (Python 3.11.17)',
+            '새 제출의 기본 환경',
+          ],
+          [
+            'JVM',
+            'Temurin 21.0.12.1 · Java / Kotlin 공통',
+            'SerialGC · 스택 8MiB · 힙 외 메모리 여유 확보',
+          ],
           ['C / C++ 빌드', 'C99 / C++17 · -O2', '현재 에이전트의 컴파일 옵션'],
           [
             'Java 빌드',
@@ -448,7 +457,7 @@ export const judgeServerGuide: GuideCategory = {
       steps: [
         '테스트에 개별 시간·메모리 제한을 지정했다면 해당 항목은 그 값이 우선합니다. 시간과 메모리는 각각 결정합니다.',
         '테스트별 지정이 없는 항목은 해당 제출 언어에 명시한 제한을 사용합니다. 언어별 명시값에는 기본 언어 보정을 다시 더하지 않습니다.',
-        '언어별 명시값도 없으면 C/C++은 문제 기본값을 사용합니다. Python은 기본 시간 × 3 + 2,000ms, 기본 메모리 × 2 + 32MB입니다. Java는 기본 시간 × 2 + 1,000ms, 기본 메모리 × 2 + 16MB입니다.',
+        '언어별 명시값도 없으면 C/C++은 문제 기본값을 사용합니다. CPython과 PyPy의 시간은 기본 × 3 + 2,000ms입니다. 메모리는 CPython 기본 × 2 + 32MB, PyPy 기본 × 2 + 128MB입니다. Java와 Kotlin은 기본 시간 × 2 + 1,000ms, 기본 메모리 × 2 + 16MB입니다.',
         '검증 결과를 비교할 때에는 문제의 기본 제한만 보지 말고 해당 언어·테스트에 실제 적용되는 값을 확인하세요. 언어 보정은 CPU 모델별 속도 차이를 보정하는 기능이 아닙니다.',
       ],
       effect:
@@ -457,8 +466,9 @@ export const judgeServerGuide: GuideCategory = {
         headers: ['언어', '유효 시간 제한', '유효 메모리 제한'],
         rows: [
           ['C99 / C++17', '1,000ms', '128MB'],
-          ['Python 3.13', '5,000ms', '288MB'],
-          ['Java 8 호환', '3,000ms', '272MB'],
+          ['Python 3.11', '5,000ms', '288MB'],
+          ['PyPy 3.11', '5,000ms', '384MB'],
+          ['Java 8 호환 / Kotlin', '3,000ms', '272MB'],
         ],
       },
       note: '언어별 실행 특성과 데이터 크기는 문제마다 다릅니다. 보정 공식만 믿고 확정하지 말고 허용할 언어의 정답·느린 풀이를 실제 검증하세요.',

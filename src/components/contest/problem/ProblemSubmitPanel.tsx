@@ -27,10 +27,10 @@ type ProblemSubmitPanelProps = {
 
 const languageOptions: { label: string; value: JudgeLanguage }[] = [
   { label: 'C++17', value: 'cpp17' },
-  { label: 'Python 3.13', value: 'python313' },
+  { label: 'Python 3.11', value: 'python311' },
   { label: 'Java 8', value: 'java8' },
   { label: 'C99', value: 'c99' },
-  { label: 'PyPy 3.9 (7.3.15)', value: 'pypy3' },
+  { label: 'PyPy 3.11 (8.0.1)', value: 'pypy3' },
   { label: 'Kotlin 1.9.24', value: 'kotlin' },
 ];
 

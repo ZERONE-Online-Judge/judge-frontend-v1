@@ -6,6 +6,7 @@ import type {
 export type JudgeLanguage =
   | 'c99'
   | 'cpp17'
+  | 'python311'
   | 'python313'
   | 'java8'
   | 'pypy3'

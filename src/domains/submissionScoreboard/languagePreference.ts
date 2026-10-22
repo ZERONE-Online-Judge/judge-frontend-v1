@@ -2,7 +2,7 @@ import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 
 export const judgeLanguages: JudgeLanguage[] = [
   'cpp17',
-  'python313',
+  'python311',
   'java8',
   'c99',
   'pypy3',
@@ -20,6 +20,7 @@ export function loadLastJudgeLanguage(): JudgeLanguage {
   if (typeof window === 'undefined') return DEFAULT_JUDGE_LANGUAGE;
 
   const value = window.localStorage.getItem(LAST_JUDGE_LANGUAGE_KEY);
+  if (value === 'python313') return 'python311';
   return isJudgeLanguage(value) ? value : DEFAULT_JUDGE_LANGUAGE;
 }
 

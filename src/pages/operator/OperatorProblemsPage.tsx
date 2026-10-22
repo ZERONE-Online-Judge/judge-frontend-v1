@@ -142,11 +142,12 @@ const LIMIT_BOUNDARIES = {
 } as const;
 const LANGUAGE_LABELS: Record<JudgeLanguage, string> = {
   c99: 'C99',
-  pypy3: 'PyPy 3.9 (7.3.15)',
+  pypy3: 'PyPy 3.11 (8.0.1)',
   kotlin: 'Kotlin 1.9.24',
   cpp17: 'C++17',
   java8: 'Java 8',
-  python313: 'Python 3.13',
+  python311: 'Python 3.11',
+  python313: 'Python 3.13 (이전 환경)',
 };
 const AUTOMATIC_LANGUAGE_ADJUSTMENTS: Partial<
   Record<
@@ -165,7 +166,7 @@ const AUTOMATIC_LANGUAGE_ADJUSTMENTS: Partial<
     timeBonusMs: 1000,
     timeMultiplier: 2,
   },
-  python313: {
+  python311: {
     memoryBonusMb: 32,
     memoryMultiplier: 2,
     timeBonusMs: 2000,

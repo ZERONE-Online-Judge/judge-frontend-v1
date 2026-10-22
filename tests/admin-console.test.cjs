@@ -11,6 +11,7 @@ const dom = new JSDOM('<body></body>', {
 });
 global.window = dom.window;
 global.document = dom.window.document;
+global.FormData = dom.window.FormData;
 global.IS_REACT_ACT_ENVIRONMENT = true;
 global.requestAnimationFrame = (callback) => setTimeout(callback, 0);
 global.cancelAnimationFrame = clearTimeout;
@@ -31,7 +32,9 @@ let session,
   navigate,
   location,
   invalidations,
-  visible;
+  visible,
+  userFailure,
+  detailFailure;
 const cache = new Map();
 const serviceApi = {
   listAdminServiceNotices: async () => {
@@ -74,6 +77,46 @@ function source(relative) {
     if (id === '@/shared/hooks/useDocumentVisibility')
       return { __esModule: true, default: () => visible };
     if (id === '@/domains/serviceCommunication/api') return serviceApi;
+    if (id === '@/domains/identityAccess/adminUsers')
+      return {
+        listAdminUsers: async (token, filters) => {
+          calls.push({ type: 'users', token, filters });
+          if (userFailure) throw userFailure;
+          return {
+            data: filters.q === '없음' ? [] : [userRecord()],
+            page: {
+              total_count: filters.q === '없음' ? 0 : 26,
+              next_cursor: filters.offset ? null : '25',
+              limit: 25,
+            },
+          };
+        },
+        getAdminUserDetail: async (token, email) => {
+          calls.push({ type: 'user-detail', token, email });
+          if (detailFailure) throw detailFailure;
+          return {
+            ...userRecord(),
+            participations: [1, 2].map((i) => ({
+              contest_id: 'c' + i,
+              contest_title: '대회 ' + i,
+              organization_name: 'ZOJ',
+              contest_status: 'ended',
+              start_at: '2026-05-28T08:30:00Z',
+              end_at: '2026-05-28T10:30:00Z',
+              division_name: '일반부',
+              team_name: '팀 ' + i,
+              team_status: 'invited',
+              registered_name: i === 1 ? '김첫이름' : '김다른이름',
+              member_role: 'leader',
+              registered_at: '2026-05-01T00:00:00Z',
+              last_login_at: null,
+              submission_count: 3,
+              accepted_submission_count: 1,
+            })),
+            operator_contests: [],
+          };
+        },
+      };
     if (id === '@/domains/contestAdministration/api')
       return {
         getAdminContests: async () => [],
@@ -185,6 +228,7 @@ function source(relative) {
   );
   return loaded.exports;
 }
+const Users = source('pages/admin/AdminUsersPage.tsx').default;
 const Notices = source('pages/admin/AdminNoticesPage.tsx').default;
 const Home = source('pages/admin/AdminHomePage.tsx').default;
 const Contests = source('pages/admin/AdminContestsPage.tsx').default;
@@ -214,6 +258,8 @@ function admin(email = 'master@judge.test') {
 }
 beforeEach(() => {
   session = admin();
+  userFailure = null;
+  detailFailure = null;
   visible = true;
   calls = [];
   invalidations = [];
@@ -306,7 +352,7 @@ function sectionTab(label) {
 test('all admin sections have independent navigation and dashboard has no notice editor', async () => {
   await render(Home, '/admin');
   const nav = host.querySelector('[aria-label="관리자 메뉴"]');
-  assert.equal(nav.querySelectorAll('a').length, 7);
+  assert.equal(nav.querySelectorAll('a').length, 8);
   assert.equal(
     nav.querySelector('a[aria-current="page"]').getAttribute('href'),
     '/admin',
@@ -325,6 +371,8 @@ test('admin gate still excludes anonymous and non-master accounts', async () => 
   assert.equal(host.querySelector('form'), null);
   assert.ok(host.querySelector('a[href="/login"]'));
   session = admin();
+  userFailure = null;
+  detailFailure = null;
   session.operatorSession.staff.is_service_master = false;
   await act(() => root.render(h(MemoryRouter, null, h(Notices))));
   assert.equal(host.querySelector('form'), null);
@@ -507,4 +555,101 @@ test('analytics renders empty time-series reports without crashing the admin wor
   assert.equal(host.querySelector('h1').textContent, '운영 통계');
   assert.ok(host.querySelector('.analytics-empty'));
   assert.match(host.textContent, /선택한 범위에 기록이 없습니다/);
+});
+
+function userRecord() {
+  return {
+    email: 'user+one@example.com',
+    display_name: '김기본',
+    names: ['김기본', '김첫이름', '김다른이름'],
+    roles: ['participant'],
+    has_password: true,
+    password_updated_at: '2026-10-22T00:00:00Z',
+    account_created_at: null,
+    participant_contest_count: 2,
+  };
+}
+test('user directory shows names, password status and email identity', async () => {
+  await render(Users, '/admin/users');
+  assert.ok(host.querySelector('a[href="/admin/users"][aria-current="page"]'));
+  const row = host.querySelector('tbody tr');
+  assert.match(row.textContent, /김기본/);
+  assert.match(row.textContent, /김다른이름/);
+  assert.match(row.textContent, /user\+one@example.com/);
+  assert.match(row.textContent, /등록됨/);
+  assert.match(row.textContent, /2개/);
+  assert.deepEqual(calls[0], {
+    type: 'users',
+    token: 'master',
+    filters: { q: '', password: 'all', offset: 0 },
+  });
+});
+test('user filters and pagination update URL and server query, search resets page', async () => {
+  await render(Users, '/admin/users');
+  await click(button('다음'));
+  assert.equal(location.search, '?page=2');
+  assert.equal(calls.at(-1).filters.offset, 25);
+  await fill(host.querySelector('select'), 'unset');
+  await flush();
+  assert.equal(calls.at(-1).filters.password, 'unset');
+  assert.equal(calls.at(-1).filters.offset, 0);
+  await fill(host.querySelector('input'), '김다른이름');
+  await act(() =>
+    host
+      .querySelector('form')
+      .dispatchEvent(
+        new window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  await flush();
+  assert.equal(calls.at(-1).filters.q, '김다른이름');
+  assert.equal(new URLSearchParams(location.search).get('page'), null);
+  await act(() => navigate('/admin/users?q=back'));
+  await flush();
+  assert.equal(host.querySelector('input').value, 'back');
+});
+test('user details retain distinct contest names and close without changing filters', async () => {
+  await render(Users, '/admin/users?q=김');
+  await click(button('상세'));
+  const modal = host.querySelector('[role=dialog]');
+  assert.ok(modal);
+  assert.match(modal.textContent, /김첫이름/);
+  assert.match(modal.textContent, /김다른이름/);
+  assert.match(modal.textContent, /일반 계정 생성 전/);
+  assert.match(modal.textContent, /본인 제출3건/);
+  assert.match(modal.textContent, /로그인 이력 없음/);
+  assert.ok(modal.querySelector('a[href="/operator/contests/c2"]'));
+  assert.deepEqual(calls.at(-1), {
+    type: 'user-detail',
+    token: 'master',
+    email: 'user+one@example.com',
+  });
+  await click(button('닫기', modal));
+  assert.equal(host.querySelector('[role=dialog]'), null);
+  assert.equal(new URLSearchParams(location.search).get('q'), '김');
+  assert.equal(new URLSearchParams(location.search).get('user'), null);
+});
+test('user directory and detail failures are retryable and do not show empty success', async () => {
+  userFailure = new Error('offline');
+  await render(Users, '/admin/users');
+  assert.ok(host.querySelector('[role=alert]'));
+  assert.doesNotMatch(host.textContent, /조건에 맞는 사용자가 없습니다/);
+  userFailure = null;
+  await click(button('다시 시도'));
+  detailFailure = new Error('missing');
+  await click(button('상세'));
+  assert.ok(host.querySelector('[role=dialog] [role=alert]'));
+  detailFailure = null;
+  await click(button('다시 시도', host.querySelector('[role=dialog]')));
+  assert.match(
+    host.querySelector('[role=dialog]').textContent,
+    /대회 참가 등록/,
+  );
+});
+test('user directory denies ordinary accounts before requesting personal data', async () => {
+  session.operatorSession.staff.is_service_master = false;
+  await render(Users, '/admin/users?user=other@example.com');
+  assert.equal(calls.length, 0);
+  assert.equal(host.querySelector('table'), null);
+  assert.equal(host.querySelector('[role=dialog]'), null);
 });

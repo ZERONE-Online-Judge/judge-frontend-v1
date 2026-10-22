@@ -368,12 +368,12 @@ test('problem drafts and concurrent submissions stay isolated when switching pro
   await click(problemButton('경로 찾기'));
   assert.equal(editor().value, '');
   const language = container.querySelectorAll('select')[1];
-  await input(language, 'python313');
+  await input(language, 'python311');
   await input(editor(), 'print(6)');
   await click(button('테스트 제출'));
   assert.equal(creates.length, 2);
   assert.equal(creates[1].problemId, 'b1');
-  assert.equal(creates[1].body.language, 'python313');
+  assert.equal(creates[1].body.language, 'python311');
   await act(async () =>
     creates[1].gate.resolve(submission('b-submit', 'accepted')),
   );

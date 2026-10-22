@@ -257,7 +257,9 @@ function VerificationCodeRow({
     asset?.source_language === 'pypy3' ||
       result?.submission?.language === 'pypy3'
       ? 'pypy3'
-      : 'python313',
+      : asset?.source_language === 'python313'
+        ? 'python313'
+        : 'python311',
   );
   return (
     <div
@@ -326,8 +328,11 @@ function VerificationCodeRow({
               value={pythonRuntime}
               onChange={(event) => setPythonRuntime(event.target.value)}
             >
-              <option value="python313">Python 3.13</option>
-              <option value="pypy3">PyPy 3.9</option>
+              <option value="python311">Python 3.11</option>
+              {pythonRuntime === 'python313' ? (
+                <option value="python313">Python 3.13 (이전 환경)</option>
+              ) : null}
+              <option value="pypy3">PyPy 3.11</option>
             </Select>
           ) : null}
           <button
@@ -347,7 +352,10 @@ function VerificationCodeRow({
                 filename.endsWith('.py')
                   ? {
                       ...asset,
-                      source_language: pythonRuntime as 'pypy3' | 'python313',
+                      source_language: pythonRuntime as
+                        | 'pypy3'
+                        | 'python311'
+                        | 'python313',
                     }
                   : asset,
                 expectedStatus,

@@ -93,7 +93,7 @@ function languageFromFilename(filename: string): JudgeLanguage | null {
     return 'cpp17';
   }
   if (lower.endsWith('.c')) return 'c99';
-  if (lower.endsWith('.py')) return 'python313';
+  if (lower.endsWith('.py')) return 'python311';
   if (lower.endsWith('.kt')) return 'kotlin';
   if (lower.endsWith('.java')) return 'java8';
   return null;

@@ -355,7 +355,7 @@ export default function VerificationAgentEvidence({
                   </p>
                   <a
                     className="mb-2 inline-block font-semibold text-indigo-700 underline"
-                    download={`${item.artifact_id}.${({ python313: 'py', cpp17: 'cpp', c99: 'c', java8: 'java', pypy3: 'py', kotlin: 'kt' } as Record<string, string>)[item.language] || 'txt'}`}
+                    download={`${item.artifact_id}.${({ python313: 'py', python311: 'py', cpp17: 'cpp', c99: 'c', java8: 'java', pypy3: 'py', kotlin: 'kt' } as Record<string, string>)[item.language] || 'txt'}`}
                     href={`data:text/plain;charset=utf-8,${encodeURIComponent(item.source)}`}
                   >
                     {item.purpose === 'comparison'

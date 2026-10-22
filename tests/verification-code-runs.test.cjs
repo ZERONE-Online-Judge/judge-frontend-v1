@@ -685,7 +685,7 @@ test('agent shows real executions, escaped candidate downloads and cost without 
     artifacts: [
       {
         artifact_id: 'candidate-1',
-        language: 'python313',
+        language: 'python311',
         source: 'print("<script>alert(1)</script>")',
         sha256: 'abc',
       },
@@ -1023,7 +1023,7 @@ test('candidate badges use server execution assessments and never infer success 
           artifacts: statuses
             .map((status, i) => ({
               artifact_id: `candidate-${i + 1}`,
-              language: 'python313',
+              language: 'python311',
               source: 'print(5)',
               sha256: 'same-source',
               verification: {
@@ -1035,7 +1035,7 @@ test('candidate badges use server execution assessments and never infer success 
             .concat([
               {
                 artifact_id: 'candidate-6',
-                language: 'python313',
+                language: 'python311',
                 source: 'print(9)',
                 sha256: 'other-source',
               },

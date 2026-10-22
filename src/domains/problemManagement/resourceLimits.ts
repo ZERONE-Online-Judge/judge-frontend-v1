@@ -4,7 +4,7 @@ import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 
 const LANGUAGE_ORDER: JudgeLanguage[] = [
   'cpp17',
-  'python313',
+  'python311',
   'java8',
   'c99',
   'pypy3',
@@ -15,6 +15,7 @@ const LANGUAGE_TIME_ADJUSTMENTS: Partial<
   Record<JudgeLanguage, { multiplier: number; bonusMs: number }>
 > = {
   java8: { multiplier: 2, bonusMs: 1000 },
+  python311: { multiplier: 3, bonusMs: 2000 },
   python313: { multiplier: 3, bonusMs: 2000 },
   pypy3: { multiplier: 3, bonusMs: 2000 },
   kotlin: { multiplier: 2, bonusMs: 1000 },
@@ -24,6 +25,7 @@ const LANGUAGE_MEMORY_ADJUSTMENTS: Partial<
   Record<JudgeLanguage, { multiplier: number; bonusMb: number }>
 > = {
   java8: { multiplier: 2, bonusMb: 16 },
+  python311: { multiplier: 2, bonusMb: 32 },
   python313: { multiplier: 2, bonusMb: 32 },
   pypy3: { multiplier: 2, bonusMb: 128 },
   kotlin: { multiplier: 2, bonusMb: 16 },

@@ -16,6 +16,7 @@ const adminGroups = [
       { label: '대시보드', path: '/admin', icon: DashboardIcon, end: true },
       { label: '서비스 공지', path: '/admin/notices', icon: NoticeIcon },
       { label: '대회 관리', path: '/admin/contests', icon: ContestIcon },
+      { label: '사용자 관리', path: '/admin/users', icon: UsersIcon },
       { label: '문의 관리', path: '/admin/inquiries', icon: NoticeIcon },
     ],
   },
@@ -28,6 +29,23 @@ const adminGroups = [
     ],
   },
 ];
+
+function UsersIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v2" />
+    </svg>
+  );
+}
 
 export function AdminAccessGate({
   children,

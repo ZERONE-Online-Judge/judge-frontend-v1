@@ -4,6 +4,7 @@ import { routeText } from '@/data/uiText';
 const AdminContestsPage = lazy(() => import('@/pages/admin/AdminContestsPage'));
 const AdminNoticesPage = lazy(() => import('@/pages/admin/AdminNoticesPage'));
 const AdminHomePage = lazy(() => import('@/pages/admin/AdminHomePage'));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminAuditLogsPage = lazy(
   () => import('@/pages/admin/AdminAuditLogsPage'),
 );
@@ -92,6 +93,13 @@ export type AppRoute = {
 };
 
 export const appRoutes: readonly AppRoute[] = [
+  {
+    access: 'admin',
+    name: '사용자 관리',
+    path: '/admin/users',
+    Component: AdminUsersPage,
+    showInNavigation: false,
+  },
   {
     name: routeText.home,
     path: '/',

@@ -9,7 +9,13 @@ import type { ReactNode } from 'react';
 import ContestEmergencyNotice from '@/components/contest/ContestEmergencyNotice';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import ContestAccessDeniedModal from '@/components/contest/ContestAccessDeniedModal';
 import { getPublicContest } from '@/domains/contestAdministration/api';
 import {
@@ -22,6 +28,7 @@ import { contestQueryKeys } from '@/domains/contestRuntime/queryKeys';
 import { useContestParticipantSession } from '@/domains/contestRuntime/useContestParticipantSession';
 import PageNotice from '@/shared/ui/PageNotice';
 import { contestLoginPath } from '@/shared/lib/loginRedirect';
+import { isApiClientError } from '@/shared/api/errors';
 
 type ContestPageShellProps = {
   children: (detail: PublicContestDetail) => ReactNode;
@@ -76,6 +83,9 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
       tokenQueryIdentity(token),
     ],
     queryFn: () => getPublicContest(contestId!, token),
+    retry: (attempt, error) =>
+      !(isApiClientError(error) && [401, 403, 404].includes(error.status)) &&
+      attempt < 2,
     refetchInterval: 15_000,
   });
 
@@ -104,12 +114,18 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     Boolean(participantContest) ||
     (!shouldRequireParticipantAccess && hasPublicAfterEndResource);
   const shouldCheckParticipantAccess = Boolean(
-    contestId && generalSession && shouldRequireParticipantAccess,
+    contestId &&
+    generalSession &&
+    (isOverview || shouldRequireParticipantAccess),
   );
   const participantAccessCheckKey = [
     contestId ?? 'no-contest',
     generalSession?.account.email ?? 'public',
-    shouldRequireParticipantAccess ? 'required' : 'optional',
+    isOverview
+      ? 'overview'
+      : shouldRequireParticipantAccess
+        ? 'required'
+        : 'optional',
   ].join(':');
   const hasCheckedParticipantAccess =
     !shouldCheckParticipantAccess ||
@@ -119,7 +135,11 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     shouldCheckParticipantAccess && !hasCheckedParticipantAccess;
 
   useEffect(() => {
-    if (!contestId || !generalSession || !shouldRequireParticipantAccess)
+    if (
+      !contestId ||
+      !generalSession ||
+      !(isOverview || shouldRequireParticipantAccess)
+    )
       return;
     if (participantContest || activeParticipantSession) return;
     if (checkedParticipantAccessKey === participantAccessCheckKey) return;
@@ -143,6 +163,7 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     contestId,
     ensureParticipantSession,
     generalSession,
+    isOverview,
     participantAccessCheckKey,
     participantContest,
     shouldRequireParticipantAccess,
@@ -156,13 +177,70 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     );
   }
 
+  const accessError =
+    isApiClientError(contestQuery.error) &&
+    [401, 403, 404].includes(contestQuery.error.status);
+  const section = location.pathname.split('/')[3];
+  const resourceAccess = contest
+    ? section === 'board'
+      ? [
+          contestResourceAccess(contest, 'notice'),
+          contestResourceAccess(contest, 'board'),
+        ]
+      : section === 'problems'
+        ? [contestResourceAccess(contest, 'problem')]
+        : section === 'scoreboard'
+          ? [contestResourceAccess(contest, 'scoreboard')]
+          : section === 'submissions'
+            ? [contestResourceAccess(contest, 'submission')]
+            : []
+    : [];
+  const needsParticipantLogin =
+    !isOverview &&
+    contest &&
+    (shouldRequireParticipantAccess ||
+      (!resourceAccess.includes('public') &&
+        resourceAccess.includes('participants')));
+  if (
+    !generalSession &&
+    !activeParticipantSession &&
+    (accessError || needsParticipantLogin)
+  ) {
+    return (
+      <Navigate
+        replace
+        to={contestLoginPath(
+          contestId,
+          `${location.pathname}${location.search}${location.hash}`,
+        )}
+      />
+    );
+  }
+
   return (
     <section className="zoj-contest-shell mx-auto grid w-full max-w-[112rem] min-w-0 gap-5 px-4 py-6 font-sans sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
       {contestQuery.isLoading && (
         <PageNotice message="대회 정보를 불러오는 중입니다." status="loading" />
       )}
       {contestQuery.isError && (
-        <PageNotice message="대회 정보를 불러오지 못했습니다." status="error" />
+        <div className="grid gap-3">
+          <PageNotice
+            message={
+              accessError
+                ? '대회를 찾을 수 없거나 현재 계정에 접근 권한이 없습니다. 참가자로 등록된 이메일인지 확인해 주세요.'
+                : '대회 정보를 불러오지 못했습니다.'
+            }
+            status="error"
+          />
+          {accessError ? (
+            <Link
+              className="text-sm text-indigo-600 underline underline-offset-4"
+              to="/contests"
+            >
+              대회 목록으로
+            </Link>
+          ) : null}
+        </div>
       )}
       {detail && contest && isCheckingParticipantAccess ? (
         <PageNotice message="참가 권한을 확인하는 중입니다." status="loading" />
@@ -177,7 +255,7 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
             contestId
               ? contestLoginPath(
                   contestId,
-                  `${location.pathname}${location.search}`,
+                  `${location.pathname}${location.search}${location.hash}`,
                 )
               : undefined
           }

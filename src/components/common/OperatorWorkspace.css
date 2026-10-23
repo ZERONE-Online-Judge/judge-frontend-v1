@@ -330,6 +330,16 @@
   width: 14px;
   height: 14px;
 }
+.operator-share-link {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 4px 0 0;
+  padding-top: 12px;
+  text-align: left;
+}
+.operator-share-link:hover {
+  color: #4f46e5;
+}
 .operator-layout
   :is(.operator-menu__link, .operator-menu-trigger):focus-visible {
   outline-offset: -2px;
@@ -558,6 +568,11 @@
     justify-content: center;
     margin-inline: 8px;
     padding-block: 14px 0;
+  }
+  .operator-navigation[data-collapsed='true'] .operator-share-link {
+    width: 100%;
+    margin-inline: 0;
+    margin-bottom: 0;
   }
   .operator-navigation[data-collapsed='true'] .operator-preview-link svg {
     width: 17px;

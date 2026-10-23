@@ -327,3 +327,11 @@ test('foreign or sensitive canonical values never become share URLs', async () =
   assert.equal(canonical(), undefined);
   assert.equal(document.querySelector('meta[property="og:url"]'), null);
 });
+
+
+test('short sharing URLs show a generic non-indexed title without a contest metadata request', async () => {
+  await mount('/share/shortCode01');
+  assert.equal(requests.length, 0);
+  assert.equal(document.title, '대회 공유 링크 | ZOJ');
+  assert.match(document.head.querySelector('meta[name="robots"]').content, /noindex/);
+});

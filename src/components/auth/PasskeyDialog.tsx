@@ -214,6 +214,10 @@ export default function PasskeyDialog({
               event.preventDefault();
               void run(async () => {
                 await registerPasskey(token, name);
+                if (enrollment) {
+                  onClose();
+                  return;
+                }
                 await refresh();
                 setMessage(
                   '패스키를 등록했습니다. 다음 로그인부터 사용할 수 있습니다.',

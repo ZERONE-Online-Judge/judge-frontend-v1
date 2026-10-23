@@ -44,6 +44,7 @@ const api = {
   },
   registerPasskey: async (token, name) => {
     calls.push(['register', token, name]);
+    if (handler) await handler('register');
     items = [{ id: 'new-key', name, created_at: 100 }];
   },
   removePasskey: async (token, id) => {
@@ -247,6 +248,41 @@ test('email OTP login pauses at passkey enrollment and skip preserves the reques
   assert.equal(state.generalSession, session);
   await v.close();
 });
+test('successful login enrollment immediately closes and returns to the requested destination', async () => {
+  const v = await mount();
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-otp', '123456');
+  await submit(v);
+  assert.deepEqual(navigation, []);
+  await submit(v, '.passkey-add');
+  assert.equal(calls.filter(([name]) => name === 'register').length, 1);
+  assert.equal(v.host.querySelector('[role="dialog"]'), null);
+  assert.ok(navigation.includes('/contests'));
+  assert.equal(state.generalSession, session);
+  await v.close();
+});
+
+test('cancelled login enrollment stays open and lets the signed-in user skip or retry', async () => {
+  const v = await mount();
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-otp', '123456');
+  await submit(v);
+  handler = async () => {
+    throw Object.assign(new Error('cancel'), { name: 'NotAllowedError' });
+  };
+  await submit(v, '.passkey-add');
+  assert.deepEqual(navigation, []);
+  assert.ok(v.host.textContent.includes('패스키를 추가할까요?'));
+  assert.equal(state.generalSession, session);
+  handler = null;
+  await submit(v, '.passkey-add');
+  assert.equal(v.host.querySelector('[role="dialog"]'), null);
+  assert.ok(navigation.includes('/contests'));
+  await v.close();
+});
+
 test('email first selects a registered passkey and cancellation keeps alternatives available', async () => {
   const v = await mount();
   assert.equal(button(v, '패스키로 로그인'), undefined);

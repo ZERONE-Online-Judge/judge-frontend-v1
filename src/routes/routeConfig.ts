@@ -31,6 +31,7 @@ const ContestScoreboardPage = lazy(
 const ContestSubmissionsPage = lazy(
   () => import('@/pages/contest/ContestSubmissionsPage'),
 );
+const ContestSharePage = lazy(() => import('@/pages/public/ContestSharePage'));
 const ContestsPage = lazy(() => import('@/pages/public/ContestsPage'));
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'));
 const EditorAboutPage = lazy(() => import('@/pages/public/EditorAboutPage'));
@@ -93,6 +94,12 @@ export type AppRoute = {
 };
 
 export const appRoutes: readonly AppRoute[] = [
+  {
+    name: '대회 공유 링크',
+    path: '/share/:code',
+    Component: ContestSharePage,
+    showInNavigation: false,
+  },
   {
     access: 'admin',
     name: '사용자 관리',

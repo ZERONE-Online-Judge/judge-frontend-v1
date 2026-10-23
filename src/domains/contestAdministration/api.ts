@@ -256,3 +256,17 @@ export function transferContestOwner(
     },
   );
 }
+
+export function createContestShareLink(contestId: string, token: string) {
+  return apiRequest<{ code: string }>(
+    `/operator/contests/${encodeURIComponent(contestId)}/share-link`,
+    token,
+    { method: 'POST' },
+  );
+}
+
+export function resolveContestShare(code: string) {
+  return apiRequest<{ contest_id: string }>(
+    `/public/share/${encodeURIComponent(code)}`,
+  );
+}

@@ -22,6 +22,7 @@ export type ContestFormatType =
 
 export type ContestVisibility = 'public' | 'private';
 export type ContestResourceAccess = 'private' | 'participants' | 'public';
+export type BoardCommentScope = 'all' | 'operators';
 export type ScoreboardFreezeMode = 'auto' | 'live' | 'frozen';
 export type ScoreboardReleaseMode = 'manual' | 'immediate' | 'resolver';
 
@@ -46,6 +47,10 @@ export type Contest = {
   submission_access_after_end?: ContestResourceAccess;
   board_access_after_end?: ContestResourceAccess;
   board_write_after_end?: boolean;
+  board_question_visibility_policy?: 'choice' | ContestVisibility;
+  board_question_default_visibility?: ContestVisibility;
+  board_comment_scope_policy?: 'choice' | BoardCommentScope;
+  board_comment_default_scope?: BoardCommentScope;
   notice_access_after_end?: ContestResourceAccess;
   editorial_access_after_end?: ContestResourceAccess;
   scoreboard_freeze_mode?: ScoreboardFreezeMode;
@@ -119,6 +124,10 @@ export type ContestSettingsPatch = Partial<
     | 'submission_access_after_end'
     | 'board_access_after_end'
     | 'board_write_after_end'
+    | 'board_question_visibility_policy'
+    | 'board_question_default_visibility'
+    | 'board_comment_scope_policy'
+    | 'board_comment_default_scope'
     | 'notice_access_after_end'
     | 'editorial_access_after_end'
     | 'scoreboard_freeze_mode'

@@ -408,7 +408,26 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             <span>{roleTitle}</span>
           </p>
         ) : null}
-        <ContestShareButton key={contestId} contestId={contestId} />
+        {hasParticipantPreviewAccess(generalSession, contestId) ? (
+          <Link
+            to={participantPreviewPath(contestId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="operator-preview-link operator-preview-top-link"
+            aria-label="참가자 화면 미리보기"
+            title="참가자 화면 미리보기"
+          >
+            <span>참가자 화면 미리보기</span>
+            <InterfaceIcon name="arrowUpRight" />
+          </Link>
+        ) : null}
+        {staffSession ? (
+          <ContestShareButton
+            key={contestId}
+            contestId={contestId}
+            token={staffSession.accessToken}
+          />
+        ) : null}
       </div>
       <button
         ref={triggerRef}
@@ -462,19 +481,6 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
               );
             })}
           </nav>
-          {hasParticipantPreviewAccess(generalSession, contestId) ? (
-            <Link
-              to={participantPreviewPath(contestId)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="operator-preview-link"
-              aria-label="참가자 화면 미리보기"
-              title="참가자 화면 미리보기"
-            >
-              <span>참가자 화면 미리보기</span>
-              <InterfaceIcon name="arrowUpRight" />
-            </Link>
-          ) : null}
         </div>
       </div>
     </div>

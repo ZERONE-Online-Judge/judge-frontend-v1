@@ -1044,9 +1044,14 @@ test('contest visibility stays separate from lifecycle and restricts anonymous r
     .querySelector('select');
   await click(before);
   assert.equal(status.value, 'draft');
-  assert.ok(container.querySelector('option[value="public"]'));
+  assert.ok(
+    container.querySelector('.zoj-settings-access option[value="public"]'),
+  );
   await click(after);
-  assert.equal(container.querySelector('option[value="public"]'), null);
+  assert.equal(
+    container.querySelector('.zoj-settings-access option[value="public"]'),
+    null,
+  );
   const resources = [
     ...container.querySelectorAll('.zoj-settings-access select'),
   ];
@@ -1075,7 +1080,9 @@ test('contest visibility stays separate from lifecycle and restricts anonymous r
       'input[name="visibility_after_end"][value="public"]',
     ),
   );
-  assert.ok(container.querySelector('option[value="public"]'));
+  assert.ok(
+    container.querySelector('.zoj-settings-access option[value="public"]'),
+  );
   assert.ok(
     [...container.querySelectorAll('.zoj-settings-access select')].every(
       (select) => select.value === 'participants',

@@ -113,6 +113,7 @@ function OperatorBoardContent({
     queryKey: ['operator', 'dashboard', contestId, queryIdentity],
     queryFn: () => getOperatorContestDashboard(contestId, token),
   });
+  const contest = dashboardQuery.data?.contest;
   const questionsQuery = useQuery({
     queryKey: ['operator', 'boards', contestId, queryIdentity],
     queryFn: () => listOperatorContestQuestions(contestId, token),
@@ -168,10 +169,16 @@ function OperatorBoardContent({
     mutationFn: ({
       questionId,
       visibility,
+      commentScope,
     }: {
       questionId: string;
-      visibility: ContestQuestion['visibility'];
-    }) => updateContestQuestion(contestId, questionId, token, { visibility }),
+      visibility?: ContestQuestion['visibility'];
+      commentScope?: 'all' | 'operators';
+    }) =>
+      updateContestQuestion(contestId, questionId, token, {
+        ...(visibility !== undefined ? { visibility } : {}),
+        ...(commentScope !== undefined ? { comment_scope: commentScope } : {}),
+      }),
     onSuccess: (question) => {
       setExpandedQuestionId(question.contest_question_id);
       if (
@@ -481,6 +488,16 @@ function OperatorBoardContent({
 
                 {isExpanded ? (
                   <QuestionInlineDetail
+                    commentScopeLocked={Boolean(
+                      contest?.board_comment_scope_policy &&
+                      contest.board_comment_scope_policy !== 'choice',
+                    )}
+                    onChangeCommentScope={(commentScope) =>
+                      updateQuestionMutation.mutate({
+                        questionId: question.contest_question_id,
+                        commentScope,
+                      })
+                    }
                     canManage={canManage}
                     answerForm={answerForm}
                     answerMutationError={answerMutation.error}

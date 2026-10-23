@@ -45,7 +45,7 @@ export default function ContestVisibilitySettings({
         hint={
           afterEnd === 'private'
             ? '종료 후 비공개인 대회는 자료를 비로그인 공개할 수 없습니다. 기존 비로그인 공개 자료는 참가자 공개로 변경됩니다.'
-            : '대회 목록과 소개를 공개합니다. 문제집·스코어보드 등 자료를 볼 수 있는 대상은 자료 공개 범위에서 따로 정합니다.'
+            : '대회 목록과 소개를 공개합니다. 문제집·스코어보드 등 자료를 볼 수 있는 대상은 종료 후 자료 공개 범위에서 따로 정합니다.'
         }
       >
         <div className="zoj-settings-fields">

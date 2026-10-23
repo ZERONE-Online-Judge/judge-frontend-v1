@@ -543,7 +543,7 @@ function OperatorSettingsContent({
                     }
                     description="참가자 스코어보드와 프레젠테이션에 같은 방식이 적용됩니다. 발표 조작은 운영자 스코어보드 탭에서 합니다."
                     disabled={Boolean(contest?.scoreboard_release_locked)}
-                    hint="누가 볼 수 있는지는 아래 ‘자료 공개 범위 → 스코어보드’에서 별도로 정합니다. 순위를 공개해도 열람 범위가 비공개이면 참가자는 볼 수 없습니다."
+                    hint="누가 볼 수 있는지는 아래 ‘종료 후 자료 공개 범위 → 스코어보드’에서 별도로 정합니다. 순위를 공개해도 열람 범위가 비공개이면 참가자는 볼 수 없습니다."
                   >
                     {SCOREBOARD_RELEASE_OPTIONS.map((option) => (
                       <ChoiceCard
@@ -575,7 +575,7 @@ function OperatorSettingsContent({
                     </p>
                   </SettingsSection>
                   <SettingsSection
-                    title="자료 공개 범위"
+                    title="종료 후 자료 공개 범위"
                     summary={`문제집 ${accessOptions.find((option) => option.value === settingsForm.problem_access_after_end)?.label} · 스코어보드 ${accessOptions.find((option) => option.value === settingsForm.scoreboard_access_after_end)?.label}`}
                     description={
                       settingsForm.visibility_after_end === 'private'

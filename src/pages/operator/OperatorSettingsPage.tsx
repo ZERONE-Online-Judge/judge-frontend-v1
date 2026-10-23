@@ -1,4 +1,9 @@
 import Select from '@/shared/ui/Select';
+import BoardWritingSettings from '@/components/operator/BoardWritingSettings';
+import {
+  boardWritingSettingsFromContest,
+  type BoardWritingPolicy,
+} from '@/domains/serviceCommunication/boardPolicy';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import ProblemLanguageSettings from '@/components/operator/ProblemLanguageSettings';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
@@ -42,7 +47,7 @@ import type { StaffSession } from '@/domains/identityAccess/types';
 import { formatApiError } from '@/shared/api/errors';
 import { dateTimeLocalToIso, dateTimeLocalValue } from '@/shared/lib/dateTime';
 
-type SettingsForm = {
+type SettingsForm = BoardWritingPolicy & {
   visibility: ContestVisibility;
   visibility_after_end: ContestVisibility;
   end_at: string;
@@ -105,6 +110,7 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
   const status = contest.status === 'schedule_tbd' ? 'draft' : contest.status;
 
   return normalizeVisibility({
+    ...boardWritingSettingsFromContest(contest),
     visibility: contest.visibility ?? 'public',
     visibility_after_end: contest.visibility_after_end ?? 'public',
     end_at: dateTimeLocalValue(contest.end_at),
@@ -229,6 +235,7 @@ function OperatorSettingsContent({
       submission_access_after_end: form.submission_access_after_end,
       board_access_after_end: form.board_access_after_end,
       board_write_after_end: form.board_write_after_end,
+      ...boardWritingSettingsFromContest(form),
       editorial_access_after_end:
         form.problem_access_after_end === 'private'
           ? 'private'
@@ -781,6 +788,20 @@ function OperatorSettingsContent({
                         }
                       />
                     ) : null}
+                  </SettingsSection>
+                  <SettingsSection
+                    title="게시판 작성 범위"
+                    summary={`질문 기본 ${settingsForm.board_question_default_visibility === 'public' ? '공개' : '비공개'} · 댓글 ${settingsForm.board_comment_default_scope === 'all' ? '전체' : '운영진만'}`}
+                    description="질문의 기본 공개 범위와 댓글 작성 권한을 정하고, 참가자의 선택을 허용하거나 특정 범위로 고정합니다."
+                  >
+                    <BoardWritingSettings
+                      value={settingsForm}
+                      onChange={(value) =>
+                        setSettingsForm((prev) =>
+                          prev ? { ...prev, ...value } : prev,
+                        )
+                      }
+                    />
                   </SettingsSection>
                   <SettingsSection
                     title="종료 후 참여"

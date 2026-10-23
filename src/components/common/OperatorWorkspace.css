@@ -330,6 +330,7 @@
   width: 14px;
   height: 14px;
 }
+.operator-preview-top-link,
 .operator-share-link {
   grid-column: 1 / -1;
   width: 100%;
@@ -569,6 +570,7 @@
     margin-inline: 8px;
     padding-block: 14px 0;
   }
+  .operator-navigation[data-collapsed='true'] .operator-preview-top-link,
   .operator-navigation[data-collapsed='true'] .operator-share-link {
     width: 100%;
     margin-inline: 0;

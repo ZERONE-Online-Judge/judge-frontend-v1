@@ -33,7 +33,8 @@ export function listAdminServiceNotices(token: string) {
 
 export function createAdminServiceNotice(
   token: string,
-  body: Pick<ServiceNotice, 'title' | 'summary' | 'body'> & Partial<Pick<ServiceNotice, 'emergency'>>,
+  body: Pick<ServiceNotice, 'title' | 'summary' | 'body'> &
+    Partial<Pick<ServiceNotice, 'emergency'>>,
 ) {
   return apiRequest<ServiceNotice>('/admin/service-notices', token, {
     method: 'POST',
@@ -69,7 +70,10 @@ export function answerAdminContactInquiry(
 }
 
 export function listOperatorContestNotices(contestId: string, token: string) {
-  return apiRequest<ContestNotice[]>(`/operator/contests/${contestId}/notices`, token);
+  return apiRequest<ContestNotice[]>(
+    `/operator/contests/${contestId}/notices`,
+    token,
+  );
 }
 
 export function getContestNotices(contestId: string, token?: string) {
@@ -82,22 +86,35 @@ export function createContestNotice(
   body: Pick<ContestNotice, 'title' | 'body'> &
     Partial<Pick<ContestNotice, 'pinned' | 'emergency' | 'visibility'>>,
 ) {
-  return apiRequest<ContestNotice>(`/operator/contests/${contestId}/notices`, token, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  return apiRequest<ContestNotice>(
+    `/operator/contests/${contestId}/notices`,
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export function updateContestNotice(
   contestId: string,
   noticeId: string,
   token: string,
-  body: Partial<Pick<ContestNotice, 'title' | 'body' | 'pinned' | 'emergency' | 'visibility'>>,
+  body: Partial<
+    Pick<
+      ContestNotice,
+      'title' | 'body' | 'pinned' | 'emergency' | 'visibility'
+    >
+  >,
 ) {
-  return apiRequest<ContestNotice>(`/operator/contests/${contestId}/notices/${noticeId}`, token, {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
+  return apiRequest<ContestNotice>(
+    `/operator/contests/${contestId}/notices/${noticeId}`,
+    token,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export function deleteContestNotice(
@@ -127,7 +144,7 @@ export function updateContestQuestion(
   contestId: string,
   questionId: string,
   token: string,
-  body: Partial<Pick<ContestQuestion, 'visibility'>>,
+  body: Partial<Pick<ContestQuestion, 'visibility' | 'comment_scope'>>,
 ) {
   return apiRequest<ContestQuestion>(
     `/operator/contests/${contestId}/boards/${questionId}`,
@@ -154,7 +171,10 @@ export function deleteContestQuestion(
 export function createContestQuestion(
   contestId: string,
   token: string,
-  body: Pick<ContestQuestion, 'title' | 'body' | 'visibility'> & { problem_id?: string | null },
+  body: Pick<ContestQuestion, 'title' | 'body' | 'visibility'> & {
+    problem_id?: string | null;
+    comment_scope?: 'all' | 'operators';
+  },
 ) {
   return apiRequest<ContestQuestion>(`/contests/${contestId}/boards`, token, {
     method: 'POST',
@@ -184,10 +204,14 @@ export function createContestAnswer(
   token: string,
   body: Pick<ContestAnswer, 'body' | 'visibility'>,
 ) {
-  return apiRequest<ContestAnswer>(`/operator/contests/${contestId}/boards/${questionId}/answers`, token, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  return apiRequest<ContestAnswer>(
+    `/operator/contests/${contestId}/boards/${questionId}/answers`,
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export function updateContestAnswer(

@@ -50,6 +50,8 @@ function answerAuthorContext(answer: ContestAnswer) {
 }
 
 export default function QuestionInlineDetail({
+  commentScopeLocked = false,
+  onChangeCommentScope,
   canManage,
   answerActionError,
   answerActionPending,
@@ -71,6 +73,8 @@ export default function QuestionInlineDetail({
   updateError,
   updatePending,
 }: {
+  commentScopeLocked?: boolean;
+  onChangeCommentScope?: (scope: 'all' | 'operators') => void;
   canManage: boolean;
   answerActionError: unknown;
   answerActionPending: boolean;
@@ -112,6 +116,35 @@ export default function QuestionInlineDetail({
       {canManage ? (
         <div className="operator-question-tools">
           <div className="operator-thread-tools">
+            {onChangeCommentScope ? (
+              <button
+                type="button"
+                className="operator-thread-tool"
+                disabled={updatePending || commentScopeLocked}
+                title={
+                  commentScopeLocked
+                    ? '대회 설정으로 고정되어 있습니다.'
+                    : '댓글 작성 범위 변경'
+                }
+                onClick={() =>
+                  onChangeCommentScope(
+                    (question.effective_comment_scope ??
+                      question.comment_scope ??
+                      'all') === 'all'
+                      ? 'operators'
+                      : 'all',
+                  )
+                }
+              >
+                댓글:{' '}
+                {(question.effective_comment_scope ??
+                  question.comment_scope ??
+                  'all') === 'all'
+                  ? '전체'
+                  : '운영진만'}
+                {commentScopeLocked ? ' · 고정' : ''}
+              </button>
+            ) : null}
             <button
               type="button"
               className="operator-thread-tool"

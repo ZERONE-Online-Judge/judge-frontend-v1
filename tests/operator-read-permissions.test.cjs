@@ -159,6 +159,17 @@ const mocks = {
       record('questions');
       return questionItems;
     },
+    updateContestQuestion: async (contestId, questionId, token, body) => {
+      record('question-update', { contestId, questionId, token, body });
+      const question = questionItems.find(
+        (item) => item.contest_question_id === questionId,
+      );
+      Object.assign(question, body, {
+        effective_comment_scope:
+          body.comment_scope ?? question.comment_scope ?? 'all',
+      });
+      return question;
+    },
   },
   '@/domains/submissionScoreboard/api': {
     listRejudgings: async () => ({ batches: [], total: 0 }),
@@ -974,6 +985,33 @@ test('notice managers begin with the list and use a dialog to write without post
   assert.equal(requests('notice-write')[0].body.title, '대회 안내');
   assert.ok(button('대회 안내'));
   assert.match(container.textContent, /대회는 예정대로 진행합니다/);
+});
+
+test('board managers can limit comments per question without changing question visibility', async () => {
+  session = withScopes(['contest.board.question.manage']);
+  questionItems = [
+    {
+      contest_question_id: 'q',
+      title: '댓글 권한 질문',
+      body: '내용',
+      visibility: 'private',
+      comment_scope: 'all',
+      effective_comment_scope: 'all',
+      created_at: '2026-10-23T00:00:00Z',
+      answers: [],
+    },
+  ];
+  await render(BoardPage, '/board');
+  await click(
+    [...container.querySelectorAll('button')].find((item) =>
+      item.textContent.includes('댓글 권한 질문'),
+    ),
+  );
+  await click(button('댓글: 전체'));
+  assert.deepEqual(requests('question-update').at(-1).body, {
+    comment_scope: 'operators',
+  });
+  assert.equal(questionItems[0].visibility, 'private');
 });
 
 test('operator question thread matches chronological replies and keeps private reply drafts private', async () => {

@@ -137,6 +137,7 @@ const mocks = {
     useSessionStore: (selector) => selector({ generalSession: session }),
   },
   '@/domains/contestAdministration/api': {
+    createContestShareLink: async () => ({ code: 'shortCode01' }),
     getOperatorContestDashboard: async () => {
       reads.push('dashboard');
       return { participant_count: 0, contest: { status: contestStatus } };
@@ -274,10 +275,11 @@ test('operators share the participant URL without preview flags or credentials',
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
     const dialog = document.querySelector('dialog');
     assert.ok(dialog?.open);
     const input = dialog.querySelector('input');
-    assert.equal(input.value, 'https://judge.test/contests/contest');
+    assert.equal(input.value, 'https://judge.test/share/shortCode01');
     assert.equal(input.readOnly, true);
     const open = dialog.querySelector('a');
     assert.equal(open.href, input.value);
@@ -318,6 +320,7 @@ test('a rejected clipboard permission keeps a selectable participant URL availab
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
     const dialog = document.querySelector('dialog');
     await act(async () =>
       [...dialog.querySelectorAll('button')]
@@ -1043,4 +1046,16 @@ test('compact operator menu closes on Escape and navigation while preserving the
       .getAttribute('aria-current'),
     'page',
   );
+});
+
+test('participant preview appears in the top contest context, outside the collapsed menu', async () => {
+  session = forRoles('participant_preview');
+  await render();
+  const preview = container.querySelector(
+    '[aria-label="참가자 화면 미리보기"]',
+  );
+  assert.ok(preview);
+  assert.ok(preview.closest('.operator-context'));
+  assert.equal(preview.closest('.operator-menu-collapse'), null);
+  assert.match(preview.getAttribute('href'), /preview=1/);
 });

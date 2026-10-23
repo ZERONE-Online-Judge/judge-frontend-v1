@@ -29,7 +29,14 @@ const {
 } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 
-let state, calls, contest, detail, currentPath, currentLocation, contestError;
+let state,
+  calls,
+  contest,
+  detail,
+  currentPath,
+  currentLocation,
+  contestError,
+  boardQuestions;
 const listeners = new Set();
 function setState(patch) {
   state = { ...state, ...patch };
@@ -70,14 +77,41 @@ const problem = {
   memory_limit_mb: 256,
   display_order: 1,
 };
-async function apiRequest(url, token) {
-  calls.push({ url, token });
+async function apiRequest(url, token, init) {
+  calls.push({
+    url,
+    token,
+    ...(init
+      ? {
+          method: init.method,
+          body: init.body ? JSON.parse(init.body) : undefined,
+        }
+      : {}),
+  });
+  if (url === '/public/share/shortCode01')
+    return { contest_id: 'public-contest' };
+  if (url.startsWith('/public/share/')) throw new Error('Missing link');
   if (url === '/public/contests/public-contest') {
     if (contestError) throw contestError;
     return detail;
   }
   if (url.endsWith('/problems')) return [problem];
-  if (url.endsWith('/notices') || url.endsWith('/boards')) return [];
+  if (url.endsWith('/boards')) {
+    if (init?.method === 'POST') {
+      const body = JSON.parse(init.body);
+      const question = {
+        ...body,
+        contest_question_id: 'new-question',
+        created_at: '2026-10-23T00:00:00Z',
+        answers: [],
+        effective_comment_scope: body.comment_scope,
+      };
+      boardQuestions = [question, ...boardQuestions];
+      return question;
+    }
+    return boardQuestions;
+  }
+  if (url.endsWith('/notices')) return [];
   throw new Error(`Unexpected API request: ${url}`);
 }
 
@@ -146,6 +180,8 @@ function source(relative) {
 }
 const Overview = source('pages/contest/ContestOverviewPage.tsx').default;
 const Problems = source('pages/contest/ContestProblemsPage.tsx').default;
+const Board = source('pages/contest/ContestBoardPage.tsx').default;
+const Share = source('pages/public/ContestSharePage.tsx').default;
 const Navigation = source(
   'components/contest/ContestPageNavigation.tsx',
 ).default;
@@ -203,13 +239,17 @@ beforeEach(() => {
   };
   calls = [];
   contestError = null;
+  boardQuestions = [];
   currentPath = undefined;
   document.body.innerHTML = '<main></main>';
   window.localStorage.clear();
   host = document.querySelector('main');
   root = createRoot(host);
   client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { gcTime: Infinity },
+    },
   });
 });
 afterEach(async () => {
@@ -246,6 +286,7 @@ async function render(url = '/contests/public-contest', element) {
             h(
               Routes,
               null,
+              h(Route, { path: '/share/:code', element: h(Share) }),
               h(Route, { path: '/contests', element: h(Directory) }),
               h(Route, {
                 path: '/contests/:contestId',
@@ -254,6 +295,10 @@ async function render(url = '/contests/public-contest', element) {
               h(Route, {
                 path: '/contests/:contestId/problems',
                 element: h(Problems),
+              }),
+              h(Route, {
+                path: '/contests/:contestId/board',
+                element: h(Board),
               }),
               h(Route, {
                 path: '/login',
@@ -513,4 +558,157 @@ test('a server outage does not send a guest to login', async () => {
   contestError = new ApiClientError(503, 'api_busy', 'Unavailable');
   await render();
   assert.equal(currentPath, '/contests/public-contest');
+});
+
+async function openQuestionForm(policy = {}) {
+  login(true);
+  Object.assign(contest, {
+    status: 'running',
+    start_at: new Date(Date.now() - 3600000).toISOString(),
+    end_at: new Date(Date.now() + 3600000).toISOString(),
+    ...policy,
+  });
+  await render('/contests/public-contest/board');
+  await click(
+    [...host.querySelectorAll('button')].find(
+      (item) => item.textContent === '질문하기',
+    ),
+  );
+  return host.querySelector('form[aria-label="질문 작성"]');
+}
+
+test('question composer starts with contest defaults and sends the selected comment scope', async () => {
+  const form = await openQuestionForm({
+    board_question_default_visibility: 'private',
+    board_comment_default_scope: 'operators',
+  });
+  assert.equal(
+    form.querySelector('input[name="question_visibility"][value="private"]')
+      .checked,
+    true,
+  );
+  assert.equal(
+    form.querySelector(
+      'input[name="question_comment_scope"][value="operators"]',
+    ).checked,
+    true,
+  );
+  for (const [selector, value] of [
+    ['input[placeholder="제목을 입력하세요."]', '정책 질문'],
+    ['textarea', '질문 내용'],
+  ]) {
+    const input = form.querySelector(selector);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        input.tagName === 'TEXTAREA'
+          ? dom.window.HTMLTextAreaElement.prototype
+          : dom.window.HTMLInputElement.prototype,
+        'value',
+      ).set.call(input, value);
+      input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+  }
+  await act(async () =>
+    form.dispatchEvent(
+      new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+    ),
+  );
+  await flush();
+  const request = calls.find(
+    (item) => item.method === 'POST' && item.url.endsWith('/boards'),
+  );
+  assert.deepEqual(request.body, {
+    body: '질문 내용',
+    title: '정책 질문',
+    visibility: 'private',
+    comment_scope: 'operators',
+  });
+  assert.match(host.textContent, /운영진만 댓글을 작성할 수 있는 질문/);
+  assert.equal(host.querySelector('form.contest-reply-form'), null);
+});
+
+test('forced private questions and staff-only comments disable forbidden participant choices', async () => {
+  const form = await openQuestionForm({
+    board_question_visibility_policy: 'private',
+    board_question_default_visibility: 'public',
+    board_comment_scope_policy: 'operators',
+    board_comment_default_scope: 'all',
+  });
+  assert.equal(
+    form.querySelector('input[name="question_visibility"][value="public"]')
+      .disabled,
+    true,
+  );
+  assert.equal(
+    form.querySelector('input[name="question_visibility"][value="private"]')
+      .checked,
+    true,
+  );
+  assert.equal(
+    form.querySelector('input[name="question_comment_scope"][value="all"]')
+      .disabled,
+    true,
+  );
+  assert.equal(
+    form.querySelector(
+      'input[name="question_comment_scope"][value="operators"]',
+    ).checked,
+    true,
+  );
+  assert.match(form.textContent, /설정으로 고정/);
+});
+
+test('an existing question with staff-only comments keeps its replies readable without a participant composer', async () => {
+  login(true);
+  contest.board_access_after_end = 'participants';
+  contest.board_write_after_end = true;
+  boardQuestions = [
+    {
+      contest_question_id: 'q',
+      title: '운영진에게 질문',
+      body: '질문 내용',
+      visibility: 'public',
+      comment_scope: 'operators',
+      effective_comment_scope: 'operators',
+      created_at: '2026-10-23T00:00:00Z',
+      answers: [
+        {
+          contest_answer_id: 'a',
+          body: '운영진 답변',
+          created_by_role: 'operator',
+          created_by_name: '운영자',
+          created_at: '2026-10-23T00:01:00Z',
+        },
+      ],
+    },
+  ];
+  await render('/contests/public-contest/board?questionId=q');
+  assert.match(host.textContent, /운영진 답변/);
+  assert.match(host.textContent, /운영진만 댓글을 작성/);
+  assert.equal(host.querySelector('form.contest-reply-form'), null);
+});
+
+test('short share links preserve private-contest login and return to the participant destination', async () => {
+  contestError = new ApiClientError(404, 'not_found', 'Missing');
+  await render('/share/shortCode01');
+  await flush();
+  await flush();
+  assert.equal(currentPath, '/login');
+  const query = new URLSearchParams(currentLocation.search);
+  assert.equal(query.get('moveTo'), '/contests/public-contest');
+  assert.equal(query.get('contestId'), 'public-contest');
+});
+
+test('a participant can follow a short share link directly to the contest', async () => {
+  login(true);
+  await render('/share/shortCode01');
+  await flush();
+  assert.equal(currentPath, '/contests/public-contest');
+  assert.ok(host.textContent.includes(contest.title));
+});
+
+test('invalid and missing short links show a useful error without navigating away', async () => {
+  await render('/share/not-valid');
+  assert.ok(host.textContent.includes('공유 링크를 찾을 수 없습니다'));
+  assert.equal(calls.length, 0);
 });

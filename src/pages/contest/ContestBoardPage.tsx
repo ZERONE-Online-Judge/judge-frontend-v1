@@ -1,4 +1,9 @@
 import './ContestBoardPage.css';
+import {
+  applyBoardQuestionPolicy,
+  boardQuestionDefaults,
+  boardCommentScope,
+} from '@/domains/serviceCommunication/boardPolicy';
 import NoticeCountdownText from '@/components/contest/NoticeCountdownText';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
@@ -40,12 +45,14 @@ import { formatDateTime } from '@/shared/lib/dateTime';
 import PageNotice from '@/shared/ui/PageNotice';
 
 type QuestionFormState = {
+  comment_scope: 'all' | 'operators';
   body: string;
   title: string;
   visibility: ContestQuestion['visibility'];
 };
 
 const emptyQuestionForm: QuestionFormState = {
+  comment_scope: 'all',
   body: '',
   title: '',
   visibility: 'public',
@@ -143,8 +150,13 @@ function ContestBoardContent({
   const [expandedQuestionId, setExpandedQuestionId] =
     useState(requestedQuestionId);
   const [isWritingQuestion, setIsWritingQuestion] = useState(false);
-  const [questionForm, setQuestionForm] =
-    useState<QuestionFormState>(emptyQuestionForm);
+  const [questionForm, setQuestionForm] = useState<QuestionFormState | null>(
+    null,
+  );
+  const effectiveQuestionForm = applyBoardQuestionPolicy(
+    contest,
+    questionForm ?? emptyQuestionForm,
+  );
   const [formError, setFormError] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [answerErrors, setAnswerErrors] = useState<Record<string, string>>({});
@@ -240,13 +252,14 @@ function ContestBoardContent({
       }
 
       return createContestQuestion(contestId, submitToken, {
-        body: questionForm.body.trim(),
-        title: questionForm.title.trim(),
-        visibility: questionForm.visibility,
+        body: effectiveQuestionForm.body.trim(),
+        title: effectiveQuestionForm.title.trim(),
+        visibility: effectiveQuestionForm.visibility,
+        comment_scope: effectiveQuestionForm.comment_scope,
       });
     },
     onSuccess: (question) => {
-      setQuestionForm(emptyQuestionForm);
+      setQuestionForm(null);
       setFormError('');
       setIsWritingQuestion(false);
       setExpandedQuestionId(question.contest_question_id);
@@ -295,12 +308,12 @@ function ContestBoardContent({
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!questionForm.title.trim()) {
+    if (!effectiveQuestionForm.title.trim()) {
       setFormError(contestBoardText.questionTitleRequired);
       return;
     }
 
-    if (!questionForm.body.trim()) {
+    if (!effectiveQuestionForm.body.trim()) {
       setFormError(contestBoardText.questionBodyRequired);
       return;
     }
@@ -399,7 +412,8 @@ function ContestBoardContent({
           <section className="contest-board-panel">
             {canViewQuestions ? (
               <QuestionPanel
-                form={questionForm}
+                contest={contest}
+                form={effectiveQuestionForm}
                 formError={formError}
                 isError={questionsQuery.isError}
                 isLoading={questionsQuery.isLoading}
@@ -441,6 +455,13 @@ function ContestBoardContent({
                   );
                 }}
                 onStartWrite={() => {
+                  setQuestionForm(
+                    (current) =>
+                      current ?? {
+                        ...emptyQuestionForm,
+                        ...boardQuestionDefaults(contest),
+                      },
+                  );
                   setIsWritingQuestion(true);
                   setFormError('');
                 }}
@@ -592,6 +613,7 @@ function Pagination({
 }
 
 function QuestionPanel({
+  contest,
   answerDrafts,
   answerErrors,
   answerMutationError,
@@ -615,6 +637,7 @@ function QuestionPanel({
   questions,
   submittingAnswerQuestionId,
 }: {
+  contest: Contest;
   answerDrafts: Record<string, string>;
   answerErrors: Record<string, string>;
   answerMutationError: unknown;
@@ -650,6 +673,7 @@ function QuestionPanel({
       </header>
       {isWriting ? (
         <QuestionForm
+          contest={contest}
           form={form}
           formError={formError}
           isSubmitting={isSubmitting}
@@ -734,6 +758,7 @@ function QuestionPanel({
                     onSubmitAnswer(question.contest_question_id)
                   }
                   question={question}
+                  canComment={boardCommentScope(contest, question) === 'all'}
                 />
               ) : null}
             </li>
@@ -748,6 +773,7 @@ function QuestionPanel({
 }
 
 function QuestionForm({
+  contest,
   form,
   formError,
   isSubmitting,
@@ -756,6 +782,7 @@ function QuestionForm({
   onChange,
   onSubmit,
 }: {
+  contest: Contest;
   form: QuestionFormState;
   formError: string;
   isSubmitting: boolean;
@@ -797,6 +824,7 @@ function QuestionForm({
               name="question_visibility"
               value="public"
               checked={form.visibility === 'public'}
+              disabled={contest.board_question_visibility_policy === 'private'}
               onChange={() => onChange({ ...form, visibility: 'public' })}
             />
             <span>
@@ -810,6 +838,7 @@ function QuestionForm({
               name="question_visibility"
               value="private"
               checked={form.visibility === 'private'}
+              disabled={contest.board_question_visibility_policy === 'public'}
               onChange={() => onChange({ ...form, visibility: 'private' })}
             />
             <span>
@@ -818,6 +847,45 @@ function QuestionForm({
             </span>
           </label>
         </fieldset>
+        <fieldset className="contest-question-visibility">
+          <legend>댓글 작성 범위</legend>
+          <label>
+            <input
+              type="radio"
+              name="question_comment_scope"
+              value="all"
+              checked={form.comment_scope === 'all'}
+              disabled={contest.board_comment_scope_policy === 'operators'}
+              onChange={() => onChange({ ...form, comment_scope: 'all' })}
+            />
+            <span>
+              <strong>전체</strong>
+              <small>글을 볼 수 있는 참가자와 운영진</small>
+            </span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="question_comment_scope"
+              value="operators"
+              checked={form.comment_scope === 'operators'}
+              disabled={contest.board_comment_scope_policy === 'all'}
+              onChange={() => onChange({ ...form, comment_scope: 'operators' })}
+            />
+            <span>
+              <strong>운영진만</strong>
+              <small>질문 작성자도 댓글을 작성할 수 없음</small>
+            </span>
+          </label>
+        </fieldset>
+        {(contest.board_question_visibility_policy &&
+          contest.board_question_visibility_policy !== 'choice') ||
+        (contest.board_comment_scope_policy &&
+          contest.board_comment_scope_policy !== 'choice') ? (
+          <p className="text-sm text-slate-500">
+            일부 범위는 대회 운영자의 설정으로 고정되어 있습니다.
+          </p>
+        ) : null}
       </fieldset>
       {formError || mutationError ? (
         <PageNotice
@@ -849,6 +917,7 @@ function QuestionForm({
 }
 
 function QuestionInlineDetail({
+  canComment,
   answerDraft,
   answerError,
   answerMutationError,
@@ -857,6 +926,7 @@ function QuestionInlineDetail({
   onSubmitAnswer,
   question,
 }: {
+  canComment: boolean;
   answerDraft: string;
   answerError: string;
   answerMutationError: unknown;
@@ -896,43 +966,49 @@ function QuestionInlineDetail({
           <p className="contest-replies-empty">아직 답변이 없습니다.</p>
         ) : null}
       </section>
-      <form
-        className="contest-reply-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmitAnswer();
-        }}
-      >
-        <label className="contest-field">
-          <span>댓글</span>
-          <textarea
-            disabled={isSubmittingAnswer}
-            onChange={(e) => onChangeAnswer(e.target.value)}
-            placeholder={contestBoardText.answerPlaceholder}
-            value={answerDraft}
-            rows={3}
-          />
-        </label>
-        {answerError || answerMutationError ? (
-          <PageNotice
-            message={
-              answerError ||
-              formatUserApiError(
-                answerMutationError,
-                contestBoardText.answerSubmitError,
-              )
-            }
-            status="error"
-          />
-        ) : null}
-        <div className="contest-form-actions">
-          <PrimaryButton disabled={isSubmittingAnswer} type="submit">
-            {isSubmittingAnswer
-              ? '등록 중'
-              : contestBoardText.answerSubmitButton}
-          </PrimaryButton>
-        </div>
-      </form>
+      {canComment ? (
+        <form
+          className="contest-reply-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmitAnswer();
+          }}
+        >
+          <label className="contest-field">
+            <span>댓글</span>
+            <textarea
+              disabled={isSubmittingAnswer}
+              onChange={(e) => onChangeAnswer(e.target.value)}
+              placeholder={contestBoardText.answerPlaceholder}
+              value={answerDraft}
+              rows={3}
+            />
+          </label>
+          {answerError || answerMutationError ? (
+            <PageNotice
+              message={
+                answerError ||
+                formatUserApiError(
+                  answerMutationError,
+                  contestBoardText.answerSubmitError,
+                )
+              }
+              status="error"
+            />
+          ) : null}
+          <div className="contest-form-actions">
+            <PrimaryButton disabled={isSubmittingAnswer} type="submit">
+              {isSubmittingAnswer
+                ? '등록 중'
+                : contestBoardText.answerSubmitButton}
+            </PrimaryButton>
+          </div>
+        </form>
+      ) : (
+        <p className="contest-replies-empty">
+          운영진만 댓글을 작성할 수 있는 질문입니다.
+        </p>
+      )}
     </article>
   );
 }

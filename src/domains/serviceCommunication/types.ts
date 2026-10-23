@@ -50,6 +50,8 @@ export type ContestQuestion = {
   title: string;
   body: string;
   visibility: 'public' | 'private';
+  comment_scope?: 'all' | 'operators';
+  effective_comment_scope?: 'all' | 'operators';
   team_name?: string | null;
   division_name?: string | null;
   author_name?: string | null;

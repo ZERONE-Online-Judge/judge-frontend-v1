@@ -47,6 +47,27 @@ export function confirmAccountPassword(
     },
   );
 }
+export function confirmAccountPasswordWithPasskey(
+  proofToken: string,
+  password: string,
+  token?: string,
+  email?: string,
+) {
+  return apiRequest<{ changed: boolean; sessions_revoked: boolean }>(
+    '/auth/general/password/passkey/confirm',
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        purpose: email ? 'reset' : 'set',
+        ...(email ? { email } : {}),
+        proof_token: proofToken,
+        new_password: password,
+      }),
+    },
+  );
+}
+
 export async function loginGeneralPassword(
   email: string,
   password: string,

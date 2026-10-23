@@ -60,6 +60,34 @@ export async function loginPasskey(email: string, forceNewSession = false) {
   saveGeneralSession(session);
   return session;
 }
+export async function verifyPasswordPasskey(
+  purpose: 'set' | 'reset',
+  token?: string,
+  email?: string,
+) {
+  const scope = { purpose, ...(purpose === 'reset' ? { email } : {}) };
+  const data = await apiRequest<{
+    challenge_id: string;
+    options: PublicKeyCredentialRequestOptionsJSON;
+  }>('/auth/general/password/passkey/options', token, {
+    method: 'POST',
+    body: JSON.stringify(scope),
+  });
+  const credential = await startAuthentication({ optionsJSON: data.options });
+  return apiRequest<{ proof_token: string; valid_seconds: number }>(
+    '/auth/general/password/passkey/verify',
+    token,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...scope,
+        challenge_id: data.challenge_id,
+        credential,
+      }),
+    },
+  );
+}
+
 export function removePasskey(token: string, id: string) {
   return apiRequest('/auth/general/passkeys/remove', token, {
     method: 'POST',

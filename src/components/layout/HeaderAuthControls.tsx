@@ -142,13 +142,12 @@ export default function HeaderAuthControls({
         <HeaderPanel
           id="account-panel-title"
           title="내 정보"
-          label="MY ACCOUNT"
-          icon="user"
-          description="계정 정보와 참가 중인 대회를 확인합니다."
+          className="header-account-panel"
+          description="계정과 로그인 설정을 관리하세요."
           onClose={() => setIsAccountPanelOpen(false)}
           footer={
             <ModalButton
-              className="w-full"
+              className="header-account-logout"
               disabled={isLoggingOut}
               onClick={() => setIsLogoutConfirmOpen(true)}
               type="button"
@@ -169,65 +168,87 @@ export default function HeaderAuthControls({
               <p>{accountEmail}</p>
             </div>
           </div>
-          <button
-            type="button"
-            className="header-security-card"
-            onClick={() => {
-              setIsAccountPanelOpen(false);
-              setIsPasswordOpen(true);
-            }}
+          <section
+            className="header-account-security"
+            aria-labelledby="account-security-heading"
           >
-            <span className="header-security-icon" aria-hidden="true">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
+            <h3 id="account-security-heading">로그인 및 보안</h3>
+            <div className="header-account-security-list">
+              <button
+                type="button"
+                className="header-security-card"
+                onClick={() => {
+                  setIsAccountPanelOpen(false);
+                  setIsPasswordOpen(true);
+                }}
               >
-                <rect x="5" y="10" width="14" height="11" rx="3" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
-              </svg>
-            </span>
-            <span>
-              <strong>비밀번호 관리</strong>
-              <small>이메일 인증 후 비밀번호 등록·변경</small>
-            </span>
-            <span className="header-security-arrow" aria-hidden="true">
-              <InterfaceIcon name="arrowRight" />
-            </span>
-          </button>
-          <button
-            type="button"
-            className="header-security-card"
-            onClick={() => {
-              setIsAccountPanelOpen(false);
-              setIsPasskeyOpen(true);
-            }}
-          >
-            <span className="header-security-icon" aria-hidden="true">
-              <HeaderIcon name="user" />
-            </span>
-            <span>
-              <strong>패스키 관리</strong>
-              <small>기기 인증으로 로그인 · 패스키 추가·삭제</small>
-            </span>
-            <span className="header-security-arrow" aria-hidden="true">
-              <InterfaceIcon name="arrowRight" />
-            </span>
-          </button>
-          <section className="header-panel-section">
+                <span className="header-security-icon" aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect x="5" y="10" width="14" height="11" rx="3" />
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
+                  </svg>
+                </span>
+                <span>
+                  <strong>비밀번호 관리</strong>
+                  <small>비밀번호 등록 및 변경</small>
+                </span>
+                <span className="header-security-arrow" aria-hidden="true">
+                  <InterfaceIcon name="arrowRight" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="header-security-card"
+                onClick={() => {
+                  setIsAccountPanelOpen(false);
+                  setIsPasskeyOpen(true);
+                }}
+              >
+                <span className="header-security-icon" aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="8" cy="9" r="5" />
+                    <path d="m11.5 12.5 8 8H22v-3h-3v-3h-3" />
+                  </svg>
+                </span>
+                <span>
+                  <strong>패스키 관리</strong>
+                  <small>기기로 간편하게 로그인 · 추가 및 삭제</small>
+                </span>
+                <span className="header-security-arrow" aria-hidden="true">
+                  <InterfaceIcon name="arrowRight" />
+                </span>
+              </button>
+            </div>
+          </section>
+          <section className="header-panel-section header-account-contests">
             <div className="header-section-heading">
-              <h3>내가 참가한 대회</h3>
+              <h3>참가 대회</h3>
               <span>{generalSession.participantContests.length}개</span>
             </div>
             {participantContestSections.map((section) =>
               section.contests.length ? (
                 <section className="header-panel-section" key={section.key}>
-                  <div className="header-section-heading">
+                  <div
+                    className="header-section-heading header-account-phase"
+                    data-phase={section.key}
+                  >
                     <h4>{section.title}</h4>
-                    <span>{section.contests.length}</span>
                   </div>
                   {section.contests.map((item) => (
                     <Link
@@ -236,7 +257,10 @@ export default function HeaderAuthControls({
                       onClick={() => setIsAccountPanelOpen(false)}
                       to={`/contests/${item.contest.contest_id}`}
                     >
-                      <strong>{item.contest.title}</strong>
+                      <div className="header-account-contest-title">
+                        <strong>{item.contest.title}</strong>
+                        <InterfaceIcon name="arrowUpRight" />
+                      </div>
                       <span>
                         {item.division.name} · {item.team.team_name}
                       </span>

@@ -341,7 +341,7 @@ test('password login on an unfamiliar environment switches to email or passkey v
   assert.equal(button(v, '비밀번호로 로그인'), undefined);
   assert.equal(v.host.querySelector('#login-otp'), null);
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 0);
-  await click(v, '이메일 인증번호 받기');
+  await click(v, '이메일로 인증');
   assert.ok(v.host.querySelector('#login-otp'));
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
   await v.close();
@@ -556,6 +556,17 @@ test('new environment verification can use the registered passkey without return
   assert.equal(v.host.querySelector('#login-otp'), null);
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 0);
   assert.equal(button(v, '비밀번호로 로그인'), undefined);
+  const methods = v.host.querySelector(
+    '[role="group"][aria-label="본인 확인 방법"]',
+  );
+  assert.ok(methods);
+  assert.deepEqual(
+    [...methods.querySelectorAll('button')].map((item) => item.textContent),
+    ['이메일로 인증', '패스키로 인증'],
+  );
+  assert.equal(v.host.querySelector('.login-method-options button'), null);
+  await submit(v);
+  assert.deepEqual(calls, [['password']]);
   await click(v, '패스키로 인증');
   assert.equal(state.generalSession, session);
   assert.deepEqual(
@@ -592,7 +603,7 @@ test('an incorrect password stays on the password screen without sending email o
   assert.deepEqual(calls, [['password']]);
   assert.equal(state.generalSession, null);
   assert.ok(v.host.querySelector('#login-password'));
-  assert.equal(button(v, '이메일 인증번호 받기'), undefined);
+  assert.equal(button(v, '이메일로 인증'), undefined);
   assert.equal(button(v, '패스키로 인증'), undefined);
   await v.close();
 });
@@ -629,8 +640,7 @@ test('password recovery returns to the new password and clears the previous emai
     throw new ApiError('additional_verification_required');
   };
   await submit(v);
-  assert.ok(button(v, '이메일 인증번호 받기'));
-  assert.equal(button(v, '이메일 인증번호 입력'), undefined);
+  assert.ok(button(v, '이메일로 인증'));
   assert.equal(state.generalSession, null);
   await v.close();
 });
@@ -660,7 +670,7 @@ test('new environment email verification sends only after selection and finishes
   await submit(v);
   assert.equal(v.host.querySelector('h1').textContent, '본인 확인');
   assert.deepEqual(calls, [['password']]);
-  await click(v, '이메일 인증번호 받기');
+  await click(v, '이메일로 인증');
   await input(v, '#login-otp', '123456');
   await submit(v);
   assert.deepEqual(calls, [['password'], ['request-otp'], ['verify-otp']]);
@@ -685,7 +695,7 @@ test('cancelled additional passkey verification can fall back to email without a
   assert.equal(state.generalSession, null);
   assert.deepEqual(calls, [['password'], ['passkey', 'user@example.com']]);
   assert.equal(v.host.querySelector('#login-password'), null);
-  await click(v, '이메일 인증번호 받기');
+  await click(v, '이메일로 인증');
   assert.ok(v.host.querySelector('#login-otp'));
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
   await v.close();
@@ -703,8 +713,8 @@ test('new environment verification reuses an already requested email code during
     throw new ApiError('additional_verification_required');
   };
   await submit(v);
-  assert.equal(button(v, '이메일 인증번호 입력').disabled, false);
-  await click(v, '이메일 인증번호 입력');
+  assert.equal(button(v, '이메일로 인증').disabled, false);
+  await click(v, '이메일로 인증');
   assert.ok(v.host.querySelector('#login-otp'));
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
   await v.close();

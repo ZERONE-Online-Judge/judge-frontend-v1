@@ -238,6 +238,7 @@ export default function LoginPage() {
   const otpExpiresSeconds = Math.max(0, Math.ceil((otpExpiresAt - now) / 1000));
   const canReuseOtp =
     otpRequested && requestedOtpEmail === email.trim() && otpExpiresSeconds > 0;
+  const canUsePasskey = loginOptions.passkey_available && supportsPasskeys();
   const canRequestOtp =
     Boolean(email.trim()) && cooldownSeconds <= 0 && !isSubmitting;
   useEffect(() => {
@@ -723,6 +724,8 @@ export default function LoginPage() {
           aria-labelledby="login-card-title"
           onSubmit={(event) => {
             event.preventDefault();
+            if (loginMethod === 'verify' && canUsePasskey && !presentationLogin)
+              return;
             void (loginMethod === 'email' && !presentationLogin
               ? chooseLoginMethod()
               : loginMethod === 'passkey' && !presentationLogin
@@ -748,7 +751,7 @@ export default function LoginPage() {
                 : loginMethod === 'passkey'
                   ? '이 계정에 등록한 패스키로 인증해 주세요.'
                   : additionalVerification
-                    ? loginOptions.passkey_available && supportsPasskeys()
+                    ? canUsePasskey
                       ? '이메일 인증 또는 패스키로 본인 확인을 완료해 주세요.'
                       : '이메일 인증으로 본인 확인을 완료해 주세요.'
                     : loginMethod === 'verify'
@@ -822,13 +825,52 @@ export default function LoginPage() {
               {isSubmitting ? '기기 인증을 확인해 주세요…' : '패스키로 로그인'}
             </button>
           ) : loginMethod === 'verify' && !presentationLogin ? (
-            <button
-              className="login-action"
-              type="submit"
-              disabled={isSubmitting || (!canReuseOtp && cooldownSeconds > 0)}
+            <div
+              className="login-verification-methods"
+              role="group"
+              aria-label="본인 확인 방법"
             >
-              {canReuseOtp ? '이메일 인증번호 입력' : '이메일 인증번호 받기'}
-            </button>
+              <button
+                className="login-action"
+                type="button"
+                disabled={isSubmitting || (!canReuseOtp && cooldownSeconds > 0)}
+                onClick={() => void selectEmailLogin()}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="3" />
+                  <path d="m4 7 8 6 8-6" />
+                </svg>
+                <span>이메일로 인증</span>
+              </button>
+              {canUsePasskey && (
+                <button
+                  className="login-action"
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => void submitPasskeyLogin()}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="8" cy="9" r="5" />
+                    <path d="m11.5 12.5 8 8H22v-3h-3v-3h-3" />
+                  </svg>
+                  <span>패스키로 인증</span>
+                </button>
+              )}
+            </div>
           ) : loginMethod === 'password' && !presentationLogin ? (
             <>
               <div className="login-field">
@@ -925,8 +967,8 @@ export default function LoginPage() {
 
           {!presentationLogin && loginMethod !== 'email' && (
             <div className="login-method-options" aria-label="다른 로그인 방법">
-              {loginOptions.passkey_available &&
-                supportsPasskeys() &&
+              {canUsePasskey &&
+                loginMethod !== 'verify' &&
                 loginMethod !== 'passkey' && (
                   <button
                     type="button"

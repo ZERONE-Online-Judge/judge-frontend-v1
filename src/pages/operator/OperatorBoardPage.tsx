@@ -454,9 +454,11 @@ function OperatorBoardContent({
                     <span className="flex flex-wrap items-center gap-2">
                       <StatusBadge answered={hasOperatorAnswer(question)} />
                       <VisibilityBadge visibility={question.visibility} />
-                      <span className="text-xs text-slate-600">
-                        {answerCountLabel(question.answers.length)}
-                      </span>
+                      {!isExpanded && (
+                        <span className="text-xs text-slate-600">
+                          {answerCountLabel(question.answers.length)}
+                        </span>
+                      )}
                     </span>
                     <strong className="operator-board-title">
                       {question.title}
@@ -465,13 +467,19 @@ function OperatorBoardContent({
                       {question.body}
                     </span>
                     <span className="operator-board-meta">
-                      <span>
-                        {questionAuthorName(question)}
-                        {questionAuthorContext(question)
-                          ? ` · ${questionAuthorContext(question)}`
-                          : ''}
+                      <span className="operator-board-author">
+                        <span className="operator-board-author-name">
+                          {questionAuthorName(question)}
+                        </span>
+                        {questionAuthorContext(question) ? (
+                          <span className="operator-board-author-context">
+                            {questionAuthorContext(question)}
+                          </span>
+                        ) : null}
                       </span>
-                      <time>{formatDateTime(question.created_at)}</time>
+                      <time dateTime={question.created_at}>
+                        {formatDateTime(question.created_at)}
+                      </time>
                     </span>
                   </span>
                   <svg

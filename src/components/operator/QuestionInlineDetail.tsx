@@ -112,76 +112,78 @@ export default function QuestionInlineDetail({
       id={`question-detail-${question.contest_question_id}`}
       className="contest-question-detail operator-question-detail"
     >
-      <p className="contest-question-body">{question.body}</p>
-      {canManage ? (
-        <div className="operator-question-tools">
-          <div className="operator-thread-tools">
-            {onChangeCommentScope ? (
+      <div className="operator-question-post">
+        <p className="contest-question-body">{question.body}</p>
+        {canManage ? (
+          <div className="operator-question-tools">
+            <div className="operator-thread-tools">
+              {onChangeCommentScope ? (
+                <button
+                  type="button"
+                  className="operator-thread-tool"
+                  disabled={updatePending || commentScopeLocked}
+                  title={
+                    commentScopeLocked
+                      ? '대회 설정으로 고정되어 있습니다.'
+                      : '댓글 작성 범위 변경'
+                  }
+                  onClick={() =>
+                    onChangeCommentScope(
+                      (question.effective_comment_scope ??
+                        question.comment_scope ??
+                        'all') === 'all'
+                        ? 'operators'
+                        : 'all',
+                    )
+                  }
+                >
+                  댓글:{' '}
+                  {(question.effective_comment_scope ??
+                    question.comment_scope ??
+                    'all') === 'all'
+                    ? '전체'
+                    : '운영진만'}
+                  {commentScopeLocked ? ' · 고정' : ''}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="operator-thread-tool"
-                disabled={updatePending || commentScopeLocked}
-                title={
-                  commentScopeLocked
-                    ? '대회 설정으로 고정되어 있습니다.'
-                    : '댓글 작성 범위 변경'
-                }
-                onClick={() =>
-                  onChangeCommentScope(
-                    (question.effective_comment_scope ??
-                      question.comment_scope ??
-                      'all') === 'all'
-                      ? 'operators'
-                      : 'all',
-                  )
-                }
+                disabled={updatePending}
+                onClick={onToggleVisibility}
               >
-                댓글:{' '}
-                {(question.effective_comment_scope ??
-                  question.comment_scope ??
-                  'all') === 'all'
-                  ? '전체'
-                  : '운영진만'}
-                {commentScopeLocked ? ' · 고정' : ''}
+                {question.visibility === 'public' ? '비공개 전환' : '공개 전환'}
               </button>
-            ) : null}
+              <button
+                type="button"
+                className="operator-thread-tool operator-thread-tool--danger"
+                disabled={deletePending}
+                onClick={onDelete}
+              >
+                삭제
+              </button>
+            </div>
             <button
               type="button"
-              className="operator-thread-tool"
-              disabled={updatePending}
-              onClick={onToggleVisibility}
+              className="operator-thread-reply-button"
+              aria-expanded={isAnswerFormOpen}
+              aria-controls={composerId}
+              disabled={isAnswerSubmitting}
+              onClick={() => {
+                if (!isAnswerFormOpen) onStartAnswer();
+              }}
             >
-              {question.visibility === 'public' ? '비공개 전환' : '공개 전환'}
-            </button>
-            <button
-              type="button"
-              className="operator-thread-tool operator-thread-tool--danger"
-              disabled={deletePending}
-              onClick={onDelete}
-            >
-              삭제
+              {isAnswerFormOpen ? '답변 작성 중' : '답변 작성'}
             </button>
           </div>
-          <button
-            type="button"
-            className="operator-thread-reply-button"
-            aria-expanded={isAnswerFormOpen}
-            aria-controls={composerId}
-            disabled={isAnswerSubmitting}
-            onClick={() => {
-              if (!isAnswerFormOpen) onStartAnswer();
-            }}
-          >
-            {isAnswerFormOpen ? '답변 작성 중' : '답변 작성'}
-          </button>
-        </div>
-      ) : null}
-      {updateError || deleteError ? (
-        <ErrorBox
-          error={updateError || deleteError}
-          fallback="게시글 처리에 실패했습니다"
-        />
-      ) : null}
+        ) : null}
+        {updateError || deleteError ? (
+          <ErrorBox
+            error={updateError || deleteError}
+            fallback="게시글 처리에 실패했습니다"
+          />
+        ) : null}
+      </div>
       <section className="contest-replies" aria-label="답변 내역">
         <h3 className="operator-thread-heading">답변 {answers.length}건</h3>
         {answers.map((answer) => (

@@ -248,7 +248,8 @@ export default function LoginPage() {
       !generalSession ||
       isSubmitting ||
       pendingSessionReplacement ||
-      enrollmentSession
+      (enrollmentSession &&
+        generalSession.account.email === enrollmentSession.account.email)
     )
       return;
 
@@ -568,20 +569,21 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      {enrollmentSession && (
-        <PasskeyDialog
-          token={enrollmentSession.accessToken}
-          email={enrollmentSession.account.email}
-          enrollment
-          onClose={() => {
-            const session = enrollmentSession;
-            setEnrollmentSession(null);
-            navigate(postLoginRedirectPath(session, searchParams), {
-              replace: true,
-            });
-          }}
-        />
-      )}
+      {enrollmentSession &&
+        generalSession?.account.email === enrollmentSession.account.email && (
+          <PasskeyDialog
+            token={enrollmentSession.accessToken}
+            email={enrollmentSession.account.email}
+            enrollment
+            onClose={() => {
+              const session = enrollmentSession;
+              setEnrollmentSession(null);
+              navigate(postLoginRedirectPath(session, searchParams), {
+                replace: true,
+              });
+            }}
+          />
+        )}
       {passwordResetOpen && (
         <AccountPasswordDialog
           mode="reset"

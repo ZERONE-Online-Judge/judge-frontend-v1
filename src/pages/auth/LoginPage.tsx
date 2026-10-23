@@ -173,10 +173,15 @@ function postLoginRedirectPath(
 
 export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<
-    'email' | 'otp' | 'password' | 'verify'
+    'email' | 'otp' | 'password' | 'passkey' | 'verify'
   >('email');
   const [enrollmentSession, setEnrollmentSession] =
     useState<GeneralSession | null>(null);
+  const [loginOptions, setLoginOptions] = useState({
+    password_available: false,
+    passkey_available: false,
+  });
+  const [additionalVerification, setAdditionalVerification] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordResetOpen, setPasswordResetOpen] = useState(false);
   const navigate = useNavigate();
@@ -284,12 +289,12 @@ export default function LoginPage() {
   }
 
   async function submitPasskeyLogin(forceNewSession = false) {
-    if (isSubmitting) return;
+    if (!validateEmail() || isSubmitting || loginMethod === 'email') return;
     setIsSubmitting(true);
     setMessage('기기의 패스키 인증을 진행해 주세요.');
     setMessageStatus('loading');
     try {
-      const session = await loginPasskey(forceNewSession);
+      const session = await loginPasskey(email.trim(), forceNewSession);
       await completeLogin(session);
     } catch (error) {
       if (!forceNewSession && isSessionConflictError(error)) {
@@ -329,6 +334,8 @@ export default function LoginPage() {
   }
 
   function resetOtpAfterEmailChange() {
+    setAdditionalVerification(false);
+    setLoginOptions({ password_available: false, passkey_available: false });
     setOtpRequested(false);
     setRequestedOtpEmail('');
     setOtpExpiresAt(0);
@@ -344,12 +351,14 @@ export default function LoginPage() {
     setMessage('');
     setMessageStatus('loading');
     try {
-      if (searchParams.get('password') === 'changed') {
-        await requestOtp();
-        return;
-      }
       const options = await getLoginOptions(email.trim());
-      if (options.password_available) {
+      setLoginOptions(options);
+      if (options.passkey_available && supportsPasskeys()) {
+        setLoginMethod('passkey');
+        setMessageStatus('idle');
+      } else if (searchParams.get('password') === 'changed') {
+        await requestOtp();
+      } else if (options.password_available) {
         setLoginMethod('password');
         setMessageStatus('idle');
       } else {
@@ -388,6 +397,7 @@ export default function LoginPage() {
       setOtpExpiresAt(requestedAt + OTP_VALID_SECONDS * 1000);
       setMessage(loginPageText.otpSent);
       setMessageStatus('ready');
+      return true;
     } catch (error) {
       const retryAfter = readRetryAfterSeconds(error);
 
@@ -401,9 +411,25 @@ export default function LoginPage() {
           : formatUserApiError(error, loginPageText.otpRequestFailed),
       );
       setMessageStatus('error');
+      return false;
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function selectEmailLogin() {
+    setPassword('');
+    if (
+      otpRequested &&
+      requestedOtpEmail === email.trim() &&
+      otpExpiresSeconds > 0
+    ) {
+      setLoginMethod('otp');
+      setMessage(loginPageText.otpSent);
+      setMessageStatus('ready');
+      return;
+    }
+    await requestOtp();
   }
 
   async function submitLogin(values: LoginFormValues, forceNewSession = false) {
@@ -539,11 +565,14 @@ export default function LoginPage() {
         error.code === 'additional_verification_required'
       ) {
         setPassword('');
+        setAdditionalVerification(true);
         setLoginMethod('verify');
-        setMessage(
-          '새로운 브라우저 또는 IP에서 접속했습니다. 이메일 인증이나 패스키로 본인 확인 후 로그인해 주세요.',
-        );
-        setMessageStatus('ready');
+        if (await requestOtp()) {
+          setMessage(
+            '새로운 브라우저 또는 IP입니다. 이메일로 받은 인증번호를 입력해 주세요.',
+          );
+          setMessageStatus('ready');
+        }
         return;
       }
       if (!forceNewSession && isSessionConflictError(error)) {
@@ -592,7 +621,14 @@ export default function LoginPage() {
           onDone={(address) => {
             setPasswordResetOpen(false);
             setEmail(address);
-            setLoginMethod('password');
+            setLoginMethod('verify');
+            setAdditionalVerification(true);
+            if (address.trim().toLowerCase() !== email.trim().toLowerCase()) {
+              setLoginOptions({
+                password_available: true,
+                passkey_available: false,
+              });
+            }
             setPassword('');
             setMessage(
               '비밀번호가 변경되었습니다. 이메일 인증이나 패스키로 다시 로그인하세요.',
@@ -668,11 +704,13 @@ export default function LoginPage() {
             event.preventDefault();
             void (loginMethod === 'email' && !presentationLogin
               ? chooseLoginMethod()
-              : loginMethod === 'password' && !presentationLogin
-                ? submitPasswordLogin()
-                : loginMethod === 'verify' && !presentationLogin
-                  ? requestOtp()
-                  : submitLogin({ email, otpCode }));
+              : loginMethod === 'passkey' && !presentationLogin
+                ? submitPasskeyLogin()
+                : loginMethod === 'password' && !presentationLogin
+                  ? submitPasswordLogin()
+                  : loginMethod === 'verify' && !presentationLogin
+                    ? requestOtp()
+                    : submitLogin({ email, otpCode }));
           }}
         >
           <div className="login-card-heading">
@@ -682,13 +720,17 @@ export default function LoginPage() {
             <p>
               {presentationLogin
                 ? '인증번호 없이 해당 대회의 발표 화면을 엽니다.'
-                : loginMethod === 'verify'
-                  ? '새로운 환경에서는 본인 확인이 한 번 더 필요합니다.'
-                  : loginMethod === 'password'
-                    ? '등록한 이메일과 비밀번호로 로그인하세요.'
-                    : otpRequested
-                      ? '이메일로 받은 인증번호를 입력해 주세요.'
-                      : '로그인할 이메일을 입력해 주세요.'}
+                : loginMethod === 'passkey'
+                  ? '이 계정에 등록한 패스키로 인증해 주세요.'
+                  : additionalVerification
+                    ? '이메일 인증이나 패스키로 본인 확인을 완료해 주세요.'
+                    : loginMethod === 'verify'
+                      ? '새로운 환경에서는 본인 확인이 한 번 더 필요합니다.'
+                      : loginMethod === 'password'
+                        ? '등록한 이메일과 비밀번호로 로그인하세요.'
+                        : otpRequested
+                          ? '이메일로 받은 인증번호를 입력해 주세요.'
+                          : '로그인할 이메일을 입력해 주세요.'}
             </p>
           </div>
 
@@ -744,7 +786,15 @@ export default function LoginPage() {
             </button>
           )}
 
-          {loginMethod === 'verify' && !presentationLogin ? (
+          {loginMethod === 'passkey' && !presentationLogin ? (
+            <button
+              className="login-action"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? '기기 인증을 확인해 주세요…' : '패스키로 로그인'}
+            </button>
+          ) : loginMethod === 'verify' && !presentationLogin ? (
             <button
               className="login-action"
               type="submit"
@@ -772,17 +822,6 @@ export default function LoginPage() {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? '로그인 중…' : '비밀번호로 로그인'}
-              </button>
-              <button
-                className="text-sm font-semibold text-indigo-600"
-                type="button"
-                disabled={isSubmitting || cooldownSeconds > 0}
-                onClick={() => {
-                  setPassword('');
-                  void requestOtp();
-                }}
-              >
-                이메일로 대신 로그인
               </button>
               <button
                 className="text-sm text-slate-500"
@@ -857,27 +896,51 @@ export default function LoginPage() {
             </button>
           )}
 
-          {!presentationLogin && supportsPasskeys() && (
-            <button
-              className="login-passkey-action"
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => void submitPasskeyLogin()}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              >
-                <circle cx="8" cy="9" r="4" />
-                <path d="m11 12 8 8m-3-3 3-3m-6 0 3-3" />
-              </svg>
-              패스키로 로그인
-            </button>
+          {!presentationLogin && loginMethod !== 'email' && (
+            <div className="login-method-options" aria-label="다른 로그인 방법">
+              {loginOptions.passkey_available &&
+                supportsPasskeys() &&
+                loginMethod !== 'passkey' && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      setPassword('');
+                      setLoginMethod('passkey');
+                      setMessage('');
+                      setMessageStatus('idle');
+                    }}
+                  >
+                    패스키로 로그인
+                  </button>
+                )}
+              {loginOptions.password_available &&
+                !additionalVerification &&
+                loginMethod !== 'password' && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      setLoginMethod('password');
+                      setMessage('');
+                      setMessageStatus('idle');
+                    }}
+                  >
+                    비밀번호로 로그인
+                  </button>
+                )}
+              {loginMethod !== 'otp' && loginMethod !== 'verify' && (
+                <button
+                  type="button"
+                  disabled={
+                    isSubmitting || (!otpRequested && cooldownSeconds > 0)
+                  }
+                  onClick={() => void selectEmailLogin()}
+                >
+                  이메일로 대신 로그인
+                </button>
+              )}
+            </div>
           )}
           <PageNotice message={message} status={messageStatus} />
           {!presentationLogin && (

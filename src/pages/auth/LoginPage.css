@@ -319,31 +319,36 @@
   }
 }
 
-.login-passkey-action {
+.login-method-options {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 9px;
-  width: 100%;
-  padding: 13px 16px;
-  border: 1px solid #dce1ee;
-  border-radius: 12px;
-  background: #fff;
-  color: #343a52;
+  gap: 10px 20px;
+}
+.login-method-options:empty {
+  display: none;
+}
+.login-method-options button {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #6254bb;
   font: inherit;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
-.login-passkey-action:hover {
-  background: #f7f7fc;
-  border-color: #bcb3f5;
+.login-method-options button:hover {
+  color: #4f3bdd;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
-.login-passkey-action:focus-visible {
+.login-method-options button:focus-visible {
   outline: 2px solid #6553eb;
-  outline-offset: 3px;
+  outline-offset: 4px;
+  border-radius: 2px;
 }
-.login-passkey-action:disabled {
+.login-method-options button:disabled {
   opacity: 0.5;
   cursor: wait;
 }

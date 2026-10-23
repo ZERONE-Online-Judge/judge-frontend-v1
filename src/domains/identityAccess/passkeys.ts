@@ -35,11 +35,14 @@ export async function registerPasskey(token: string, name: string) {
     body: JSON.stringify({ challenge_id: data.challenge_id, credential, name }),
   });
 }
-export async function loginPasskey(forceNewSession = false) {
+export async function loginPasskey(email: string, forceNewSession = false) {
   const data = await apiRequest<{
     challenge_id: string;
     options: PublicKeyCredentialRequestOptionsJSON;
-  }>('/auth/general/passkeys/login/options', undefined, { method: 'POST' });
+  }>('/auth/general/passkeys/login/options', undefined, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
   const credential = await startAuthentication({ optionsJSON: data.options });
   const result = await apiRequest<GeneralSessionApi>(
     '/auth/general/passkeys/login/verify',

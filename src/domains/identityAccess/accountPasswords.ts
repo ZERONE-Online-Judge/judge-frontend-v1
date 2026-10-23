@@ -9,11 +9,13 @@ export function getAccountPassword(token: string) {
   return apiRequest<{ has_password: boolean }>('/auth/general/password', token);
 }
 export function getLoginOptions(email: string) {
-  return apiRequest<{ password_available: boolean }>(
-    '/auth/general/login-options',
-    undefined,
-    { method: 'POST', body: JSON.stringify({ email }) },
-  );
+  return apiRequest<{
+    password_available: boolean;
+    passkey_available: boolean;
+  }>('/auth/general/login-options', undefined, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 export function requestAccountPassword(token?: string, email?: string) {
   return apiRequest<{ cooldown_seconds: number; valid_seconds: number }>(

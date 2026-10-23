@@ -100,6 +100,13 @@ export function operatorContestStatus(contest: Contest, now: number) {
     scoreboard,
     freezeActive,
     freezeRemaining,
+    freezeProgress:
+      validSchedule &&
+      Number.isFinite(freeze) &&
+      freeze >= start &&
+      freeze <= end
+        ? ((freeze - start) / (end - start)) * 100
+        : null,
     remaining:
       phase === 'before' ? start - now : phase === 'running' ? end - now : null,
     progress:

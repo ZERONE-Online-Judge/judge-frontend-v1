@@ -129,6 +129,35 @@
   color: var(--zoj-muted);
 }
 
+.login-verification-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.login-verification-methods .login-action {
+  flex-direction: column;
+  gap: 10px;
+  min-height: 96px;
+  min-width: 0;
+  padding: 14px 8px;
+}
+
+.login-verification-methods .login-action:only-child {
+  grid-column: 1 / -1;
+}
+
+.login-verification-methods svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.login-verification-methods .login-action:focus-visible {
+  outline: 3px solid var(--zoj-focus);
+  outline-offset: 3px;
+}
+
 .login-expiry {
   color: var(--zoj-muted);
   font-size: 12px;

@@ -29,7 +29,6 @@ export default function PasskeyDialog({
   const [recent, setRecent] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [name, setName] = useState('내 패스키');
   const [challengeId, setChallengeId] = useState('');
   const [code, setCode] = useState('');
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -92,24 +91,66 @@ export default function PasskeyDialog({
     setItems(data.passkeys);
     setRecent(data.recently_verified);
   }
+  async function addPasskey() {
+    await registerPasskey(token, '내 패스키');
+    if (enrollment) {
+      onClose();
+      return;
+    }
+    await refresh();
+    setMessage('패스키를 등록했습니다. 다음 로그인부터 사용할 수 있습니다.');
+  }
   return (
     <ModalDialog
-      title={
-        enrollment && !items.length ? '패스키를 추가할까요?' : '패스키 관리'
+      className={enrollment ? 'passkey-enrollment' : undefined}
+      title={enrollment ? '패스키를 등록할까요?' : '패스키 관리'}
+      icon={
+        enrollment ? (
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="10" cy="10" r="6" />
+            <path d="m14.5 14.5 12 12m-3-3 3-3m-7-1 3-3" />
+          </svg>
+        ) : undefined
       }
       description={email}
       onClose={busy ? undefined : onClose}
       closeOnBackdrop={!busy}
       footer={
-        <ModalButton disabled={busy} onClick={onClose}>
-          {enrollment && !items.length ? '나중에 하기' : '완료'}
-        </ModalButton>
+        enrollment ? (
+          <>
+            {supported && (
+              <ModalButton
+                tone="primary"
+                disabled={busy || !loaded || !recent || items.length >= 10}
+                onClick={() => void run(addPasskey)}
+              >
+                {busy ? '기기에서 인증해 주세요…' : '패스키 등록'}
+              </ModalButton>
+            )}
+            <ModalButton disabled={busy} onClick={onClose}>
+              나중에
+            </ModalButton>
+          </>
+        ) : (
+          <ModalButton disabled={busy} onClick={onClose}>
+            완료
+          </ModalButton>
+        )
       }
     >
       <div className="passkey-content">
         <p className="zoj-modal-copy">
-          지문·얼굴 인식 또는 기기 PIN으로 간편하게 로그인하세요. 생체 정보는
-          ZOJ에 전달되지 않습니다.
+          {enrollment
+            ? '다음부터 지문·얼굴 인식이나 기기 PIN으로 빠르고 간편하게 로그인하세요.'
+            : '지문·얼굴 인식 또는 기기 PIN으로 간편하게 로그인하세요. 생체 정보는 ZOJ에 전달되지 않습니다.'}
         </p>
         {!supported && (
           <p className="passkey-hint">
@@ -181,7 +222,7 @@ export default function PasskeyDialog({
             )}
           </section>
         )}
-        {loaded && items.length > 0 && (
+        {!enrollment && loaded && items.length > 0 && (
           <ul className="passkey-list">
             {items.map((item) => (
               <li key={item.id}>
@@ -207,32 +248,14 @@ export default function PasskeyDialog({
             ))}
           </ul>
         )}
-        {loaded && supported && recent && (
+        {!enrollment && loaded && supported && recent && (
           <form
             className="passkey-add"
             onSubmit={(event) => {
               event.preventDefault();
-              void run(async () => {
-                await registerPasskey(token, name);
-                if (enrollment) {
-                  onClose();
-                  return;
-                }
-                await refresh();
-                setMessage(
-                  '패스키를 등록했습니다. 다음 로그인부터 사용할 수 있습니다.',
-                );
-              });
+              void run(addPasskey);
             }}
           >
-            <label htmlFor="passkey-name">패스키 이름</label>
-            <input
-              id="passkey-name"
-              maxLength={80}
-              value={name}
-              disabled={busy}
-              onChange={(event) => setName(event.target.value)}
-            />
             <ModalButton
               tone="primary"
               type="submit"

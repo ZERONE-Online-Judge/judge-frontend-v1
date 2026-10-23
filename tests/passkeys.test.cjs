@@ -37,9 +37,14 @@ useStore.getState = () => state;
 const api = {
   supportsPasskeys: () => supported,
   getPasskeys: async () => ({ passkeys: items, recently_verified: recent }),
-  loginPasskey: async (email, force) => {
-    calls.push(['passkey', email, force]);
-    if (handler) return handler('passkey', force);
+  loginPasskey: async (email) => {
+    calls.push(['passkey', email]);
+    if (handler) return handler('passkey');
+    return session;
+  },
+  confirmPasskeyLoginTransfer: async (email, token) => {
+    calls.push(['transfer', email, token]);
+    if (handler) return handler('transfer');
     return session;
   },
   registerPasskey: async (token, name) => {
@@ -378,13 +383,17 @@ test('passkey management requires email verification before registration and del
 });
 after(() => dom.window.close());
 
-test('replacing an existing passkey session repeats a fresh ceremony bound to the same email', async () => {
+test('replacing an existing passkey session authenticates once then consumes the transfer proof', async () => {
   const v = await mount();
   options = { password_available: false, passkey_available: true };
   await input(v, '#login-email', 'user@example.com');
   await submit(v);
-  handler = async (method, force) => {
-    if (!force) throw new ApiError('session_conflict', 409);
+  handler = async (method) => {
+    if (method === 'passkey') {
+      const error = new ApiError('session_conflict', 409);
+      error.details = { transfer_token: 'verified-transfer-proof-'.repeat(2) };
+      throw error;
+    }
     return session;
   };
   await click(v, '패스키로 로그인');
@@ -392,13 +401,54 @@ test('replacing an existing passkey session repeats a fresh ceremony bound to th
   assert.ok(v.host.textContent.includes('기존 로그인 연결을 끊을까요?'));
   await click(v, '이 브라우저에서 사용');
   assert.deepEqual(
-    calls.filter(([name]) => name === 'passkey'),
+    calls.filter(([name]) => name === 'passkey' || name === 'transfer'),
     [
-      ['passkey', 'user@example.com', false],
-      ['passkey', 'user@example.com', true],
+      ['passkey', 'user@example.com'],
+      ['transfer', 'user@example.com', 'verified-transfer-proof-'.repeat(2)],
     ],
   );
   assert.equal(state.generalSession, session);
+  await v.close();
+});
+
+test('canceling session transfer discards approval without logging in', async () => {
+  const v = await mount();
+  options = { password_available: false, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  handler = async () => {
+    const error = new ApiError('session_conflict', 409);
+    error.details = { transfer_token: 'verified-transfer-proof-'.repeat(2) };
+    throw error;
+  };
+  await click(v, '패스키로 로그인');
+  await click(v, '이전 세션 유지');
+  assert.equal(state.generalSession, null);
+  assert.equal(calls.filter(([name]) => name === 'transfer').length, 0);
+  assert.equal(button(v, '이 브라우저에서 사용'), undefined);
+  await v.close();
+});
+
+test('expired session transfer closes confirmation without another passkey prompt', async () => {
+  const v = await mount();
+  options = { password_available: false, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  handler = async (method) => {
+    const error = new ApiError(
+      method === 'passkey' ? 'session_conflict' : 'invalid_passkey',
+      method === 'passkey' ? 409 : 400,
+    );
+    error.details = { transfer_token: 'verified-transfer-proof-'.repeat(2) };
+    throw error;
+  };
+  await click(v, '패스키로 로그인');
+  await click(v, '이 브라우저에서 사용');
+  assert.equal(state.generalSession, null);
+  assert.equal(calls.filter(([name]) => name === 'passkey').length, 1);
+  assert.equal(calls.filter(([name]) => name === 'transfer').length, 1);
+  assert.equal(button(v, '이 브라우저에서 사용'), undefined);
+  assert.ok(v.host.textContent.includes('다시 시도해 주세요'));
   await v.close();
 });
 
@@ -493,7 +543,7 @@ test('new environment verification can use the registered passkey without return
   assert.equal(state.generalSession, session);
   assert.deepEqual(
     calls.filter(([name]) => name === 'passkey'),
-    [['passkey', 'user@example.com', false]],
+    [['passkey', 'user@example.com']],
   );
   await v.close();
 });

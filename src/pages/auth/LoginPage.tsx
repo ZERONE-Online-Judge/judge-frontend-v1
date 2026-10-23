@@ -41,6 +41,7 @@ import PasskeyDialog from '@/components/auth/PasskeyDialog';
 import {
   getPasskeys,
   loginPasskey,
+  confirmPasskeyLoginTransfer,
   supportsPasskeys,
   passkeyError,
 } from '@/domains/identityAccess/passkeys';
@@ -60,6 +61,7 @@ type PendingSessionReplacement = {
   lastSeenAt?: string | null;
   otpCode: string;
   method?: 'password' | 'passkey';
+  transferToken?: string;
 } | null;
 
 function formatSeconds(value: number) {
@@ -288,23 +290,32 @@ export default function LoginPage() {
       navigate(postLoginRedirectPath(session, searchParams), { replace: true });
   }
 
-  async function submitPasskeyLogin(forceNewSession = false) {
+  async function submitPasskeyLogin() {
     if (!validateEmail() || isSubmitting || loginMethod === 'email') return;
     setIsSubmitting(true);
     setMessage('기기의 패스키 인증을 진행해 주세요.');
     setMessageStatus('loading');
     try {
-      const session = await loginPasskey(email.trim(), forceNewSession);
+      const session = await loginPasskey(email.trim());
       await completeLogin(session);
     } catch (error) {
-      if (!forceNewSession && isSessionConflictError(error)) {
+      if (isSessionConflictError(error)) {
         const details = sessionConflictDetails(error);
-        setPendingSessionReplacement({
-          ...details,
-          email: '',
-          otpCode: '',
-          method: 'passkey',
-        });
+        const transferToken = error.details?.transfer_token;
+        if (typeof transferToken === 'string' && transferToken.length >= 32) {
+          setPendingSessionReplacement({
+            ...details,
+            email: email.trim(),
+            otpCode: '',
+            method: 'passkey',
+            transferToken,
+          });
+          setMessage(
+            '패스키 인증을 완료했습니다. 이 브라우저에서 계속 사용할지 선택해 주세요.',
+          );
+          setMessageStatus('ready');
+          return;
+        }
       }
       setMessage(
         passkeyError(error) ??
@@ -334,6 +345,7 @@ export default function LoginPage() {
   }
 
   function resetOtpAfterEmailChange() {
+    setPendingSessionReplacement(null);
     setAdditionalVerification(false);
     setLoginOptions({ password_available: false, passkey_available: false });
     setOtpRequested(false);
@@ -522,10 +534,30 @@ export default function LoginPage() {
     setMessageStatus('idle');
   }
 
-  function confirmSessionReplacement() {
-    if (!pendingSessionReplacement) return;
+  async function confirmSessionReplacement() {
+    if (!pendingSessionReplacement || isSubmitting) return;
     if (pendingSessionReplacement.method === 'passkey') {
-      void submitPasskeyLogin(true);
+      const { email: verifiedEmail, transferToken } = pendingSessionReplacement;
+      if (!transferToken) return;
+      setIsSubmitting(true);
+      setMessage('로그인하고 있습니다.');
+      setMessageStatus('loading');
+      try {
+        await completeLogin(
+          await confirmPasskeyLoginTransfer(verifiedEmail, transferToken),
+        );
+      } catch (error) {
+        setPendingSessionReplacement(null);
+        setMessage(
+          formatUserApiError(
+            error,
+            '로그인에 실패했습니다. 다시 시도해 주세요.',
+          ),
+        );
+        setMessageStatus('error');
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
     if (pendingSessionReplacement.method === 'password') {

@@ -2,7 +2,10 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ScoreboardRow } from './types';
 
 /** Animate published rank changes while keeping the table in its actual rank order. */
-export default function useScoreboardRowMotion(rows: ScoreboardRow[]) {
+export default function useScoreboardRowMotion(
+  rows: ScoreboardRow[],
+  duration = 850,
+) {
   const bodyRef = useRef<HTMLTableSectionElement>(null);
   const positions = useRef(new Map<string, number>());
   const animations = useRef<Animation[]>([]);
@@ -33,12 +36,12 @@ export default function useScoreboardRowMotion(rows: ScoreboardRow[]) {
               { transform: `translateY(${distance}px)` },
               { transform: 'translateY(0)' },
             ],
-            { duration: 850, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+            { duration, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
           ),
         );
       });
     positions.current = next;
-  }, [rows]);
+  }, [rows, duration]);
 
   useLayoutEffect(
     () => () => {

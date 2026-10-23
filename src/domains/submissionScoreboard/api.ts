@@ -11,6 +11,7 @@ import type {
   SubmissionKindFilter,
 } from '@/domains/submissionScoreboard/types';
 import { apiPageRequest, apiRequest } from '@/shared/api/client';
+import { presentationApiQuery } from '@/domains/submissionScoreboard/presentationOptions';
 
 function notificationSearch(contestId?: string, offset?: number) {
   const search = new URLSearchParams();
@@ -316,9 +317,10 @@ export function getOperatorDivisionScoreboard(
 export function getOperatorPresentationScoreboard(
   contestId: string,
   token: string,
+  divisionIds?: string[],
 ) {
   return apiRequest<OperatorPresentationScoreboardResponse>(
-    `/operator/contests/${contestId}/scoreboard/presentation`,
+    `/operator/contests/${contestId}/scoreboard/presentation${presentationApiQuery(divisionIds)}`,
     token,
   );
 }

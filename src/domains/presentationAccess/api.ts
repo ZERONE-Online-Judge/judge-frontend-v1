@@ -2,6 +2,7 @@ import { apiFetchRaw, apiRequest } from '@/shared/api/client';
 import { toApiError } from '@/shared/api/errors';
 import type { OperatorPresentationScoreboardResponse } from '@/domains/submissionScoreboard/types';
 import type { PresentationSession } from './session';
+import { presentationApiQuery } from '@/domains/submissionScoreboard/presentationOptions';
 
 export type PresentationAccount = {
   email: string;
@@ -44,9 +45,13 @@ export function loginPresentation(email: string) {
     },
   );
 }
-export function getPresentationScoreboard(contestId: string, token: string) {
+export function getPresentationScoreboard(
+  contestId: string,
+  token: string,
+  divisionIds?: string[],
+) {
   return displayRequest<OperatorPresentationScoreboardResponse>(
-    `/presentation/contests/${encodeURIComponent(contestId)}/scoreboard`,
+    `/presentation/contests/${encodeURIComponent(contestId)}/scoreboard${presentationApiQuery(divisionIds)}`,
     token,
   );
 }

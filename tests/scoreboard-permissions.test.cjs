@@ -45,6 +45,7 @@ dom.window.HTMLDialogElement.prototype.close = function () {
   this.open = false;
 };
 const mocks = {
+  '@/shared/api/client': { API_BASE_URL: '/api' },
   '@/domains/presentationAccess/api': {
     getPresentationAccount: async () => null,
     issuePresentationAccount: async () => ({

@@ -65,6 +65,7 @@ function board(divisionId) {
 }
 let displayReads = 0;
 const mocks = {
+  '@/shared/api/client': { API_BASE_URL: '/api' },
   '@/domains/presentationAccess/api': {
     getPresentationAccount: async () => null,
     getPresentationScoreboard: async () => {
@@ -275,6 +276,8 @@ async function dispatchUpdate(contestId = 'contest') {
     ),
   );
   await flush();
+  await flush();
+  await flush();
 }
 
 test('ended presentation displays the selected division without any release controls', async () => {
@@ -432,6 +435,10 @@ test('blocked presentation popup keeps operator controls available and offers a 
     );
     await flush();
     await act(async () => button(operator, '프레젠테이션 팝업').click());
+    assert.match(document.querySelector('dialog').textContent, /표시할 유형/);
+    await act(async () =>
+      button(document.querySelector('dialog'), '선택한 유형으로 열기').click(),
+    );
     const link = operator.querySelector('a[target="_blank"]');
     assert.match(link.href, /presentation\?divisionId=a$/);
     assert.match(operator.textContent, /팝업이 차단/);
@@ -439,6 +446,68 @@ test('blocked presentation popup keeps operator controls available and offers a 
   } finally {
     window.open = original;
   }
+});
+
+test('presentation launch selects multiple divisions, remembers them and rejects an empty selection', async () => {
+  const original = window.open;
+  const opened = [];
+  window.open = (url) => {
+    opened.push(url);
+    return { focus() {} };
+  };
+  try {
+    const operator = await renderPage(
+      OperatorPage,
+      '/operator/contests/contest/scoreboard',
+    );
+    await flush();
+    await act(async () => button(operator, '프레젠테이션 팝업').click());
+    let dialog = document.querySelector('dialog');
+    assert.equal(opened.length, 0);
+    assert.deepEqual(
+      [...dialog.querySelectorAll('input[type="checkbox"]')].map(
+        (input) => input.checked,
+      ),
+      [true, false],
+    );
+    await act(async () =>
+      dialog.querySelectorAll('input[type="checkbox"]')[1].click(),
+    );
+    await act(async () => button(dialog, '선택한 유형으로 열기').click());
+    assert.deepEqual(
+      new URL(opened[0], 'https://zoj.kr').searchParams.getAll('divisionId'),
+      ['a', 'b'],
+    );
+    await act(async () => button(operator, '프레젠테이션 팝업').click());
+    dialog = document.querySelector('dialog');
+    assert.deepEqual(
+      [...dialog.querySelectorAll('input[type="checkbox"]')].map(
+        (input) => input.checked,
+      ),
+      [true, true],
+    );
+    await act(async () => button(dialog, '전체 해제').click());
+    assert.equal(button(dialog, '선택한 유형으로 열기').disabled, true);
+    await act(async () => button(dialog, '취소').click());
+    assert.equal(opened.length, 1);
+  } finally {
+    window.open = original;
+  }
+});
+
+test('presentation displays exactly the requested divisions, including multiple and missing selections', async () => {
+  const multi = await renderPage(
+    Presentation,
+    '/operator/contests/contest/scoreboard/presentation?divisionId=a&divisionId=b',
+  );
+  assert.match(multi.textContent, /A 유형/);
+  assert.match(multi.textContent, /B 유형/);
+  const missing = await renderPage(
+    Presentation,
+    '/operator/contests/contest/scoreboard/presentation?divisionId=missing',
+  );
+  assert.doesNotMatch(missing.textContent, /A 유형|B 유형/);
+  assert.match(missing.textContent, /표시할 유형이 없습니다/);
 });
 
 test('resolver presentation retains team names and moves existing rows as results arrive without controls', async () => {

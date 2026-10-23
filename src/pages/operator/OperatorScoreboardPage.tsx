@@ -3,6 +3,11 @@ import ScoreboardFreezeDialog, {
   type FreezeChange,
 } from '@/components/operator/ScoreboardFreezeDialog';
 import PresentationAccountCard from '@/components/operator/PresentationAccountCard';
+import PresentationLaunchDialog from '@/components/operator/PresentationLaunchDialog';
+import {
+  presentationUrl,
+  storedPresentationDivisions,
+} from '@/domains/submissionScoreboard/presentationOptions';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -63,8 +68,8 @@ function writeStoredValue(key: string, value: string) {
   }
 }
 
-function openPresentationPopup(contestId: string, divisionId: string) {
-  const url = `/operator/contests/${contestId}/scoreboard/presentation?divisionId=${encodeURIComponent(divisionId)}`;
+function openPresentationPopup(contestId: string, divisionIds: string[]) {
+  const url = presentationUrl(contestId, divisionIds);
   const width = Math.min(1600, window.screen.availWidth || window.innerWidth);
   const height = Math.min(
     1000,
@@ -564,6 +569,11 @@ function OperatorScoreboardContent({
     useState<ScoreboardRow | null>(null);
   const [presentationPopupBlocked, setPresentationPopupBlocked] =
     useState(false);
+  const [presentationSetupOpen, setPresentationSetupOpen] = useState(false);
+  const [presentationLaunchIds, setPresentationLaunchIds] = useState<string[]>(
+    [],
+  );
+  const presentationStorageKey = `zoj.operator.presentation.divisions.${contestId}`;
   const [, setClock] = useState(Date.now);
 
   useEffect(() => {
@@ -642,6 +652,23 @@ function OperatorScoreboardContent({
       title="스코어보드"
       width="full"
     >
+      {presentationSetupOpen && (
+        <PresentationLaunchDialog
+          divisions={divisions}
+          initialSelection={storedPresentationDivisions(
+            readStoredValue(presentationStorageKey),
+            divisions.map((division) => division.division_id),
+            divisionId,
+          )}
+          onClose={() => setPresentationSetupOpen(false)}
+          onLaunch={(ids) => {
+            setPresentationLaunchIds(ids);
+            writeStoredValue(presentationStorageKey, JSON.stringify(ids));
+            setPresentationPopupBlocked(!openPresentationPopup(contestId, ids));
+            setPresentationSetupOpen(false);
+          }}
+        />
+      )}
       {freezeChange && contest ? (
         <ScoreboardFreezeDialog
           key={`${freezeChange.from}-${freezeChange.to}`}
@@ -772,11 +799,8 @@ function OperatorScoreboardContent({
           <>
             <button
               className="zoj-pressable inline-flex h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-              onClick={() =>
-                setPresentationPopupBlocked(
-                  !openPresentationPopup(contestId, divisionId),
-                )
-              }
+              disabled={!divisions.length}
+              onClick={() => setPresentationSetupOpen(true)}
               type="button"
             >
               <ScoreboardIcon />
@@ -815,7 +839,7 @@ function OperatorScoreboardContent({
             브라우저에서 팝업이 차단되었습니다. 팝업을 허용하거나{' '}
             <a
               className="font-medium underline underline-offset-4"
-              href={`/operator/contests/${contestId}/scoreboard/presentation?divisionId=${encodeURIComponent(divisionId)}`}
+              href={presentationUrl(contestId, presentationLaunchIds)}
               target="_blank"
               rel="noreferrer"
             >

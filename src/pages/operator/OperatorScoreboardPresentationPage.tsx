@@ -4,12 +4,13 @@ import { usePresentationSession } from '@/domains/presentationAccess/session';
 import { isSessionAuthError } from '@/shared/api/errors';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OperatorAccessGate } from '@/components/operator/OperatorShell';
 import ScoreboardMedal from '@/components/contest/scoreboard/ScoreboardMedal';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { getOperatorPresentationScoreboard } from '@/domains/submissionScoreboard/api';
 import { subscribeScoreboardUpdates } from '@/domains/submissionScoreboard/presentationSync';
+import { queuedPresentationRefresh } from '@/domains/submissionScoreboard/presentationRefresh';
 import useScoreboardRowMotion from '@/domains/submissionScoreboard/useScoreboardRowMotion';
 import type {
   OperatorPresentationScoreboardSection,
@@ -145,7 +146,7 @@ function PresentationDivisionBoard({
 }) {
   const problemCodes = useMemo(() => sortedProblemCodes(section), [section]);
   const gridMinWidth = Math.max(560, 380 + problemCodes.length * 48);
-  const bodyRef = useScoreboardRowMotion(section.rows);
+  const bodyRef = useScoreboardRowMotion(section.rows, 450);
   const lastEvent = section.release?.resolver?.last_event;
 
   return (
@@ -304,21 +305,40 @@ export function OperatorScoreboardPresentationContent({
   token: string;
 }) {
   const [searchParams] = useSearchParams();
+  const divisionIds = useMemo(
+    () => [...new Set(searchParams.getAll('divisionId').filter(Boolean))],
+    [searchParams],
+  );
+  const [streamConnected, setStreamConnected] = useState(false);
+  const client = useQueryClient();
   const queryIdentity = tokenQueryIdentity(token);
-  const presentationQuery = useQuery({
-    queryKey: [
-      'operator',
+  const queryKey = useMemo(
+    () => [
+      displayOnly ? 'presentation-display' : 'operator',
       'scoreboard',
       'presentation',
       contestId,
       queryIdentity,
+      divisionIds,
     ],
+    [displayOnly, contestId, queryIdentity, divisionIds],
+  );
+  const presentationQuery = useQuery({
+    queryKey,
     queryFn: () =>
       displayOnly
-        ? getPresentationScoreboard(contestId, token)
-        : getOperatorPresentationScoreboard(contestId, token),
+        ? getPresentationScoreboard(
+            contestId,
+            token,
+            divisionIds.length ? divisionIds : undefined,
+          )
+        : getOperatorPresentationScoreboard(
+            contestId,
+            token,
+            divisionIds.length ? divisionIds : undefined,
+          ),
     retry: (count, error) => !isSessionAuthError(error) && count < 2,
-    refetchInterval: 5_000,
+    refetchInterval: streamConnected ? 5_000 : 1_000,
     refetchIntervalInBackground: true,
   });
   useEffect(() => {
@@ -330,20 +350,28 @@ export function OperatorScoreboardPresentationContent({
   }, [displayOnly, presentationQuery.error, token]);
   const { refetch } = presentationQuery;
 
-  useEffect(
-    () =>
-      subscribeScoreboardUpdates(contestId, () => {
-        void refetch();
-      }),
-    [contestId, refetch],
-  );
+  useEffect(() => {
+    const refresh = queuedPresentationRefresh(
+      () => refetch({ cancelRefetch: false }),
+      () => client.isFetching({ queryKey, exact: true }) > 0,
+    );
+    const unsubscribe = subscribeScoreboardUpdates(contestId, refresh.request, {
+      token,
+      displayOnly,
+      onConnectionChange: setStreamConnected,
+    });
+    return () => {
+      unsubscribe();
+      refresh.stop();
+    };
+  }, [client, contestId, displayOnly, queryKey, refetch, token]);
   const contest = presentationQuery.data?.contest;
   const sections = presentationQuery.data?.sections ?? [];
-  const selectedDivisionId = searchParams.get('divisionId') ?? '';
-  const selectedSection = sections.find(
-    (section) => section.division.division_id === selectedDivisionId,
-  );
-  const visibleSections = selectedSection ? [selectedSection] : sections;
+  const visibleSections = divisionIds.length
+    ? sections.filter((section) =>
+        divisionIds.includes(section.division.division_id),
+      )
+    : sections;
   const titleParts = splitContestTitle(contest?.title);
   const startsAt = contest?.start_at ? new Date(contest.start_at).getTime() : 0;
   const isEnded = Boolean(
@@ -505,7 +533,7 @@ export function OperatorScoreboardPresentationContent({
 
         {!presentationQuery.isLoading &&
         !isBeforeContestStart &&
-        sections.length === 0 ? (
+        visibleSections.length === 0 ? (
           <div className="rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
             표시할 유형이 없습니다.
           </div>

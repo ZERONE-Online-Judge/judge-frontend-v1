@@ -22,6 +22,7 @@ hook.getState = () => state;
 const mocks = {
   '@tanstack/react-query': { useQueryClient: () => query },
   '@/shared/api/client': {
+    isPasskeyCeremonyActive: () => false,
     apiRequest: async (...args) => {
       calls.push(args);
       return handler(...args);

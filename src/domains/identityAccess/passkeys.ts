@@ -5,7 +5,7 @@ import {
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser';
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, withPasskeyCeremony } from '@/shared/api/client';
 import { mapGeneralSession, saveGeneralSession } from './sessionStorage';
 import type { GeneralSessionApi } from './types';
 
@@ -25,14 +25,22 @@ export function getPasskeys(token: string) {
   );
 }
 export async function registerPasskey(token: string, name: string) {
-  const data = await apiRequest<{
-    challenge_id: string;
-    options: PublicKeyCredentialCreationOptionsJSON;
-  }>('/auth/general/passkeys/register/options', token, { method: 'POST' });
-  const credential = await startRegistration({ optionsJSON: data.options });
-  return apiRequest('/auth/general/passkeys/register/verify', token, {
-    method: 'POST',
-    body: JSON.stringify({ challenge_id: data.challenge_id, credential, name }),
+  // Returning from the system passkey prompt fires focus/visibility events.
+  // Keep background SSO and timer refreshes out until its response is saved.
+  return withPasskeyCeremony(async () => {
+    const data = await apiRequest<{
+      challenge_id: string;
+      options: PublicKeyCredentialCreationOptionsJSON;
+    }>('/auth/general/passkeys/register/options', token, { method: 'POST' });
+    const credential = await startRegistration({ optionsJSON: data.options });
+    return apiRequest('/auth/general/passkeys/register/verify', token, {
+      method: 'POST',
+      body: JSON.stringify({
+        challenge_id: data.challenge_id,
+        credential,
+        name,
+      }),
+    });
   });
 }
 export async function loginPasskey(email: string) {

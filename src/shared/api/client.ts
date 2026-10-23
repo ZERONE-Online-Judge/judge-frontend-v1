@@ -32,6 +32,20 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 let staffRefreshInFlight: Promise<string | null> | null = null;
 let generalRefreshInFlight: Promise<string | null> | null = null;
 let participantRefreshInFlight: Promise<string | null> | null = null;
+let activePasskeyCeremonies = 0;
+
+export function isPasskeyCeremonyActive() {
+  return activePasskeyCeremonies > 0;
+}
+
+export async function withPasskeyCeremony<T>(action: () => Promise<T>) {
+  activePasskeyCeremonies++;
+  try {
+    return await action();
+  } finally {
+    activePasskeyCeremonies--;
+  }
+}
 let generalSessionRequestInFlight: {
   identity: string;
   promise: Promise<ApiRawResponse>;
@@ -506,6 +520,7 @@ async function tryRefreshTokenForRequest(
 }
 
 export async function refreshActiveAccessTokens() {
+  if (isPasskeyCeremonyActive()) return false;
   const general = loadStoredGeneralSession();
   if (!general?.accessToken) return false;
 

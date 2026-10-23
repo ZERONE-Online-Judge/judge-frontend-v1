@@ -153,6 +153,7 @@ const CONTEST_PAGES: Record<string, string> = {
 };
 
 function privatePageTitle(path: string): string | null {
+  if (/^\/share\/[A-Za-z0-9_-]{11}$/.test(path)) return '대회 공유 링크';
   if (/^\/presentation\/contests\/[^/]+$/.test(path))
     return '프레젠테이션 스코어보드';
   if (path in PRIVATE_PAGES) return PRIVATE_PAGES[path];

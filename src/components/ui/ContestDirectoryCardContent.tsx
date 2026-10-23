@@ -139,7 +139,7 @@ export default function ContestDirectoryCardContent({
       )}
       {publicLabels.length ? (
         <div className="directory-card-footer">
-          <dl className="directory-resources" aria-label="자료 공개 범위">
+          <dl className="directory-resources" aria-label="종료 후 자료 공개 범위">
             {resourceGroups(publicLabels).map(([access, names]) => (
               <div key={access}>
                 <dt>{access}</dt>

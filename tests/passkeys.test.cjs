@@ -241,9 +241,9 @@ test('email OTP login pauses at passkey enrollment and skip preserves the reques
   assert.ok(calls.some(([name]) => name === 'request-otp'));
   await input(v, '#login-otp', '123456');
   await submit(v);
-  assert.ok(v.host.textContent.includes('패스키를 추가할까요?'));
+  assert.ok(v.host.textContent.includes('패스키를 등록할까요?'));
   assert.deepEqual(navigation, []);
-  await click(v, '나중에 하기');
+  await click(v, '나중에');
   assert.ok(navigation.includes('/contests'));
   assert.equal(state.generalSession, session);
   await v.close();
@@ -255,8 +255,12 @@ test('successful login enrollment immediately closes and returns to the requeste
   await input(v, '#login-otp', '123456');
   await submit(v);
   assert.deepEqual(navigation, []);
-  await submit(v, '.passkey-add');
-  assert.equal(calls.filter(([name]) => name === 'register').length, 1);
+  assert.equal(v.host.querySelector('#passkey-name'), null);
+  await click(v, '패스키 등록');
+  assert.deepEqual(
+    calls.filter(([name]) => name === 'register'),
+    [['register', session.accessToken, '내 패스키']],
+  );
   assert.equal(v.host.querySelector('[role="dialog"]'), null);
   assert.ok(navigation.includes('/contests'));
   assert.equal(state.generalSession, session);
@@ -272,12 +276,12 @@ test('cancelled login enrollment stays open and lets the signed-in user skip or 
   handler = async () => {
     throw Object.assign(new Error('cancel'), { name: 'NotAllowedError' });
   };
-  await submit(v, '.passkey-add');
+  await click(v, '패스키 등록');
   assert.deepEqual(navigation, []);
-  assert.ok(v.host.textContent.includes('패스키를 추가할까요?'));
+  assert.ok(v.host.textContent.includes('패스키를 등록할까요?'));
   assert.equal(state.generalSession, session);
   handler = null;
-  await submit(v, '.passkey-add');
+  await click(v, '패스키 등록');
   assert.equal(v.host.querySelector('[role="dialog"]'), null);
   assert.ok(navigation.includes('/contests'));
   await v.close();
@@ -404,13 +408,13 @@ test('an account switch closes the previous account enrollment prompt', async ()
   await submit(v);
   await input(v, '#login-otp', '123456');
   await submit(v);
-  assert.ok(v.host.textContent.includes('패스키를 추가할까요?'));
+  assert.ok(v.host.textContent.includes('패스키를 등록할까요?'));
   state.generalSession = {
     ...session,
     account: { email: 'other@example.com' },
   };
   await v.render();
-  assert.equal(v.host.textContent.includes('패스키를 추가할까요?'), false);
+  assert.equal(v.host.textContent.includes('패스키를 등록할까요?'), false);
   assert.ok(navigation.includes('/contests'));
   assert.equal(state.generalSession.account.email, 'other@example.com');
   await v.close();

@@ -66,3 +66,77 @@
 .passkey-list strong {
   font-size: 14px;
 }
+
+.passkey-enrollment .zoj-modal-header {
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 36px 28px 12px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+.passkey-enrollment .zoj-modal-header-actions {
+  display: none;
+}
+.passkey-enrollment .zoj-modal-icon {
+  width: 76px;
+  height: 76px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--zoj-surface-hover);
+}
+.passkey-enrollment .zoj-modal-icon svg {
+  width: 44px;
+  height: 44px;
+}
+.passkey-enrollment .zoj-modal-heading {
+  flex: none;
+  width: 100%;
+}
+.passkey-enrollment .zoj-modal-heading h2 {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.04em;
+}
+.passkey-enrollment .zoj-modal-description {
+  margin-top: 8px;
+}
+.passkey-enrollment .zoj-modal-body {
+  padding: 0 28px 20px;
+  text-align: center;
+}
+.passkey-enrollment .zoj-modal-copy {
+  max-width: 310px;
+  margin: 0 auto;
+  color: var(--zoj-muted);
+  font-size: 14px;
+  line-height: 1.8;
+  word-break: keep-all;
+  text-wrap: pretty;
+}
+.passkey-enrollment .passkey-verification {
+  text-align: left;
+}
+.passkey-enrollment .zoj-modal-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0 28px 24px;
+  border: 0;
+  background: transparent;
+}
+.passkey-enrollment .zoj-modal-action {
+  width: 100%;
+  min-height: 46px;
+}
+.passkey-enrollment .zoj-modal-footer [data-tone='secondary'] {
+  border-color: transparent;
+  background: transparent;
+  color: var(--zoj-muted);
+}
+.passkey-enrollment .zoj-modal-footer [data-tone='secondary']:hover {
+  background: var(--zoj-surface-hover);
+  color: var(--zoj-ink);
+}

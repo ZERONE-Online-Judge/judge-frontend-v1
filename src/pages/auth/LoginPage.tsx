@@ -198,7 +198,7 @@ export default function LoginPage() {
   const [otpExpiresAt, setOtpExpiresAt] = useState(0);
   const [message, setMessage] = useState(() =>
     searchParams.get('password') === 'changed'
-      ? '비밀번호가 변경되어 기존 로그인 연결이 모두 해제되었습니다. 새 비밀번호로 로그인하세요.'
+      ? '비밀번호가 변경되어 기존 로그인 연결이 모두 해제되었습니다. 이메일 인증이나 패스키로 다시 로그인하세요.'
       : searchParams.get('reason') === 'presentation'
         ? '프레젠테이션 전용 계정으로 로그인해 주세요. 연결이 종료되었다면 계정의 유효기간과 사용 상태를 확인해 주세요.'
         : searchParams.get('reason') === 'session'
@@ -343,6 +343,10 @@ export default function LoginPage() {
     setMessage('');
     setMessageStatus('loading');
     try {
+      if (searchParams.get('password') === 'changed') {
+        await requestOtp();
+        return;
+      }
       const options = await getLoginOptions(email.trim());
       if (options.password_available) {
         setLoginMethod('password');
@@ -589,7 +593,7 @@ export default function LoginPage() {
             setLoginMethod('password');
             setPassword('');
             setMessage(
-              '비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.',
+              '비밀번호가 변경되었습니다. 이메일 인증이나 패스키로 다시 로그인하세요.',
             );
             setMessageStatus('ready');
           }}

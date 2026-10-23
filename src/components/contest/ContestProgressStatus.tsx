@@ -23,6 +23,8 @@ export default function ContestProgressStatus({
 }) {
   const now = useClockTick();
   const titleId = useId();
+  const freezeId = useId();
+  const scheduleId = useId();
   if (!now)
     return (
       <div className="zoj-card" role="status">
@@ -102,21 +104,64 @@ export default function ContestProgressStatus({
       {status.showSchedule ? (
         <>
           <div className="contest-progress-status__progress">
-            <div>
+            <div className="contest-progress-status__progress-heading">
               <span>대회 진행률</span>
               <strong>{Math.floor(status.progress)}%</strong>
             </div>
-            <progress
-              aria-label="대회 진행률"
-              max={100}
-              value={status.progress}
-            />
+            <div
+              className="contest-progress-status__timeline"
+              data-has-freeze={status.freezeProgress !== null}
+            >
+              <div className="contest-progress-status__track">
+                <progress
+                  aria-label="대회 진행률"
+                  aria-describedby={
+                    status.freezeProgress === null
+                      ? scheduleId
+                      : `${scheduleId} ${freezeId}`
+                  }
+                  max={100}
+                  value={status.progress}
+                />
+                {status.freezeProgress !== null ? (
+                  <div
+                    className="contest-progress-status__freeze-marker"
+                    style={{ left: `${status.freezeProgress}%` }}
+                    data-align={
+                      status.freezeProgress < 20
+                        ? 'start'
+                        : status.freezeProgress > 80
+                          ? 'end'
+                          : 'center'
+                    }
+                  >
+                    <div
+                      id={freezeId}
+                      className="contest-progress-status__freeze-label"
+                    >
+                      <span>
+                        {!contest.scoreboard_freeze_mode ||
+                        contest.scoreboard_freeze_mode === 'auto'
+                          ? '프리즈'
+                          : '프리즈 기준'}
+                      </span>
+                      <time
+                        dateTime={contest.freeze_at}
+                        title={formatOperatorMoment(contest.freeze_at)}
+                        aria-label={formatOperatorMoment(contest.freeze_at)}
+                      >
+                        {scheduleTime(contest.freeze_at)}
+                      </time>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <dl id={scheduleId} className="contest-progress-status__schedule">
+                <ScheduleMoment label="시작" value={contest.start_at} />
+                <ScheduleMoment label="종료" value={contest.end_at} />
+              </dl>
+            </div>
           </div>
-          <dl className="contest-progress-status__schedule">
-            <ScheduleMoment label="시작" value={contest.start_at} />
-            <ScheduleMoment label="프리즈" value={contest.freeze_at} />
-            <ScheduleMoment label="종료" value={contest.end_at} />
-          </dl>
           <div
             className="contest-progress-status__scoreboard"
             data-frozen={status.freezeActive}
@@ -188,8 +233,30 @@ function ScheduleMoment({ label, value }: { label: string; value: string }) {
     <div>
       <dt>{label}</dt>
       <dd>
-        <time dateTime={value}>{formatOperatorMoment(value)}</time>
+        <time dateTime={value} aria-label={formatOperatorMoment(value)}>
+          <span className="contest-progress-status__schedule-time">
+            {scheduleTime(value)}
+          </span>
+          <span className="contest-progress-status__schedule-date">
+            {new Intl.DateTimeFormat('ko-KR', {
+              timeZone: 'Asia/Seoul',
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              weekday: 'short',
+            }).format(new Date(value))}
+          </span>
+        </time>
       </dd>
     </div>
   );
+}
+
+function scheduleTime(value: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(value));
 }

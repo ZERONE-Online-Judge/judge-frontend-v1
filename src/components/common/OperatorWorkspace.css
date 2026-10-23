@@ -505,9 +505,6 @@
 .operator-layout .contest-progress-status__note {
   font-size: 10px;
 }
-.operator-layout .contest-progress-status__schedule {
-  background: #fff;
-}
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .operator-context {

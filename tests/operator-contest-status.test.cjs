@@ -76,10 +76,33 @@ test('scheduled transitions match start, freeze and end boundaries without waiti
   assert.equal(status(contest, freeze).freezeActive, true);
   assert.equal(status(contest, freeze).submissionLabel, '제출 가능');
   assert.equal(status(contest, freeze).progress, 75);
+  assert.equal(status(contest, freeze).freezeProgress, 75);
   assert.equal(status(contest, end).phase, 'ended');
   assert.equal(status(contest, end).submissionLabel, '제출 마감');
   assert.equal(status(contest, end).remaining, null);
   assert.equal(status(contest, end).progress, 100);
+});
+
+test('freeze markers use the contest time scale and omit timestamps outside it', () => {
+  assert.equal(
+    status({ ...contest, freeze_at: contest.start_at }, start).freezeProgress,
+    0,
+  );
+  assert.equal(
+    status({ ...contest, freeze_at: contest.end_at }, start).freezeProgress,
+    100,
+  );
+  for (const freeze_at of [
+    'invalid',
+    new Date(start - 1).toISOString(),
+    new Date(end + 1).toISOString(),
+  ]) {
+    assert.equal(status({ ...contest, freeze_at }, start).freezeProgress, null);
+  }
+  assert.equal(
+    status({ ...contest, end_at: 'invalid' }, start).freezeProgress,
+    null,
+  );
 });
 
 test('drafts and explicitly ended contests override timestamps', () => {
@@ -219,6 +242,22 @@ test('mounted status counts down, changes phase without reload, preserves settin
   assert.match(container.textContent, /대회 진행 중/);
   assert.match(container.textContent, /제출 가능/);
   assert.equal(container.querySelector('progress').value, 0);
+  assert.equal(container.querySelectorAll('progress').length, 1);
+  assert.equal(
+    container.querySelector('.contest-progress-status__freeze-marker').style
+      .left,
+    '75%',
+  );
+  assert.equal(
+    container.querySelectorAll('.contest-progress-status__schedule > div')
+      .length,
+    2,
+  );
+  assert.match(
+    container.querySelector('.contest-progress-status__freeze-label')
+      .textContent,
+    /프리즈13:00/,
+  );
   await tick(freeze);
   assert.match(container.textContent, /프리즈 적용 중/);
   assert.equal(container.querySelector('progress').value, 75);
@@ -287,6 +326,18 @@ test('participant progress follows the same phase, freeze and countdown boundari
   await render({ scoreboard_freeze_mode: 'live' });
   assert.doesNotMatch(container.textContent, /프리즈 적용 중/);
   assert.match(container.textContent, /프리즈 해제/);
+  assert.match(
+    container.querySelector('.contest-progress-status__freeze-label')
+      .textContent,
+    /프리즈 기준/,
+  );
+  await render({ freeze_at: 'invalid' });
+  assert.equal(
+    container.querySelector('.contest-progress-status__freeze-marker'),
+    null,
+  );
+  assert.equal(container.querySelectorAll('time').length, 2);
+  await render();
   await tick(end);
   assert.equal(container.querySelector('progress').value, 100);
   assert.equal(container.querySelector('[role="timer"]'), null);

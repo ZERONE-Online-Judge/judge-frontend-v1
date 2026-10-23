@@ -44,6 +44,11 @@ export function fieldLabel(field: string) {
     judge_mode: '채점 방식',
     board_access_after_end: '대회 종료 후 게시판 공개',
     board_write_after_end: '대회 종료 후 질문/답변 작성',
+    board_question_visibility_policy: '질문 공개 범위 정책',
+    board_question_default_visibility: '질문 기본 공개 범위',
+    board_comment_scope_policy: '댓글 작성 범위 정책',
+    board_comment_default_scope: '댓글 기본 작성 범위',
+    comment_scope: '댓글 작성 범위',
     body: '본문',
     content: '내용',
     contact_inquiry_id: '문의',
@@ -89,6 +94,7 @@ export function actionLabel(log: OperationalAuditLog) {
   const method = log.method.toUpperCase();
   const rules: Array<[RegExp, Record<string, string>]> = [
     [/\/settings$/, { PATCH: '대회 설정 변경' }],
+    [/\/share-link$/, { POST: '대회 공유 링크 발급' }],
     [/\/owner:transfer$/, { POST: '대회 총괄 위임' }],
     [/\/scoreboard\/release$/, { POST: '순위 발표 조작' }],
     [/\/storage\/presign-upload$/, { POST: '파일 업로드 주소 발급' }],
@@ -371,6 +377,19 @@ export function valueLabel(value: unknown, field = ''): string {
       participants: '참가자 공개',
       questioner: '질문자 공개',
     },
+    board_question_visibility_policy: {
+      choice: '작성자가 선택',
+      public: '공개 질문만 허용',
+      private: '비공개 질문만 허용',
+    },
+    board_question_default_visibility: { public: '공개', private: '비공개' },
+    board_comment_scope_policy: {
+      choice: '작성자가 선택',
+      all: '전체로 고정',
+      operators: '운영진만으로 고정',
+    },
+    board_comment_default_scope: { all: '전체', operators: '운영진만' },
+    comment_scope: { all: '전체', operators: '운영진만' },
     status: {
       draft: '초안',
       scheduled: '예정(비공개)',

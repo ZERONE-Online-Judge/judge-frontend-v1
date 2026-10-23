@@ -19,11 +19,7 @@ export default function ScoreboardMedal({
   row,
 }: ScoreboardMedalProps) {
   // A resolver team can finish revealing while other teams still move its rank.
-  const rankReleased =
-    release?.mode === 'all' ||
-    (release?.mode === 'partial' &&
-      (release.strategy ?? 'manual') === 'manual' &&
-      row.is_revealed === true);
+  const rankReleased = release?.mode === 'all';
 
   if (!rankReleased || row.is_revealed === false) return null;
   if (row.rank !== 1 && row.rank !== 2 && row.rank !== 3) return null;

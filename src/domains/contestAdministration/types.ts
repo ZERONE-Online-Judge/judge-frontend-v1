@@ -57,6 +57,7 @@ export type Contest = {
   scoreboard_release_mode?: ScoreboardReleaseMode;
   scoreboard_release_locked?: boolean;
   mock_judging_enabled?: boolean;
+  freeze_submission_count_visible?: boolean;
   participant_progress_visible?: boolean;
   mock_judging_progress_visible?: boolean;
   emergency_notice: string | null;
@@ -133,6 +134,7 @@ export type ContestSettingsPatch = Partial<
     | 'scoreboard_freeze_mode'
     | 'scoreboard_release_mode'
     | 'mock_judging_enabled'
+    | 'freeze_submission_count_visible'
     | 'participant_progress_visible'
     | 'mock_judging_progress_visible'
     | 'emergency_notice'

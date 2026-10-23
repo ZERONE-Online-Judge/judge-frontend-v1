@@ -65,6 +65,7 @@ type SettingsForm = BoardWritingPolicy & {
   editorial_access_after_end: ContestResourceAccess;
   notice_access_after_end: ContestResourceAccess;
   mock_judging_enabled: boolean;
+  freeze_submission_count_visible: boolean;
   participant_progress_visible: boolean;
   mock_judging_progress_visible: boolean;
   title: string;
@@ -134,6 +135,9 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
       contestResourceAccess(contest, 'problem') === 'private'
         ? false
         : Boolean(contest.mock_judging_enabled),
+    freeze_submission_count_visible: Boolean(
+      contest.freeze_submission_count_visible,
+    ),
     participant_progress_visible: contest.participant_progress_visible ?? true,
     mock_judging_progress_visible: Boolean(
       contest.mock_judging_progress_visible,
@@ -245,6 +249,7 @@ function OperatorSettingsContent({
         form.problem_access_after_end === 'private'
           ? false
           : form.mock_judging_enabled,
+      freeze_submission_count_visible: form.freeze_submission_count_visible,
       participant_progress_visible: form.participant_progress_visible,
       mock_judging_progress_visible: form.participant_progress_visible
         ? false
@@ -723,16 +728,37 @@ function OperatorSettingsContent({
                   </SettingsSection>
 
                   <SettingsSection
-                    title="참가자 채점 진행률"
+                    title="제출"
                     summary={
-                      settingsForm.participant_progress_visible
-                        ? '진행률 보이기'
-                        : settingsForm.mock_judging_progress_visible
-                          ? '정규 제출 가리기 · 모의채점 보이기'
-                          : '진행률 가리기'
+                      settingsForm.freeze_submission_count_visible
+                        ? '프리즈 이후 횟수 보이기'
+                        : settingsForm.participant_progress_visible
+                          ? '진행률 보이기'
+                          : settingsForm.mock_judging_progress_visible
+                            ? '정규 제출 가리기 · 모의채점 보이기'
+                            : '진행률 가리기'
                     }
-                    description="참가자에게 채점 과정을 얼마나 보여줄지 선택합니다. 최종 채점 결과는 항상 표시되며, 스코어보드 프리즈와는 별도로 적용됩니다."
+                    description="채점 진행률과 프리즈 이후 제출 횟수의 공개 여부를 정합니다."
                   >
+                    <ChoiceCard
+                      checked={settingsForm.freeze_submission_count_visible}
+                      type="checkbox"
+                      title="프리즈 이후 제출 횟수 표시"
+                      description="프리즈 중 미공개 제출 횟수를 ?n으로 표시합니다. 모든 순위 공개 방식과 참가자·발표 화면에 적용되며, 채점 결과와 실제 순위는 공개하지 않습니다. 꺼두면 공개된 기존 기록만 표시합니다."
+                      onChange={(checked) =>
+                        setSettingsForm((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                freeze_submission_count_visible: checked,
+                              }
+                            : prev,
+                        )
+                      }
+                    />
+                    <h4 className="mt-4 text-sm font-semibold text-slate-800">
+                      참가자 채점 진행률
+                    </h4>
                     <div className="zoj-settings-fields">
                       <ChoiceCard
                         checked={settingsForm.participant_progress_visible}

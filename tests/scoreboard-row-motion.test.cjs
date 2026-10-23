@@ -195,15 +195,13 @@ test('podium medals stay hidden before release, including finalized resolver tea
   assert.deepEqual(medalsIn(element), []);
 });
 
-test('manual rank release shows only revealed podium medals beside team names', async () => {
+test('manual partial ranks wait until all public scores settle before awarding medals', async () => {
   const rows = [1, 2, 3, 4].map((rank) => ({
     ...row(`team-${rank}`, rank),
     is_revealed: rank >= 3,
   }));
   const element = await mount(rows, { strategy: 'manual', mode: 'partial' });
-  assert.deepEqual(medalsIn(element), [
-    { team: 'team-3', label: '3위 동메달' },
-  ]);
+  assert.deepEqual(medalsIn(element), []);
   rows[1].is_revealed = true;
   // Older release responses omit strategy; their release mode is manual.
   await act(async () =>
@@ -211,10 +209,7 @@ test('manual rank release shows only revealed podium medals beside team names', 
       React.createElement(Table, { rows, release: { mode: 'partial' } }),
     ),
   );
-  assert.deepEqual(medalsIn(element), [
-    { team: 'team-2', label: '2위 은메달' },
-    { team: 'team-3', label: '3위 동메달' },
-  ]);
+  assert.deepEqual(medalsIn(element), []);
 });
 
 test('fully released ranks award gold, silver and bronze and preserve tied ranks', async () => {

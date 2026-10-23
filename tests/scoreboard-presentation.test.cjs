@@ -329,11 +329,7 @@ test('operator rank release refreshes a separate presentation client and leaves 
   assert.equal(display.querySelector('h1'), displayTitle);
   assert.equal(display.querySelectorAll('button, select, input').length, 0);
   assert.equal(releases.b.revealed_count, 0);
-  assert.equal(
-    display.querySelector('svg[role="img"]').getAttribute('aria-label'),
-    '2위 은메달',
-  );
-  assert.equal(display.querySelectorAll('svg[role="img"]').length, 1);
+  assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
 });
 
 test('presentation without a division filter displays all divisions and ignores other contests', async () => {
@@ -349,16 +345,7 @@ test('presentation without a division filter displays all divisions and ignores 
   await dispatchUpdate('another-contest');
   assert.equal(presentationReads, readsBeforeUpdate);
   assert.equal(display.querySelectorAll('button, select, input').length, 0);
-  assert.equal(display.querySelectorAll('svg[role="img"]').length, 1);
-  assert.equal(
-    display.querySelector('svg[role="img"]').closest('tr').dataset
-      .scoreboardRow,
-    'a-1',
-  );
-  assert.equal(
-    display.querySelector('svg[role="img"]').getAttribute('aria-label'),
-    '1위 금메달',
-  );
+  assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
 });
 
 test('failed release does not broadcast or reveal ranks', async () => {
@@ -559,7 +546,7 @@ test('resolver presentation retains team names and moves existing rows as result
   assert.match(display.textContent, /Alpha/);
   assert.match(display.textContent, /Beta/);
   assert.match(display.textContent, /\?1/);
-  assert.doesNotMatch(display.textContent, /결과 공개 0 \/ 1/);
+  assert.match(display.textContent, /팀·문제 공개 0 \/ 1/);
   assert.equal(display.querySelector('[role="status"]'), null);
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
   assert.doesNotMatch(display.textContent, /공개 대기|아직 공개되지 않은 순위/);
@@ -665,7 +652,7 @@ test('display-only session reads only the scoped presentation API and exposes no
   assert.equal(releaseReads, 0);
 });
 
-test('undo confirms the selected rank then updates a separate presentation and removes its medal', async () => {
+test('undo confirms the selected rank then restores a separate presentation without premature medals', async () => {
   releases.a.revision = 0;
   releases.a.undo = null;
   const display = await renderPage(
@@ -680,7 +667,7 @@ test('undo confirms the selected rank then updates a separate presentation and r
   assert.equal(button(operator, '되돌리기 (Undo)').disabled, true);
   await act(async () => button(operator, '2위 공개').click());
   await dispatchUpdate();
-  assert.ok(display.querySelector('svg[aria-label="2위 은메달"]'));
+  assert.equal(display.querySelector('svg[aria-label="2위 은메달"]'), null);
   await act(async () => button(operator, '되돌리기 (Undo)').click());
   assert.match(document.querySelector('dialog').textContent, /2위 공개를 취소/);
   await act(async () =>

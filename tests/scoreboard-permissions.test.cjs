@@ -446,7 +446,7 @@ test('resolver starts then advances with the expected step and displays the reve
   await render();
   await click(button('결과 순차 공개 시작'));
   assert.equal(button('1위 공개'), undefined);
-  await click(button('다음 결과 공개'));
+  await click(button('다음 문제 공개'));
   assert.deepEqual(
     changes.map((change) => change.body),
     [{ action: 'start' }, { action: 'next', expected_step: 0 }],
@@ -454,7 +454,7 @@ test('resolver starts then advances with the expected step and displays the reve
   assert.match(container.textContent, /A번 맞았습니다/);
   assert.match(container.textContent, /2위 → 1위/);
   assert.equal(container.querySelector('progress').value, 1);
-  assert.equal(button('다음 결과 공개'), undefined);
+  assert.equal(button('다음 문제 공개'), undefined);
 });
 
 test('resolver conflict refreshes the current step before the next attempt', async () => {
@@ -475,11 +475,11 @@ test('resolver conflict refreshes the current step before the next attempt', asy
   rejectNext = true;
   await render();
   const initialReads = reads.release;
-  await click(button('다음 결과 공개'));
+  await click(button('다음 문제 공개'));
   assert.ok(reads.release > initialReads);
   assert.ok(container.querySelector('[role="alert"]'));
   rejectNext = false;
-  await click(button('다음 결과 공개'));
+  await click(button('다음 문제 공개'));
   assert.equal(changes[1].body.expected_step, 1);
 });
 

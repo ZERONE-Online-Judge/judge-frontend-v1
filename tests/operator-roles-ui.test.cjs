@@ -581,6 +581,22 @@ test('contest settings defaults to manual release and saves the chosen resolver 
   );
 });
 
+test('submission settings persist frozen counts separately from release mode', async () => {
+  await render(SettingsPage, 'settings');
+  const label = [...container.querySelectorAll('label')].find((item) =>
+    item.textContent.includes('프리즈 이후 제출 횟수 표시'),
+  );
+  assert.ok(label);
+  const input = label.querySelector('input[type="checkbox"]');
+  assert.equal(input.checked, false);
+  await click(input);
+  await click(button('변경사항 저장'));
+  assert.equal(settingsChanges.length, 1);
+  assert.deepEqual(settingsChanges[0].body, {
+    freeze_submission_count_visible: true,
+  });
+});
+
 test('a started release disables mode selection but preserves the saved mode', async () => {
   contestOverrides = {
     scoreboard_release_mode: 'resolver',

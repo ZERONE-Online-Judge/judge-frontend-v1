@@ -49,27 +49,29 @@ export default function HeaderPanel({
   onClose,
   children,
   footer,
+  className = '',
 }: {
   id: string;
   title: string;
-  label: string;
+  label?: string;
   description: string;
-  icon: HeaderIconName;
+  icon?: HeaderIconName;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  className?: string;
 }) {
   return (
     <ModalDialog
       titleId={id}
       title={title}
-      eyebrow={`ZOJ / ${label}`}
+      eyebrow={label ? `ZOJ / ${label}` : undefined}
       description={description}
-      icon={<HeaderIcon name={icon} />}
+      icon={icon ? <HeaderIcon name={icon} /> : undefined}
       onClose={onClose}
       closeLabel={`${title} 닫기`}
       drawer
-      className="header-panel"
+      className={`header-panel ${className}`}
       footer={footer}
     >
       {children}

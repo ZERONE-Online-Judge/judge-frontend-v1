@@ -16,6 +16,9 @@ function eventLabel(eventType: string) {
     presentation_login: '발표 계정 로그인',
     general_refresh: '세션 갱신',
     login_failed: '로그인 실패',
+    login_verification_required: '새 환경 본인 인증 요청',
+    passkey_registered: '패스키 등록',
+    passkey_removed: '패스키 삭제',
     logout: '로그아웃',
     account_revoked: '운영자 강제 로그아웃',
     participant_login: '참가자 로그인',
@@ -29,7 +32,10 @@ function eventLabel(eventType: string) {
 function eventClassName(eventType: string) {
   if (eventType === 'login_failed')
     return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (eventType === 'session_conflict')
+  if (
+    eventType === 'session_conflict' ||
+    eventType === 'login_verification_required'
+  )
     return 'border-amber-200 bg-amber-50 text-amber-700';
   if (eventType === 'logout' || eventType === 'account_revoked')
     return 'border-slate-200 bg-slate-50 text-slate-600';

@@ -93,6 +93,16 @@ function apiErrorUserMessage(error: ApiClientError) {
   )
     return error.message;
   if (error.code.startsWith('verification_')) return error.message;
+  if (
+    error.code.startsWith('passkey_') ||
+    [
+      'invalid_passkey',
+      'invalid_verification_code',
+      'recent_verification_required',
+      'additional_verification_required',
+    ].includes(error.code)
+  )
+    return error.message;
 
   if (error.code.startsWith('problem_archive_')) return error.message;
   if (

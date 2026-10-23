@@ -35,7 +35,7 @@ export async function registerPasskey(token: string, name: string) {
     body: JSON.stringify({ challenge_id: data.challenge_id, credential, name }),
   });
 }
-export async function loginPasskey(email: string, forceNewSession = false) {
+export async function loginPasskey(email: string) {
   const data = await apiRequest<{
     challenge_id: string;
     options: PublicKeyCredentialRequestOptionsJSON;
@@ -52,8 +52,23 @@ export async function loginPasskey(email: string, forceNewSession = false) {
       body: JSON.stringify({
         challenge_id: data.challenge_id,
         credential,
-        force_new_session: forceNewSession,
       }),
+    },
+  );
+  const session = mapGeneralSession(result);
+  saveGeneralSession(session);
+  return session;
+}
+export async function confirmPasskeyLoginTransfer(
+  email: string,
+  proofToken: string,
+) {
+  const result = await apiRequest<GeneralSessionApi>(
+    '/auth/general/passkeys/login/transfer',
+    undefined,
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, proof_token: proofToken }),
     },
   );
   const session = mapGeneralSession(result);

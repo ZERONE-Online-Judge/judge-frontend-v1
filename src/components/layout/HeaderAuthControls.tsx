@@ -263,6 +263,7 @@ export default function HeaderAuthControls({
       ) : null}
       {isPasskeyOpen && (
         <PasskeyDialog
+          key={generalSession.account.email}
           token={generalSession.accessToken}
           email={accountEmail || ''}
           onClose={() => setIsPasskeyOpen(false)}

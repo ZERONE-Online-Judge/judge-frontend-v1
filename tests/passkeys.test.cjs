@@ -193,6 +193,7 @@ async function mount(Component = Login, props = {}) {
   await act(async () => root.render(h(Component, props)));
   return {
     host,
+    render: () => act(async () => root.render(h(Component, props))),
     close: async () => {
       await act(async () => root.unmount());
       host.remove();
@@ -344,5 +345,23 @@ test('replacing an existing passkey session requires another fresh ceremony afte
     ],
   );
   assert.equal(state.generalSession, session);
+  await v.close();
+});
+
+test('an account switch closes the previous account enrollment prompt', async () => {
+  const v = await mount();
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-otp', '123456');
+  await submit(v);
+  assert.ok(v.host.textContent.includes('패스키를 추가할까요?'));
+  state.generalSession = {
+    ...session,
+    account: { email: 'other@example.com' },
+  };
+  await v.render();
+  assert.equal(v.host.textContent.includes('패스키를 추가할까요?'), false);
+  assert.ok(navigation.includes('/contests'));
+  assert.equal(state.generalSession.account.email, 'other@example.com');
   await v.close();
 });

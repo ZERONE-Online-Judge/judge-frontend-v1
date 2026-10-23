@@ -22,6 +22,7 @@ const React = require('react');
 const { act } = React;
 const { createRoot } = require('react-dom/client');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
+let registrationPrompt;
 const cache = new Map();
 function source(relative) {
   const filename = path.resolve(__dirname, '../src', relative);
@@ -31,6 +32,8 @@ function source(relative) {
   loaded.paths = Module._nodeModulePaths(path.dirname(filename));
   const native = loaded.require.bind(loaded);
   loaded.require = (id) => {
+    if (id === '@simplewebauthn/browser')
+      return { startRegistration: () => registrationPrompt.promise };
     if (!id.startsWith('@/') && !id.startsWith('.')) return native(id);
     const base = id.startsWith('@/')
       ? path.resolve(__dirname, '../src', id.slice(2))
@@ -66,7 +69,9 @@ const {
   apiPageRequest,
   apiBlobRequest,
   refreshActiveAccessTokens,
+  isPasskeyCeremonyActive,
 } = source('shared/api/client.ts');
+const { registerPasskey } = source('domains/identityAccess/passkeys.ts');
 const originalFetch = global.fetch;
 const general = {
   accessToken: 'old',
@@ -307,4 +312,80 @@ test('a failed restore cannot clear a newer login while cache cancellation is pe
     await new Promise(setImmediate);
   });
   assert.equal(storage.loadStoredGeneralSession()?.accessToken, 'new-login');
+});
+
+test('returning from passkey registration skips focus and timer rotations until verification finishes', async () => {
+  registrationPrompt = deferred();
+  const verification = deferred();
+  const calls = [];
+  global.fetch = async (url, init) => {
+    calls.push({ url, token: init.headers.authorization });
+    if (url.endsWith('/sso') || url.endsWith('/refresh'))
+      return response(200, profile('old'));
+    if (url.endsWith('/register/options'))
+      return response(200, { challenge_id: 'challenge', options: {} });
+    if (url.endsWith('/register/verify')) return verification.promise;
+    throw new Error('Unexpected request ' + url);
+  };
+  await mount();
+  calls.length = 0;
+  const pending = registerPasskey('old', 'Device');
+  await flush();
+  assert.equal(isPasskeyCeremonyActive(), true);
+  await act(async () => {
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    assert.equal(await refreshActiveAccessTokens(), false);
+  });
+  registrationPrompt.resolve({ id: 'signed-registration' });
+  await flush();
+  assert.equal(isPasskeyCeremonyActive(), true);
+  await act(async () => window.dispatchEvent(new Event('focus')));
+  assert.equal(
+    calls.filter((x) => x.url.endsWith('/sso') || x.url.endsWith('/refresh'))
+      .length,
+    0,
+  );
+  verification.resolve(response(200, { registered: true }));
+  await pending;
+  assert.equal(isPasskeyCeremonyActive(), false);
+  assert.equal(
+    calls.filter((x) => x.url.endsWith('/register/verify')).length,
+    1,
+  );
+  assert.equal(calls.at(-1).token, 'Bearer old');
+  await act(async () => window.dispatchEvent(new Event('focus')));
+  await flush();
+  assert.equal(calls.filter((x) => x.url.endsWith('/sso')).length, 1);
+});
+
+test('cancelling the device prompt releases the refresh guard without submitting registration', async () => {
+  registrationPrompt = deferred();
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(url);
+    if (url.endsWith('/sso')) return response(200, profile('old'));
+    if (url.endsWith('/register/options'))
+      return response(200, { challenge_id: 'challenge', options: {} });
+    throw new Error('Unexpected request ' + url);
+  };
+  await mount();
+  const pending = registerPasskey('old', 'Device');
+  const rejected = assert.rejects(pending, { name: 'NotAllowedError' });
+  await flush();
+  assert.equal(isPasskeyCeremonyActive(), true);
+  registrationPrompt.resolve(
+    Promise.reject(
+      Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }),
+    ),
+  );
+  await rejected;
+  assert.equal(isPasskeyCeremonyActive(), false);
+  assert.equal(
+    calls.some((x) => x.endsWith('/register/verify')),
+    false,
+  );
+  await act(async () => window.dispatchEvent(new Event('focus')));
+  await flush();
+  assert.equal(calls.filter((x) => x.endsWith('/sso')).length, 2);
 });

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, isPasskeyCeremonyActive } from '@/shared/api/client';
 import { isSessionAuthError } from '@/shared/api/errors';
 import { mapGeneralSession } from './sessionStorage';
 import { useSessionStore } from './sessionStore';
@@ -14,7 +14,8 @@ export function useSharedLogin() {
     let active = true,
       pending = false;
     async function restore() {
-      if (!active || pending || document.hidden) return;
+      if (!active || pending || document.hidden || isPasskeyCeremonyActive())
+        return;
       const before = useSessionStore.getState().generalSession;
       pending = true;
       try {

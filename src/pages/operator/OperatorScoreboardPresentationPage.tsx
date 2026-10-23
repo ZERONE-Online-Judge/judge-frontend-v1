@@ -182,6 +182,15 @@ function PresentationDivisionBoard({
         </span>
       </header>
 
+      {section.release?.resolver && section.release.mode !== 'not_started' ? (
+        <p className="mb-3 text-xs font-semibold text-violet-200/80">
+          팀·문제 공개 {section.release.resolver.step} /{' '}
+          {section.release.resolver.total_steps}
+          <span className="ml-3">
+            남은 문제 {section.release.resolver.pending_count}개
+          </span>
+        </p>
+      ) : null}
       <div className="overflow-x-auto">
         <table
           className="w-full border-collapse text-left"

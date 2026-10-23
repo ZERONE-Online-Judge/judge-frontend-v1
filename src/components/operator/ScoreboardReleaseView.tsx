@@ -38,9 +38,9 @@ export default function ScoreboardReleaseView({
         : undo?.action === 'start'
           ? '순위 공개 시작을 취소하고 발표 시작 전 스코어보드로 돌아갑니다.'
           : undo?.action === 'rank'
-            ? `${undo.rank}위 공개를 취소하고 해당 순위의 팀 정보를 다시 가립니다. 공동 순위도 함께 되돌립니다.`
+            ? `${undo.rank}위 공개를 취소하고 해당 팀의 프리즈 기록으로 복원합니다. 공동 순위도 함께 되돌립니다.`
             : undo?.action === 'next'
-              ? '마지막으로 공개한 결과를 취소하고 점수와 순위를 이전 단계로 돌립니다.'
+              ? '직전에 공개한 팀·문제의 제출 전체를 되돌리고 점수와 순위를 복원합니다.'
               : strategy === 'immediate'
                 ? '전체 공개를 되돌리고 프리즈 표를 표시합니다. 다시 전체 공개할 때까지 유지됩니다.'
                 : '전체 공개 직전의 공개 범위와 순위로 돌아갑니다.';
@@ -137,7 +137,7 @@ export default function ScoreboardReleaseView({
           {release?.mode === 'not_started'
             ? '발표 준비'
             : isResolver && resolver
-              ? `${resolver.step} / ${resolver.total_steps}개 결과 공개`
+              ? `${resolver.step} / ${resolver.total_steps}개 팀·문제 공개`
               : release
                 ? `${release.revealed_count} / ${release.total_count}팀 공개`
                 : '불러오는 중…'}
@@ -145,8 +145,8 @@ export default function ScoreboardReleaseView({
       </div>
       <p className="text-xs leading-5 text-slate-500">
         {isResolver
-          ? '발표를 시작해도 팀명과 프리즈 순위표는 유지됩니다. ‘다음 결과 공개’를 누를 때마다 현재 하위 팀부터 미공개 제출 결과 하나를 반영합니다.'
-          : '‘개별 순위 공개 시작’을 누르면 최종 순위 번호만 남고 모든 팀 정보가 가려집니다. 공개할 순위를 선택하면 해당 팀과 성적이 나타납니다.'}{' '}
+          ? '발표를 시작해도 팀명과 프리즈 순위표는 유지됩니다. ‘다음 문제 공개’를 누를 때마다 현재 가장 아래 팀의 첫 미공개 문제를 공개합니다. 해당 문제의 제출을 첫 정답 또는 마지막 제출까지 한 번에 반영한 뒤 순위를 갱신합니다.'
+          : '공개 전 팀은 프리즈 기록을 유지합니다. 공개할 순위를 선택하면 해당 팀의 최종 성적을 반영하고, 현재 공개된 성적으로 순위를 갱신합니다.'}{' '}
         공개 시작 시 이 유형의 성적을 고정합니다. 재채점과 검수를 마친 뒤
         시작하세요.
       </p>
@@ -172,7 +172,7 @@ export default function ScoreboardReleaseView({
           >
             {pending && pendingAction === 'next'
               ? '공개 중…'
-              : '다음 결과 공개'}
+              : '다음 문제 공개'}
           </button>
         ) : null}
         {release && release.mode !== 'all' ? (
@@ -210,11 +210,11 @@ export default function ScoreboardReleaseView({
               {release?.revealed_count ?? 0} / {release?.total_count ?? 0}팀
               결과 공개 완료
             </span>
-            <span>남은 결과 {resolver.pending_count}개</span>
+            <span>남은 팀·문제 {resolver.pending_count}개</span>
           </div>
           <progress
             className="h-2 w-full accent-indigo-600"
-            aria-label="결과 공개 진행률"
+            aria-label="팀·문제 공개 진행률"
             max={Math.max(1, resolver.total_steps)}
             value={
               release?.mode === 'all'
@@ -238,7 +238,7 @@ export default function ScoreboardReleaseView({
             </p>
           ) : release?.mode === 'partial' ? (
             <p className="text-xs leading-5 text-slate-500">
-              발표 준비가 끝났습니다. 다음 결과를 공개하면 참가자 화면과
+              발표 준비가 끝났습니다. 다음 문제를 공개하면 참가자 화면과
               프레젠테이션의 순위가 함께 갱신됩니다.
             </p>
           ) : null}

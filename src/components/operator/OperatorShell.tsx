@@ -1,5 +1,6 @@
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
+import ContestShareButton from '@/components/operator/ContestShareButton';
 import {
   hasParticipantPreviewAccess,
   participantPreviewPath,
@@ -407,6 +408,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             <span>{roleTitle}</span>
           </p>
         ) : null}
+        <ContestShareButton key={contestId} contestId={contestId} />
       </div>
       <button
         ref={triggerRef}

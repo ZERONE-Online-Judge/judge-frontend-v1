@@ -1,17 +1,30 @@
 export function safeLoginRedirectTarget(value: string | null) {
   if (!value) return null;
   if (!value.startsWith('/') || value.startsWith('//')) return null;
-  if (value.startsWith('/login')) return null;
-
-  return value;
+  if (
+    value.includes('\\') ||
+    [...value].some(
+      (char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127,
+    )
+  )
+    return null;
+  try {
+    const target = new URL(value, 'https://zoj.invalid');
+    if (target.origin !== 'https://zoj.invalid') return null;
+    if (decodeURIComponent(target.pathname).startsWith('/login')) return null;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 export function contestLoginPath(contestId: string, nextPath?: string) {
   const search = new URLSearchParams({
-    reason: 'contest',
     contestId,
   });
-  const safeNext = safeLoginRedirectTarget(nextPath ?? null);
+  const safeNext = safeLoginRedirectTarget(
+    nextPath ?? `/contests/${encodeURIComponent(contestId)}`,
+  );
   if (safeNext) search.set('moveTo', safeNext);
 
   return `/login?${search.toString()}`;

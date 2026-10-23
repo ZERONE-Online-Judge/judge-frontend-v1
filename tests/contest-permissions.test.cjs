@@ -11,6 +11,12 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
 global.window = dom.window;
 global.document = dom.window.document;
 global.IS_REACT_ACT_ENVIRONMENT = true;
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.open = true;
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.open = false;
+};
 const React = require('react');
 const { act } = React;
 const { createRoot } = require('react-dom/client');
@@ -254,6 +260,80 @@ function tabs() {
         .replace(/^\//, ''),
   );
 }
+
+test('operators share the participant URL without preview flags or credentials', async () => {
+  session = forRoles('participants_manager');
+  const copied = [];
+  const original = Object.getOwnPropertyDescriptor(global, 'navigator');
+  Object.defineProperty(global, 'navigator', {
+    configurable: true,
+    value: { clipboard: { writeText: async (value) => copied.push(value) } },
+  });
+  try {
+    await render();
+    await act(async () =>
+      container.querySelector('[aria-label="대회 링크 공유"]').click(),
+    );
+    const dialog = document.querySelector('dialog');
+    assert.ok(dialog?.open);
+    const input = dialog.querySelector('input');
+    assert.equal(input.value, 'https://judge.test/contests/contest');
+    assert.equal(input.readOnly, true);
+    const open = dialog.querySelector('a');
+    assert.equal(open.href, input.value);
+    assert.equal(open.target, '_blank');
+    assert.equal(open.rel, 'noopener noreferrer');
+    const copy = [...dialog.querySelectorAll('button')].find(
+      (node) => node.textContent === '링크 복사',
+    );
+    await act(async () => copy.click());
+    assert.deepEqual(copied, [input.value]);
+    assert.match(
+      dialog.querySelector('[role="status"]').textContent,
+      /복사했습니다/,
+    );
+    await act(async () => dialog.querySelector('[aria-label="닫기"]').click());
+    assert.equal(document.querySelector('dialog'), null);
+  } finally {
+    if (original) Object.defineProperty(global, 'navigator', original);
+    else delete global.navigator;
+  }
+});
+
+test('a rejected clipboard permission keeps a selectable participant URL available', async () => {
+  session = forRoles('problem_reviewer');
+  const original = Object.getOwnPropertyDescriptor(global, 'navigator');
+  Object.defineProperty(global, 'navigator', {
+    configurable: true,
+    value: {
+      clipboard: {
+        writeText: async () => {
+          throw new Error('denied');
+        },
+      },
+    },
+  });
+  try {
+    await render();
+    await act(async () =>
+      container.querySelector('[aria-label="대회 링크 공유"]').click(),
+    );
+    const dialog = document.querySelector('dialog');
+    await act(async () =>
+      [...dialog.querySelectorAll('button')]
+        .find((node) => node.textContent === '링크 복사')
+        .click(),
+    );
+    assert.match(dialog.textContent, /직접 복사해 주세요/);
+    const input = dialog.querySelector('input');
+    await act(async () => input.focus());
+    assert.equal(input.selectionStart, 0);
+    assert.equal(input.selectionEnd, input.value.length);
+  } finally {
+    if (original) Object.defineProperty(global, 'navigator', original);
+    else delete global.navigator;
+  }
+});
 
 test('a contest master is never promoted to service administrator and has no access to another contest', async () => {
   for (const masterScope of ['master', 'contest.*', '*']) {

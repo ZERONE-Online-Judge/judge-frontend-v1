@@ -29,7 +29,7 @@ const {
 } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 
-let state, calls, contest, detail, currentPath;
+let state, calls, contest, detail, currentPath, currentLocation, contestError;
 const listeners = new Set();
 function setState(patch) {
   state = { ...state, ...patch };
@@ -72,7 +72,10 @@ const problem = {
 };
 async function apiRequest(url, token) {
   calls.push({ url, token });
-  if (url === '/public/contests/public-contest') return detail;
+  if (url === '/public/contests/public-contest') {
+    if (contestError) throw contestError;
+    return detail;
+  }
   if (url.endsWith('/problems')) return [problem];
   if (url.endsWith('/notices') || url.endsWith('/boards')) return [];
   throw new Error(`Unexpected API request: ${url}`);
@@ -148,9 +151,11 @@ const Navigation = source(
 ).default;
 const ContestListItem = source('components/ui/ContestListItem.tsx').default;
 const { contestAccessPhase } = source('domains/contestAdministration/logic.ts');
+const { ApiClientError } = source('shared/api/errors.ts');
 
 function Observer() {
-  currentPath = useLocation().pathname;
+  currentLocation = useLocation();
+  currentPath = currentLocation.pathname;
   return null;
 }
 function Directory() {
@@ -197,6 +202,7 @@ beforeEach(() => {
     setGeneralSession: (next) => setState({ generalSession: next }),
   };
   calls = [];
+  contestError = null;
   currentPath = undefined;
   document.body.innerHTML = '<main></main>';
   window.localStorage.clear();
@@ -248,6 +254,10 @@ async function render(url = '/contests/public-contest', element) {
               h(Route, {
                 path: '/contests/:contestId/problems',
                 element: h(Problems),
+              }),
+              h(Route, {
+                path: '/login',
+                element: h('p', null, '로그인 화면'),
               }),
             ),
         ),
@@ -445,4 +455,62 @@ test('participant overview uses the shared progress panel and keeps account, tea
   assert.equal(host.querySelectorAll('.zoj-overview-card').length, 2);
   assert.equal(host.querySelector('.zoj-overview-schedule'), null);
   assert.equal(host.querySelector('a[href*="/settings"]'), null);
+});
+
+for (const status of [401, 403, 404]) {
+  test(`anonymous contest entry with ${status} redirects to login and retains the full destination`, async () => {
+    contestError = new ApiClientError(status, 'not_found', 'Unavailable');
+    const target = '/contests/public-contest?source=invitation#schedule';
+    await render(target);
+    await flush();
+    assert.equal(currentPath, '/login');
+    const params = new URLSearchParams(currentLocation.search);
+    assert.equal(params.get('moveTo'), target);
+    assert.equal(params.get('contestId'), 'public-contest');
+    assert.equal(params.has('reason'), false);
+    assertNoProtectedPrefetch();
+  });
+}
+
+test('a participant-only ended resource redirects guests even when another resource is public', async () => {
+  contest.problem_access_after_end = 'participants';
+  contest.scoreboard_access_after_end = 'public';
+  await render('/contests/public-contest/problems?divisionId=general#A');
+  assert.equal(currentPath, '/login');
+  assert.equal(
+    new URLSearchParams(currentLocation.search).get('moveTo'),
+    '/contests/public-contest/problems?divisionId=general#A',
+  );
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/problems')),
+    false,
+  );
+});
+
+test('a running contest participant route redirects guests before fetching private resources', async () => {
+  contest.status = 'running';
+  contest.start_at = new Date(Date.now() - 3600000).toISOString();
+  contest.end_at = new Date(Date.now() + 3600000).toISOString();
+  await render('/contests/public-contest/problems');
+  assert.equal(currentPath, '/login');
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/problems')),
+    false,
+  );
+});
+
+test('a signed-in account without contest access stays on an explanatory denial instead of looping through login', async () => {
+  login();
+  contestError = new ApiClientError(404, 'not_found', 'Unavailable');
+  await render();
+  await flush();
+  assert.equal(currentPath, '/contests/public-contest');
+  assert.match(host.textContent, /접근 권한이 없습니다/);
+  assertNoProtectedPrefetch();
+});
+
+test('a server outage does not send a guest to login', async () => {
+  contestError = new ApiClientError(503, 'api_busy', 'Unavailable');
+  await render();
+  assert.equal(currentPath, '/contests/public-contest');
 });

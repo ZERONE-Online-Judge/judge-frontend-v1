@@ -88,7 +88,6 @@ const mocks = {
     isPresentationEmail: () => false,
     usePresentationSession: {},
   },
-  '@/shared/lib/loginRedirect': { readLoginRedirectTarget: () => '/contests' },
   '@/domains/identityAccess/accountPasswords': {
     getLoginOptions: async () => options,
     loginGeneralPassword: async () => {
@@ -179,6 +178,8 @@ for (const value of Object.values(mocks))
 const Login = source('pages/auth/LoginPage.tsx').default;
 const Dialog = source('components/auth/PasskeyDialog.tsx').default;
 function reset() {
+  for (const key of [...params.keys()]) params.delete(key);
+  params.set('next', '/contests');
   calls = [];
   navigation = [];
   supported = true;
@@ -547,3 +548,26 @@ test('new environment verification can use the registered passkey without return
   );
   await v.close();
 });
+
+for (const method of ['otp', 'password', 'passkey']) {
+  test(`${method} login returns to the original contest path including query and fragment`, async () => {
+    const v = await mount();
+    const target = '/contests/shared-contest/problems?divisionId=general#A';
+    params.delete('next');
+    params.set('moveTo', target);
+    params.set('contestId', 'shared-contest');
+    options = {
+      password_available: method === 'password',
+      passkey_available: method === 'passkey',
+    };
+    items = [{ id: 'existing-key', name: '내 패스키', created_at: 100 }];
+    await input(v, '#login-email', 'user@example.com');
+    await submit(v);
+    if (method === 'password') await input(v, '#login-password', 'Password1!');
+    if (method === 'otp') await input(v, '#login-otp', '123456');
+    await submit(v);
+    assert.equal(state.generalSession, session);
+    assert.ok(navigation.includes(target));
+    await v.close();
+  });
+}

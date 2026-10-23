@@ -111,7 +111,14 @@ const mocks = {
     formatUserApiError: (e, fallback) => fallback + ': ' + e.message,
     readRetryAfterSeconds: () => 0,
   },
-  '@/components/auth/AccountPasswordDialog': { default: () => null },
+  '@/components/auth/AccountPasswordDialog': {
+    default: ({ email, onDone }) =>
+      h(
+        'section',
+        { role: 'dialog' },
+        h('button', { onClick: () => onDone(email) }, '비밀번호 변경 완료'),
+      ),
+  },
   '@/components/auth/PasswordInput': {
     PasswordInput: (props) =>
       h('input', { ...props, label: undefined, type: 'password' }),
@@ -293,7 +300,7 @@ test('cancelled login enrollment stays open and lets the signed-in user skip or 
   await v.close();
 });
 
-test('email first selects a registered passkey and cancellation keeps alternatives available', async () => {
+test('email first prioritizes the password even with a passkey and cancellation keeps alternatives available', async () => {
   const v = await mount();
   assert.equal(button(v, '패스키로 로그인'), undefined);
   options = { password_available: true, passkey_available: true };
@@ -301,11 +308,14 @@ test('email first selects a registered passkey and cancellation keeps alternativ
   await submit(v);
   assert.equal(v.host.querySelector('#login-email').readOnly, true);
   assert.equal(calls.length, 0);
-  assert.equal(v.host.querySelector('#login-password'), null);
+  assert.ok(v.host.querySelector('#login-password'));
+  assert.equal(v.host.querySelector('#login-otp'), null);
   handler = async () => {
     throw Object.assign(new Error('cancel'), { name: 'NotAllowedError' });
   };
   await click(v, '패스키로 로그인');
+  assert.equal(calls.length, 0);
+  await submit(v);
   assert.equal(state.generalSession, null);
   assert.ok(v.host.textContent.includes('이메일 인증을 이용하세요'));
   handler = null;
@@ -329,6 +339,9 @@ test('password login on an unfamiliar environment switches to email or passkey v
   assert.ok(v.host.textContent.includes('새로운 브라우저 또는 IP'));
   assert.equal(button(v, '패스키로 로그인'), undefined);
   assert.equal(button(v, '비밀번호로 로그인'), undefined);
+  assert.equal(v.host.querySelector('#login-otp'), null);
+  assert.equal(calls.filter(([name]) => name === 'request-otp').length, 0);
+  await click(v, '이메일 인증번호 받기');
   assert.ok(v.host.querySelector('#login-otp'));
   assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
   await v.close();
@@ -398,6 +411,7 @@ test('replacing an existing passkey session authenticates once then consumes the
     return session;
   };
   await click(v, '패스키로 로그인');
+  await submit(v);
   assert.equal(state.generalSession, null);
   assert.ok(v.host.textContent.includes('기존 로그인 연결을 끊을까요?'));
   await click(v, '이 브라우저에서 사용');
@@ -423,6 +437,7 @@ test('canceling session transfer discards approval without logging in', async ()
     throw error;
   };
   await click(v, '패스키로 로그인');
+  await submit(v);
   await click(v, '이전 세션 유지');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'transfer').length, 0);
@@ -444,6 +459,7 @@ test('expired session transfer closes confirmation without another passkey promp
     throw error;
   };
   await click(v, '패스키로 로그인');
+  await submit(v);
   await click(v, '이 브라우저에서 사용');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'passkey').length, 1);
@@ -529,7 +545,6 @@ test('new environment verification can use the registered passkey without return
   options = { password_available: true, passkey_available: true };
   await input(v, '#login-email', 'user@example.com');
   await submit(v);
-  await click(v, '비밀번호로 로그인');
   await input(v, '#login-password', 'Password1!');
   handler = async (method) => {
     if (method === 'password')
@@ -537,15 +552,161 @@ test('new environment verification can use the registered passkey without return
     return session;
   };
   await submit(v);
-  assert.ok(v.host.querySelector('#login-otp'));
+  assert.equal(state.generalSession, null);
+  assert.equal(v.host.querySelector('#login-otp'), null);
+  assert.equal(calls.filter(([name]) => name === 'request-otp').length, 0);
   assert.equal(button(v, '비밀번호로 로그인'), undefined);
-  await click(v, '패스키로 로그인');
-  await submit(v);
+  await click(v, '패스키로 인증');
   assert.equal(state.generalSession, session);
   assert.deepEqual(
     calls.filter(([name]) => name === 'passkey'),
     [['passkey', 'user@example.com']],
   );
+  await v.close();
+});
+
+test('a trusted environment finishes with the password alone even when a passkey exists', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  await submit(v);
+  assert.deepEqual(calls, [['password']]);
+  assert.equal(state.generalSession, session);
+  assert.ok(navigation.includes('/contests'));
+  assert.equal(v.host.textContent.includes('패스키를 등록할까요?'), false);
+  await v.close();
+});
+
+test('an incorrect password stays on the password screen without sending email or opening a passkey', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  handler = async () => {
+    throw new ApiError('invalid_credentials', 401);
+  };
+  await input(v, '#login-password', 'WrongPassword1!');
+  await submit(v);
+  assert.deepEqual(calls, [['password']]);
+  assert.equal(state.generalSession, null);
+  assert.ok(v.host.querySelector('#login-password'));
+  assert.equal(button(v, '이메일 인증번호 받기'), undefined);
+  assert.equal(button(v, '패스키로 인증'), undefined);
+  await v.close();
+});
+
+test('a password change still defaults to the new password before environment verification', async () => {
+  const v = await mount();
+  params.set('password', 'changed');
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  assert.ok(v.host.querySelector('#login-password'));
+  assert.equal(v.host.querySelector('#login-otp'), null);
+  assert.deepEqual(calls, []);
+  await v.close();
+});
+
+test('password recovery returns to the new password and clears the previous email code', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await click(v, '이메일로 대신 로그인');
+  await input(v, '#login-otp', '123456');
+  await click(v, '비밀번호로 로그인');
+  await click(v, '비밀번호 찾기');
+  await click(v, '비밀번호 변경 완료');
+  assert.ok(v.host.querySelector('#login-password'));
+  assert.equal(v.host.querySelector('#login-password').value, '');
+  assert.equal(v.host.querySelector('#login-otp'), null);
+  assert.equal(v.host.querySelector('h1').textContent, '로그인');
+  assert.ok(button(v, '패스키로 로그인'));
+  await input(v, '#login-password', 'NewPassword1!');
+  handler = async () => {
+    throw new ApiError('additional_verification_required');
+  };
+  await submit(v);
+  assert.ok(button(v, '이메일 인증번호 받기'));
+  assert.equal(button(v, '이메일 인증번호 입력'), undefined);
+  assert.equal(state.generalSession, null);
+  await v.close();
+});
+
+test('an account without a password defaults to email and offers its passkey as an alternative', async () => {
+  const v = await mount();
+  options = { password_available: false, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  assert.ok(v.host.querySelector('#login-otp'));
+  assert.equal(v.host.querySelector('#login-password'), null);
+  assert.deepEqual(calls, [['request-otp']]);
+  assert.ok(button(v, '패스키로 로그인'));
+  await v.close();
+});
+
+test('new environment email verification sends only after selection and finishes without asking for the password again', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  items = [{ id: 'existing-key', name: '내 패스키', created_at: 100 }];
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  handler = async () => {
+    throw new ApiError('additional_verification_required');
+  };
+  await submit(v);
+  assert.equal(v.host.querySelector('h1').textContent, '본인 확인');
+  assert.deepEqual(calls, [['password']]);
+  await click(v, '이메일 인증번호 받기');
+  await input(v, '#login-otp', '123456');
+  await submit(v);
+  assert.deepEqual(calls, [['password'], ['request-otp'], ['verify-otp']]);
+  assert.equal(state.generalSession, session);
+  assert.ok(navigation.includes('/contests'));
+  await v.close();
+});
+
+test('cancelled additional passkey verification can fall back to email without another password', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  handler = async (method) => {
+    if (method === 'password')
+      throw new ApiError('additional_verification_required');
+    throw Object.assign(new Error('cancel'), { name: 'NotAllowedError' });
+  };
+  await submit(v);
+  await click(v, '패스키로 인증');
+  assert.equal(state.generalSession, null);
+  assert.deepEqual(calls, [['password'], ['passkey', 'user@example.com']]);
+  assert.equal(v.host.querySelector('#login-password'), null);
+  await click(v, '이메일 인증번호 받기');
+  assert.ok(v.host.querySelector('#login-otp'));
+  assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
+  await v.close();
+});
+
+test('new environment verification reuses an already requested email code during cooldown', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: true };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await click(v, '이메일로 대신 로그인');
+  await click(v, '비밀번호로 로그인');
+  await input(v, '#login-password', 'Password1!');
+  handler = async () => {
+    throw new ApiError('additional_verification_required');
+  };
+  await submit(v);
+  assert.equal(button(v, '이메일 인증번호 입력').disabled, false);
+  await click(v, '이메일 인증번호 입력');
+  assert.ok(v.host.querySelector('#login-otp'));
+  assert.equal(calls.filter(([name]) => name === 'request-otp').length, 1);
   await v.close();
 });
 
@@ -565,6 +726,7 @@ for (const method of ['otp', 'password', 'passkey']) {
     await submit(v);
     if (method === 'password') await input(v, '#login-password', 'Password1!');
     if (method === 'otp') await input(v, '#login-otp', '123456');
+    if (method === 'passkey') await click(v, '패스키로 로그인');
     await submit(v);
     assert.equal(state.generalSession, session);
     assert.ok(navigation.includes(target));

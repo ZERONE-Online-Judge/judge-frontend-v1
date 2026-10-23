@@ -205,7 +205,7 @@ export default function LoginPage() {
   const [otpExpiresAt, setOtpExpiresAt] = useState(0);
   const [message, setMessage] = useState(() =>
     searchParams.get('password') === 'changed'
-      ? '비밀번호가 변경되어 기존 로그인 연결이 모두 해제되었습니다. 이메일 인증이나 패스키로 다시 로그인하세요.'
+      ? '비밀번호가 변경되어 기존 로그인 연결이 모두 해제되었습니다. 새 비밀번호로 다시 로그인해 주세요.'
       : searchParams.get('reason') === 'presentation'
         ? '프레젠테이션 전용 계정으로 로그인해 주세요. 연결이 종료되었다면 계정의 유효기간과 사용 상태를 확인해 주세요.'
         : searchParams.get('reason') === 'session'
@@ -236,6 +236,8 @@ export default function LoginPage() {
   const shouldShowContestLoginModal = searchParams.get('reason') === 'contest';
   const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   const otpExpiresSeconds = Math.max(0, Math.ceil((otpExpiresAt - now) / 1000));
+  const canReuseOtp =
+    otpRequested && requestedOtpEmail === email.trim() && otpExpiresSeconds > 0;
   const canRequestOtp =
     Boolean(email.trim()) && cooldownSeconds <= 0 && !isSubmitting;
   useEffect(() => {
@@ -365,12 +367,7 @@ export default function LoginPage() {
     try {
       const options = await getLoginOptions(email.trim());
       setLoginOptions(options);
-      if (options.passkey_available && supportsPasskeys()) {
-        setLoginMethod('passkey');
-        setMessageStatus('idle');
-      } else if (searchParams.get('password') === 'changed') {
-        await requestOtp();
-      } else if (options.password_available) {
+      if (options.password_available) {
         setLoginMethod('password');
         setMessageStatus('idle');
       } else {
@@ -431,11 +428,7 @@ export default function LoginPage() {
 
   async function selectEmailLogin() {
     setPassword('');
-    if (
-      otpRequested &&
-      requestedOtpEmail === email.trim() &&
-      otpExpiresSeconds > 0
-    ) {
+    if (canReuseOtp) {
       setLoginMethod('otp');
       setMessage(loginPageText.otpSent);
       setMessageStatus('ready');
@@ -599,12 +592,8 @@ export default function LoginPage() {
         setPassword('');
         setAdditionalVerification(true);
         setLoginMethod('verify');
-        if (await requestOtp()) {
-          setMessage(
-            '새로운 브라우저 또는 IP입니다. 이메일로 받은 인증번호를 입력해 주세요.',
-          );
-          setMessageStatus('ready');
-        }
+        setMessage('새로운 브라우저 또는 IP입니다. 인증 방법을 선택해 주세요.');
+        setMessageStatus('ready');
         return;
       }
       if (!forceNewSession && isSessionConflictError(error)) {
@@ -652,18 +641,18 @@ export default function LoginPage() {
           onClose={() => setPasswordResetOpen(false)}
           onDone={(address) => {
             setPasswordResetOpen(false);
+            resetOtpAfterEmailChange();
             setEmail(address);
-            setLoginMethod('verify');
-            setAdditionalVerification(true);
-            if (address.trim().toLowerCase() !== email.trim().toLowerCase()) {
-              setLoginOptions({
-                password_available: true,
-                passkey_available: false,
-              });
-            }
+            setLoginMethod('password');
+            setLoginOptions({
+              password_available: true,
+              passkey_available:
+                address.trim().toLowerCase() === email.trim().toLowerCase() &&
+                loginOptions.passkey_available,
+            });
             setPassword('');
             setMessage(
-              '비밀번호가 변경되었습니다. 이메일 인증이나 패스키로 다시 로그인하세요.',
+              '비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.',
             );
             setMessageStatus('ready');
           }}
@@ -741,13 +730,17 @@ export default function LoginPage() {
                 : loginMethod === 'password' && !presentationLogin
                   ? submitPasswordLogin()
                   : loginMethod === 'verify' && !presentationLogin
-                    ? requestOtp()
+                    ? selectEmailLogin()
                     : submitLogin({ email, otpCode }));
           }}
         >
           <div className="login-card-heading">
             <h1 id="login-card-title">
-              {presentationLogin ? '프레젠테이션 로그인' : loginPageText.title}
+              {presentationLogin
+                ? '프레젠테이션 로그인'
+                : additionalVerification
+                  ? '본인 확인'
+                  : loginPageText.title}
             </h1>
             <p>
               {presentationLogin
@@ -755,7 +748,9 @@ export default function LoginPage() {
                 : loginMethod === 'passkey'
                   ? '이 계정에 등록한 패스키로 인증해 주세요.'
                   : additionalVerification
-                    ? '이메일 인증이나 패스키로 본인 확인을 완료해 주세요.'
+                    ? loginOptions.passkey_available && supportsPasskeys()
+                      ? '이메일 인증 또는 패스키로 본인 확인을 완료해 주세요.'
+                      : '이메일 인증으로 본인 확인을 완료해 주세요.'
                     : loginMethod === 'verify'
                       ? '새로운 환경에서는 본인 확인이 한 번 더 필요합니다.'
                       : loginMethod === 'password'
@@ -830,9 +825,9 @@ export default function LoginPage() {
             <button
               className="login-action"
               type="submit"
-              disabled={isSubmitting || cooldownSeconds > 0}
+              disabled={isSubmitting || (!canReuseOtp && cooldownSeconds > 0)}
             >
-              이메일 인증번호 받기
+              {canReuseOtp ? '이메일 인증번호 입력' : '이메일 인증번호 받기'}
             </button>
           ) : loginMethod === 'password' && !presentationLogin ? (
             <>
@@ -938,12 +933,18 @@ export default function LoginPage() {
                     disabled={isSubmitting}
                     onClick={() => {
                       setPassword('');
+                      if (additionalVerification) {
+                        void submitPasskeyLogin();
+                        return;
+                      }
                       setLoginMethod('passkey');
                       setMessage('');
                       setMessageStatus('idle');
                     }}
                   >
-                    패스키로 로그인
+                    {additionalVerification
+                      ? '패스키로 인증'
+                      : '패스키로 로그인'}
                   </button>
                 )}
               {loginOptions.password_available &&

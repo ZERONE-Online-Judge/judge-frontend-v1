@@ -11,7 +11,13 @@ export function safeLoginRedirectTarget(value: string | null) {
   try {
     const target = new URL(value, 'https://zoj.invalid');
     if (target.origin !== 'https://zoj.invalid') return null;
-    if (decodeURIComponent(target.pathname).startsWith('/login')) return null;
+    const pathname = decodeURIComponent(target.pathname);
+    if (
+      pathname.startsWith('//') ||
+      pathname.includes('\\') ||
+      pathname.toLowerCase().startsWith('/login')
+    )
+      return null;
     return `${target.pathname}${target.search}${target.hash}`;
   } catch {
     return null;

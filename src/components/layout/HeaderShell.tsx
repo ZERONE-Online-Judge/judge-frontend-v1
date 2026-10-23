@@ -99,6 +99,7 @@ export default function HeaderShell({
       </div>
       {menuOpen && (
         <ModalDialog
+          className="site-menu-drawer"
           title="메뉴"
           onClose={() => setOpenedAt(null)}
           closeLabel="메뉴 닫기"

@@ -106,6 +106,7 @@ export function canAttemptAutoRefresh(path: string) {
   if (path === '/auth/staff/refresh' || path === '/auth/general/refresh')
     return false;
   if (path === '/auth/general/sso') return false;
+  if (path.startsWith('/auth/general/passkeys/login/')) return false;
   if (path === '/auth/staff/login' || path === '/auth/general/otp/verify')
     return false;
   if (

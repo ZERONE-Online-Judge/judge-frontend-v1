@@ -37,6 +37,13 @@ import {
   getLoginOptions,
 } from '@/domains/identityAccess/accountPasswords';
 import AccountPasswordDialog from '@/components/auth/AccountPasswordDialog';
+import PasskeyDialog from '@/components/auth/PasskeyDialog';
+import {
+  getPasskeys,
+  loginPasskey,
+  supportsPasskeys,
+  passkeyError,
+} from '@/domains/identityAccess/passkeys';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 
 const OTP_VALID_SECONDS = 5 * 60;
@@ -52,7 +59,7 @@ type PendingSessionReplacement = {
   email: string;
   lastSeenAt?: string | null;
   otpCode: string;
-  method?: 'password';
+  method?: 'password' | 'passkey';
 } | null;
 
 function formatSeconds(value: number) {
@@ -165,9 +172,11 @@ function postLoginRedirectPath(
 }
 
 export default function LoginPage() {
-  const [loginMethod, setLoginMethod] = useState<'email' | 'otp' | 'password'>(
-    'email',
-  );
+  const [loginMethod, setLoginMethod] = useState<
+    'email' | 'otp' | 'password' | 'verify'
+  >('email');
+  const [enrollmentSession, setEnrollmentSession] =
+    useState<GeneralSession | null>(null);
   const [password, setPassword] = useState('');
   const [passwordResetOpen, setPasswordResetOpen] = useState(false);
   const navigate = useNavigate();
@@ -235,18 +244,74 @@ export default function LoginPage() {
   }, [otpRequested]);
 
   useEffect(() => {
-    if (!generalSession || isSubmitting || pendingSessionReplacement) return;
+    if (
+      !generalSession ||
+      isSubmitting ||
+      pendingSessionReplacement ||
+      enrollmentSession
+    )
+      return;
 
     navigate(postLoginRedirectPath(generalSession, searchParams), {
       replace: true,
     });
   }, [
     generalSession,
+    enrollmentSession,
     isSubmitting,
     navigate,
     pendingSessionReplacement,
     searchParams,
   ]);
+
+  async function completeLogin(session: GeneralSession, offerPasskey = false) {
+    let offer = false;
+    if (offerPasskey && supportsPasskeys()) {
+      try {
+        offer = (await getPasskeys(session.accessToken)).passkeys.length === 0;
+      } catch {
+        /* Login remains available if enrollment status is unavailable. */
+      }
+    }
+    setPendingSessionReplacement(null);
+    setPassword('');
+    if (offer) setEnrollmentSession(session);
+    setGeneralSession(session);
+    setParticipantSession(null);
+    if (!offer)
+      navigate(postLoginRedirectPath(session, searchParams), { replace: true });
+  }
+
+  async function submitPasskeyLogin(forceNewSession = false) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setMessage('기기의 패스키 인증을 진행해 주세요.');
+    setMessageStatus('loading');
+    try {
+      const session = await loginPasskey(forceNewSession);
+      await completeLogin(session);
+    } catch (error) {
+      if (!forceNewSession && isSessionConflictError(error)) {
+        const details = sessionConflictDetails(error);
+        setPendingSessionReplacement({
+          ...details,
+          email: '',
+          otpCode: '',
+          method: 'passkey',
+        });
+      }
+      setMessage(
+        passkeyError(error) ??
+          formatUserApiError(
+            error,
+            '패스키 로그인에 실패했습니다. 이메일 인증으로도 로그인할 수 있습니다',
+          ),
+      );
+      setMessageStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   function validateEmail() {
     const parsed = loginSchema.safeParse({ email, otpCode });
@@ -388,16 +453,13 @@ export default function LoginPage() {
         forceNewSession,
       );
 
-      setPendingSessionReplacement(null);
-      setGeneralSession(session);
-      setParticipantSession(null);
+      await completeLogin(session, true);
       setMessage(loginPageText.loginReady);
       setMessageStatus('ready');
       setOtpRequested(false);
       setRequestedOtpEmail('');
       setOtpExpiresAt(0);
       setOtpCode('');
-      navigate(postLoginRedirectPath(session, searchParams), { replace: true });
     } catch (error) {
       if (!forceNewSession && isSessionConflictError(error)) {
         const details = sessionConflictDetails(error);
@@ -431,6 +493,10 @@ export default function LoginPage() {
 
   function confirmSessionReplacement() {
     if (!pendingSessionReplacement) return;
+    if (pendingSessionReplacement.method === 'passkey') {
+      void submitPasskeyLogin(true);
+      return;
+    }
     if (pendingSessionReplacement.method === 'password') {
       void submitPasswordLogin(true);
       return;
@@ -461,12 +527,20 @@ export default function LoginPage() {
         password,
         forceNewSession,
       );
-      setPendingSessionReplacement(null);
-      setPassword('');
-      setGeneralSession(session);
-      setParticipantSession(null);
-      navigate(postLoginRedirectPath(session, searchParams), { replace: true });
+      await completeLogin(session);
     } catch (error) {
+      if (
+        isApiClientError(error) &&
+        error.code === 'additional_verification_required'
+      ) {
+        setPassword('');
+        setLoginMethod('verify');
+        setMessage(
+          '새로운 브라우저 또는 IP에서 접속했습니다. 이메일 인증이나 패스키로 본인 확인 후 로그인해 주세요.',
+        );
+        setMessageStatus('ready');
+        return;
+      }
       if (!forceNewSession && isSessionConflictError(error)) {
         const details = sessionConflictDetails(error);
         setPendingSessionReplacement({
@@ -490,6 +564,20 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {enrollmentSession && (
+        <PasskeyDialog
+          token={enrollmentSession.accessToken}
+          email={enrollmentSession.account.email}
+          enrollment
+          onClose={() => {
+            const session = enrollmentSession;
+            setEnrollmentSession(null);
+            navigate(postLoginRedirectPath(session, searchParams), {
+              replace: true,
+            });
+          }}
+        />
+      )}
       {passwordResetOpen && (
         <AccountPasswordDialog
           mode="reset"
@@ -576,7 +664,9 @@ export default function LoginPage() {
               ? chooseLoginMethod()
               : loginMethod === 'password' && !presentationLogin
                 ? submitPasswordLogin()
-                : submitLogin({ email, otpCode }));
+                : loginMethod === 'verify' && !presentationLogin
+                  ? requestOtp()
+                  : submitLogin({ email, otpCode }));
           }}
         >
           <div className="login-card-heading">
@@ -586,11 +676,13 @@ export default function LoginPage() {
             <p>
               {presentationLogin
                 ? '인증번호 없이 해당 대회의 발표 화면을 엽니다.'
-                : loginMethod === 'password'
-                  ? '등록한 이메일과 비밀번호로 로그인하세요.'
-                  : otpRequested
-                    ? '이메일로 받은 인증번호를 입력해 주세요.'
-                    : '로그인할 이메일을 입력해 주세요.'}
+                : loginMethod === 'verify'
+                  ? '새로운 환경에서는 본인 확인이 한 번 더 필요합니다.'
+                  : loginMethod === 'password'
+                    ? '등록한 이메일과 비밀번호로 로그인하세요.'
+                    : otpRequested
+                      ? '이메일로 받은 인증번호를 입력해 주세요.'
+                      : '로그인할 이메일을 입력해 주세요.'}
             </p>
           </div>
 
@@ -646,7 +738,15 @@ export default function LoginPage() {
             </button>
           )}
 
-          {loginMethod === 'password' && !presentationLogin ? (
+          {loginMethod === 'verify' && !presentationLogin ? (
+            <button
+              className="login-action"
+              type="submit"
+              disabled={isSubmitting || cooldownSeconds > 0}
+            >
+              이메일 인증번호 받기
+            </button>
+          ) : loginMethod === 'password' && !presentationLogin ? (
             <>
               <div className="login-field">
                 <PasswordInput
@@ -751,6 +851,28 @@ export default function LoginPage() {
             </button>
           )}
 
+          {!presentationLogin && supportsPasskeys() && (
+            <button
+              className="login-passkey-action"
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => void submitPasskeyLogin()}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              >
+                <circle cx="8" cy="9" r="4" />
+                <path d="m11 12 8 8m-3-3 3-3m-6 0 3-3" />
+              </svg>
+              패스키로 로그인
+            </button>
+          )}
           <PageNotice message={message} status={messageStatus} />
           {!presentationLogin && (
             <p className="login-form-note">

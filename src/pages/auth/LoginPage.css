@@ -318,3 +318,32 @@
     padding-inline: 16px;
   }
 }
+
+.login-passkey-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid #dce1ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #343a52;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.login-passkey-action:hover {
+  background: #f7f7fc;
+  border-color: #bcb3f5;
+}
+.login-passkey-action:focus-visible {
+  outline: 2px solid #6553eb;
+  outline-offset: 3px;
+}
+.login-passkey-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}

@@ -13,6 +13,7 @@ import { isServiceMaster } from '@/domains/identityAccess/permissions';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
 import { useRefreshGeneralSession } from '@/domains/identityAccess/useRefreshGeneralSession';
 import { formatContestMoment } from '@/shared/lib/dateTime';
+import PasskeyDialog from '@/components/auth/PasskeyDialog';
 import AccountPasswordDialog from '@/components/auth/AccountPasswordDialog';
 import { useSharedLogin } from '@/domains/identityAccess/useSharedLogin';
 
@@ -64,6 +65,7 @@ export default function HeaderAuthControls({
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isAccountPanelOpen, setIsAccountPanelOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [isPasskeyOpen, setIsPasskeyOpen] = useState(false);
   const accountEmail = generalSession?.account.email;
   const participantContestSections = accountContestSections.map((section) => ({
     ...section,
@@ -196,6 +198,25 @@ export default function HeaderAuthControls({
               <InterfaceIcon name="arrowRight" />
             </span>
           </button>
+          <button
+            type="button"
+            className="header-security-card"
+            onClick={() => {
+              setIsAccountPanelOpen(false);
+              setIsPasskeyOpen(true);
+            }}
+          >
+            <span className="header-security-icon" aria-hidden="true">
+              <HeaderIcon name="user" />
+            </span>
+            <span>
+              <strong>패스키 관리</strong>
+              <small>기기 인증으로 로그인 · 패스키 추가·삭제</small>
+            </span>
+            <span className="header-security-arrow" aria-hidden="true">
+              <InterfaceIcon name="arrowRight" />
+            </span>
+          </button>
           <section className="header-panel-section">
             <div className="header-section-heading">
               <h3>내가 참가한 대회</h3>
@@ -240,6 +261,13 @@ export default function HeaderAuthControls({
           </section>
         </HeaderPanel>
       ) : null}
+      {isPasskeyOpen && (
+        <PasskeyDialog
+          token={generalSession.accessToken}
+          email={accountEmail || ''}
+          onClose={() => setIsPasskeyOpen(false)}
+        />
+      )}
       {isPasswordOpen && (
         <AccountPasswordDialog
           mode="set"

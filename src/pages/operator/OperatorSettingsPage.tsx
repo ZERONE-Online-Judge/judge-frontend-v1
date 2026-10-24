@@ -138,7 +138,7 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
     freeze_submission_count_visible: Boolean(
       contest.freeze_submission_count_visible,
     ),
-    participant_progress_visible: contest.participant_progress_visible ?? true,
+    participant_progress_visible: contest.participant_progress_visible ?? false,
     mock_judging_progress_visible: Boolean(
       contest.mock_judging_progress_visible,
     ),

@@ -11,6 +11,7 @@
 }
 .contest-clock-summary {
   min-width: 0;
+  text-align: center;
 }
 .contest-clock-rolling > p,
 .contest-clock-focus > p,
@@ -22,6 +23,7 @@
 .contest-clock-timer {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: 6px;
   color: var(--clock-accent);
   font-variant-numeric: tabular-nums;
@@ -74,6 +76,7 @@
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   margin-top: 22px !important;
   font-size: 12px !important;
   color: var(--zoj-muted);

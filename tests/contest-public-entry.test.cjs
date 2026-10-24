@@ -712,3 +712,104 @@ test('invalid and missing short links show a useful error without navigating awa
   assert.ok(host.textContent.includes('공유 링크를 찾을 수 없습니다'));
   assert.equal(calls.length, 0);
 });
+
+test('public schedule ticks down and crosses start and end boundaries without protected requests', async () => {
+  const originalNow = Date.now;
+  const originalInterval = window.setInterval;
+  const ticks = [];
+  let now = Date.parse('2026-11-10T03:55:54Z');
+  Date.now = () => now;
+  window.setInterval = (callback, delay, ...args) => {
+    if (delay === 1000) {
+      ticks.push(callback);
+      return -ticks.length;
+    }
+    return originalInterval.call(window, callback, delay, ...args);
+  };
+  try {
+    contest.status = 'open';
+    contest.start_at = '2026-11-11T04:00:00Z';
+    contest.end_at = '2026-11-11T08:00:00Z';
+    await render();
+    let timer = host.querySelector('[role="timer"]');
+    assert.equal(timer.getAttribute('aria-label'), '대회 시작까지');
+    assert.equal(timer.getAttribute('aria-live'), 'off');
+    assert.deepEqual(
+      [...timer.querySelectorAll('strong')].map((el) => el.textContent),
+      ['1', '00', '04', '06'],
+    );
+    assert.ok(ticks.length);
+    now += 1000;
+    await act(() => ticks.forEach((tick) => tick()));
+    assert.deepEqual(
+      [...host.querySelectorAll('[role="timer"] strong')].map(
+        (el) => el.textContent,
+      ),
+      ['1', '00', '04', '05'],
+    );
+    now = Date.parse(contest.start_at);
+    await act(() => ticks.forEach((tick) => tick()));
+    timer = host.querySelector('[role="timer"]');
+    assert.equal(timer.getAttribute('aria-label'), '대회 종료까지');
+    assert.deepEqual(
+      [...timer.querySelectorAll('strong')].map((el) => el.textContent),
+      ['04', '00', '00'],
+    );
+    assert.match(
+      host.querySelector('.contest-public-status').textContent,
+      /진행 중/,
+    );
+    now = Date.parse(contest.end_at);
+    await act(() => ticks.forEach((tick) => tick()));
+    assert.equal(host.querySelector('[role="timer"]'), null);
+    assert.match(
+      host.querySelector('.contest-public-status').textContent,
+      /종료된 대회/,
+    );
+    assert.match(
+      host.querySelector('.contest-public-schedule-message').textContent,
+      /대회 종료/,
+    );
+    assertNoProtectedPrefetch();
+  } finally {
+    Date.now = originalNow;
+    window.setInterval = originalInterval;
+  }
+});
+
+test('public schedule preserves KST midnight and the next-day end date', async () => {
+  contest.start_at = '2024-01-01T15:00:00Z';
+  contest.end_at = '2024-01-02T18:30:00Z';
+  await render();
+  const moments = [
+    ...host.querySelectorAll('.contest-public-schedule-timeline time'),
+  ];
+  assert.equal(moments[0].dateTime, contest.start_at);
+  assert.match(moments[0].textContent, /2024년 1월 2일.*00:00/);
+  assert.match(moments[1].textContent, /2024년 1월 3일.*03:30/);
+});
+
+test('unconfirmed or invalid schedules never show a misleading countdown', async () => {
+  contest.status = 'draft';
+  contest.start_at = '2099-01-01T01:00:00Z';
+  contest.end_at = '2099-01-01T05:00:00Z';
+  await render();
+  assert.equal(host.querySelector('[role="timer"]'), null);
+  assert.match(
+    host.querySelector('.contest-public-schedule').textContent,
+    /일정 미정/,
+  );
+  assert.match(
+    host.querySelector('.contest-public-intro').textContent,
+    /대회 일정을 준비/,
+  );
+  contest.status = 'open';
+  contest.start_at = 'invalid';
+  contest.end_at = 'invalid';
+  await render();
+  assert.equal(host.querySelector('[role="timer"]'), null);
+  assert.doesNotMatch(
+    host.querySelector('.contest-public-schedule').textContent,
+    /NaN|Invalid Date/,
+  );
+});

@@ -1,4 +1,7 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
+import ContestPublicSchedule from '@/components/contest/ContestPublicSchedule';
+import { useClockTick } from '@/shared/hooks/useAutoRefresh';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import ContestPageFrame from '@/components/contest/ContestPageFrame';
 import ContestPageNavigation from '@/components/contest/ContestPageNavigation';
@@ -10,6 +13,8 @@ import type { PublicContestDetail } from '@/domains/contestAdministration/types'
 import { contestLoginPath } from '@/shared/lib/loginRedirect';
 import MarkdownPreview from '@/shared/ui/MarkdownPreview';
 import './ContestPublicOverview.css';
+
+const OverviewMarkdown = memo(MarkdownPreview);
 
 type PublicOverviewDetail = PublicContestDetail & {
   participant_count?: number;
@@ -53,21 +58,6 @@ function OverviewIcon({ name }: { name: OverviewIconName }) {
   );
 }
 
-function scheduleLabel(value: string, scheduleTbd: boolean) {
-  const date = new Date(value);
-  if (scheduleTbd || !value || Number.isNaN(date.getTime())) return '일정 미정';
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Seoul',
-  }).format(date);
-}
-
 function durationLabel(start: string, end: string, scheduleTbd: boolean) {
   const duration = new Date(end).getTime() - new Date(start).getTime();
   if (scheduleTbd || !Number.isFinite(duration) || duration <= 0) return '미정';
@@ -101,6 +91,7 @@ export default function ContestPublicOverview({
     participant_count: participantCount,
     team_count: teamCount,
   } = detail;
+  const now = useClockTick();
   const phase = contestAccessPhase(contest);
   const ended = phase === 'ended';
   const scheduleTbd = phase === 'schedule_tbd';
@@ -202,7 +193,9 @@ export default function ContestPublicOverview({
                 ? '종료된 대회입니다.'
                 : phase === 'running'
                   ? '대회가 진행 중입니다.'
-                  : '시작 예정인 대회입니다.'}
+                  : scheduleTbd
+                    ? '대회 일정을 준비하고 있습니다.'
+                    : '시작 예정인 대회입니다.'}
             </p>
           </div>
           <div className="contest-public-hero-bottom">
@@ -222,26 +215,7 @@ export default function ContestPublicOverview({
           className="contest-public-facts"
           aria-label="대회 일정과 참가 규모"
         >
-          <div className="contest-public-schedule">
-            <span className="contest-public-fact-icon">
-              <OverviewIcon name="clock" />
-            </span>
-            <div>
-              <h2>
-                대회 일정 <span>한국 시간 (KST)</span>
-              </h2>
-              <dl>
-                <div>
-                  <dt>시작</dt>
-                  <dd>{scheduleLabel(contest.start_at, scheduleTbd)}</dd>
-                </div>
-                <div>
-                  <dt>종료</dt>
-                  <dd>{scheduleLabel(contest.end_at, scheduleTbd)}</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
+          <ContestPublicSchedule contest={contest} phase={phase} now={now} />
           <div className="contest-public-stat">
             <span className="contest-public-fact-label">진행 시간</span>
             <strong>
@@ -284,7 +258,7 @@ export default function ContestPublicOverview({
               대회 소개<span aria-hidden="true">.</span>
             </h2>
             {contest.overview?.trim() ? (
-              <MarkdownPreview statement={contest.overview} />
+              <OverviewMarkdown statement={contest.overview} />
             ) : (
               <p className="contest-public-empty-description">
                 주최측에서 대회 소개를 준비하고 있습니다.

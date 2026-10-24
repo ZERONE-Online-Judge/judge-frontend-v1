@@ -94,6 +94,10 @@ export default function ContestPublicOverview({
   const now = useClockTick(250);
   const phase = contestAccessPhase(contest);
   const ended = phase === 'ended';
+  const hideCounts = Boolean(
+    contest.hide_participation_counts_before_start &&
+    (phase === 'before' || phase === 'schedule_tbd'),
+  );
   const scheduleTbd = phase === 'schedule_tbd';
   const contestPath = `/contests/${encodeURIComponent(contest.contest_id)}`;
   const publicNotices =
@@ -216,6 +220,7 @@ export default function ContestPublicOverview({
 
         <section
           className="contest-public-facts"
+          data-counts-hidden={hideCounts}
           aria-label="대회 일정과 참가 규모"
         >
           <ContestPublicSchedule contest={contest} phase={phase} now={now} />
@@ -228,27 +233,29 @@ export default function ContestPublicOverview({
               대회 시작부터 종료까지
             </span>
           </div>
-          <div className="contest-public-stat">
-            <span className="contest-public-fact-label">
-              <OverviewIcon name="people" />
-              {ended ? '참가자' : '등록된 참가자'}
-            </span>
-            <strong>
-              {isKnownCount(participantCount) ? (
-                <>
-                  {participantCount.toLocaleString('ko-KR')}
-                  <small>명</small>
-                </>
-              ) : (
-                '집계 정보 없음'
-              )}
-            </strong>
-            <span className="contest-public-stat-caption">
-              {isKnownCount(teamCount)
-                ? `${teamCount.toLocaleString('ko-KR')}개 참가팀`
-                : '참가자 등록 기준'}
-            </span>
-          </div>
+          {!hideCounts ? (
+            <div className="contest-public-stat">
+              <span className="contest-public-fact-label">
+                <OverviewIcon name="people" />
+                {ended ? '참가자' : '등록된 참가자'}
+              </span>
+              <strong>
+                {isKnownCount(participantCount) ? (
+                  <>
+                    {participantCount.toLocaleString('ko-KR')}
+                    <small>명</small>
+                  </>
+                ) : (
+                  '집계 정보 없음'
+                )}
+              </strong>
+              <span className="contest-public-stat-caption">
+                {isKnownCount(teamCount)
+                  ? `${teamCount.toLocaleString('ko-KR')}개 참가팀`
+                  : '참가자 등록 기준'}
+              </span>
+            </div>
+          ) : null}
         </section>
 
         <div className="contest-public-details">

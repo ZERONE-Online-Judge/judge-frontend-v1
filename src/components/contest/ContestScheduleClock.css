@@ -210,9 +210,10 @@
 }
 .contest-clock-moment time {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 5px 12px;
 }
 .contest-clock-moment time > span {
   font-size: 12px;
@@ -238,6 +239,12 @@
 }
 .contest-clock-moment[data-compact='true'] dd {
   flex: 1;
+}
+.contest-clock-moment[data-compact='true'] time {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
 }
 .contest-clock-moment[data-compact='true'] time > strong {
   font-size: 14px;

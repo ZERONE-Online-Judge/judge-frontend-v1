@@ -56,6 +56,7 @@ type SettingsForm = BoardWritingPolicy & {
   overview: string;
   problem_access_after_end: ContestResourceAccess;
   scoreboard_public_during_contest: boolean;
+  hide_participation_counts_before_start: boolean;
   scoreboard_access_after_end: ContestResourceAccess;
   scoreboard_release_mode: ScoreboardReleaseMode;
   start_at: string;
@@ -120,6 +121,9 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
     organization_name: contest.organization_name,
     overview: contest.overview,
     problem_access_after_end: contestResourceAccess(contest, 'problem'),
+    hide_participation_counts_before_start: Boolean(
+      contest.hide_participation_counts_before_start,
+    ),
     scoreboard_public_during_contest: Boolean(
       contest.scoreboard_public_during_contest,
     ),
@@ -240,6 +244,8 @@ function OperatorSettingsContent({
       visibility_after_end: form.visibility_after_end,
       problem_access_after_end: form.problem_access_after_end,
       scoreboard_public_during_contest: form.scoreboard_public_during_contest,
+      hide_participation_counts_before_start:
+        form.hide_participation_counts_before_start,
       scoreboard_access_after_end: form.scoreboard_access_after_end,
       scoreboard_release_mode: form.scoreboard_release_mode,
       submission_access_after_end: form.submission_access_after_end,
@@ -540,6 +546,33 @@ function OperatorSettingsContent({
                       onChange={(field, value) =>
                         setSettingsForm((prev) =>
                           prev ? { ...prev, [field]: value } : prev,
+                        )
+                      }
+                    />
+                  </SettingsSection>
+                  <SettingsSection
+                    title="시작 전 참가 규모"
+                    summary={
+                      settingsForm.hide_participation_counts_before_start
+                        ? '시작 전 숨김'
+                        : '공개'
+                    }
+                  >
+                    <ChoiceCard
+                      type="checkbox"
+                      checked={
+                        settingsForm.hide_participation_counts_before_start
+                      }
+                      title="대회 시작 전 참가팀 수·참가인원 숨기기"
+                      description="대회 시작 전에는 비로그인·참가자 화면과 공개 API에서 참가팀 수와 참가인원을 숨깁니다. 시작 시각부터 자동으로 공개되며 운영자의 내부 집계는 계속 표시됩니다."
+                      onChange={(checked) =>
+                        setSettingsForm((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                hide_participation_counts_before_start: checked,
+                              }
+                            : prev,
                         )
                       }
                     />

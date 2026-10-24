@@ -492,8 +492,8 @@ test('participant overview uses the shared progress panel and keeps account, tea
   login(true);
   await render();
   await flush();
-  assert.equal(host.querySelector('progress')?.value, 100);
-  assert.match(host.textContent, /대회 진행률/);
+  assert.match(host.textContent, /대회가 종료되었습니다/);
+  assert.ok(host.querySelector('.contest-participant-summary'));
   assert.match(host.textContent, /참가자 이름/);
   assert.match(host.textContent, /참가팀 이름/);
   assert.match(host.textContent, /공지사항/);
@@ -720,7 +720,7 @@ test('public schedule ticks down and crosses start and end boundaries without pr
   let now = Date.parse('2026-11-10T03:55:54Z');
   Date.now = () => now;
   window.setInterval = (callback, delay, ...args) => {
-    if (delay === 1000) {
+    if (delay === 250) {
       ticks.push(callback);
       return -ticks.length;
     }
@@ -735,25 +735,32 @@ test('public schedule ticks down and crosses start and end boundaries without pr
     assert.equal(timer.getAttribute('aria-label'), '대회 시작까지');
     assert.equal(timer.getAttribute('aria-live'), 'off');
     assert.deepEqual(
-      [...timer.querySelectorAll('strong')].map((el) => el.textContent),
+      [...timer.querySelectorAll('.contest-clock-digit-new')].map(
+        (el) => el.textContent,
+      ),
       ['1', '00', '04', '06'],
     );
     assert.ok(ticks.length);
     now += 1000;
     await act(() => ticks.forEach((tick) => tick()));
     assert.deepEqual(
-      [...host.querySelectorAll('[role="timer"] strong')].map(
+      [...host.querySelectorAll('[role="timer"] .contest-clock-digit-new')].map(
         (el) => el.textContent,
       ),
       ['1', '00', '04', '05'],
     );
     now = Date.parse(contest.start_at);
     await act(() => ticks.forEach((tick) => tick()));
+    assert.match(host.textContent, /대회가 시작되었습니다/);
+    now += 2000;
+    await act(() => ticks.forEach((tick) => tick()));
     timer = host.querySelector('[role="timer"]');
     assert.equal(timer.getAttribute('aria-label'), '대회 종료까지');
     assert.deepEqual(
-      [...timer.querySelectorAll('strong')].map((el) => el.textContent),
-      ['04', '00', '00'],
+      [...timer.querySelectorAll('.contest-clock-digit-new')].map(
+        (el) => el.textContent,
+      ),
+      ['03', '59', '58'],
     );
     assert.match(
       host.querySelector('.contest-public-status').textContent,
@@ -767,8 +774,8 @@ test('public schedule ticks down and crosses start and end boundaries without pr
       /종료된 대회/,
     );
     assert.match(
-      host.querySelector('.contest-public-schedule-message').textContent,
-      /대회 종료/,
+      host.querySelector('.contest-clock-message').textContent,
+      /대회가 종료되었습니다/,
     );
     assertNoProtectedPrefetch();
   } finally {
@@ -782,7 +789,9 @@ test('public schedule preserves KST midnight and the next-day end date', async (
   contest.end_at = '2024-01-02T18:30:00Z';
   await render();
   const moments = [
-    ...host.querySelectorAll('.contest-public-schedule-timeline time'),
+    ...host.querySelectorAll(
+      '.contest-clock-moment[data-kind="start"] time, .contest-clock-moment[data-kind="end"] time',
+    ),
   ];
   assert.equal(moments[0].dateTime, contest.start_at);
   assert.match(moments[0].textContent, /2024년 1월 2일.*00:00/);

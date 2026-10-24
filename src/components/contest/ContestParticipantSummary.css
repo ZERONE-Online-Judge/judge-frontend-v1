@@ -1,0 +1,93 @@
+.contest-participant-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.contest-participant-rank > p,
+.contest-participant-problems h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--zoj-ink);
+}
+.contest-participant-rank > strong {
+  display: block;
+  margin: 12px 0;
+  font-size: 36px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--zoj-accent);
+  font-variant-numeric: tabular-nums;
+}
+.contest-participant-rank small {
+  margin-left: 5px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.contest-participant-rank > span,
+.contest-participant-problems > p {
+  font-size: 12px;
+  color: var(--zoj-muted);
+  line-height: 1.7;
+}
+.contest-participant-problems h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.contest-participant-problems h2 > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--zoj-muted);
+}
+.contest-participant-problems ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.contest-participant-problems a {
+  display: flex;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 11px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--zoj-surface-raised);
+  border: 1px solid var(--zoj-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--zoj-muted);
+}
+.contest-participant-problems[data-solved='true'] a {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.contest-participant-problems a:hover {
+  border-color: var(--zoj-accent);
+}
+.contest-participant-problems > p {
+  margin-top: 16px;
+}
+@media (max-width: 800px) {
+  .contest-participant-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .contest-participant-rank {
+    grid-column: 1/-1;
+  }
+  .contest-participant-rank > strong {
+    margin: 9px 0;
+  }
+}
+@media (max-width: 450px) {
+  .contest-participant-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contest-participant-rank {
+    grid-column: auto;
+  }
+}

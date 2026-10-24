@@ -5,7 +5,9 @@ export function useCooldown(cooldownUntil: number) {
 
   useEffect(() => {
     const update = () => {
-      setRemainingSeconds(Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000)));
+      setRemainingSeconds(
+        Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000)),
+      );
     };
     const firstTick = window.setTimeout(update, 0);
     const timer = window.setInterval(update, 1000);
@@ -19,19 +21,19 @@ export function useCooldown(cooldownUntil: number) {
   return remainingSeconds;
 }
 
-export function useClockTick() {
+export function useClockTick(intervalMs = 1000) {
   const [now, setNow] = useState(0);
 
   useEffect(() => {
     const update = () => setNow(Date.now());
     const firstTick = window.setTimeout(update, 0);
-    const timer = window.setInterval(update, 1000);
+    const timer = window.setInterval(update, intervalMs);
 
     return () => {
       window.clearTimeout(firstTick);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [intervalMs]);
 
   return now;
 }

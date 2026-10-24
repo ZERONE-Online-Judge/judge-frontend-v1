@@ -16,7 +16,15 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 const React = require('react');
 const { act, createElement: h } = React;
 const { createRoot } = require('react-dom/client');
-let state, calls, navigation, supported, options, items, recent, handler;
+let state,
+  calls,
+  navigation,
+  supported,
+  options,
+  items,
+  recent,
+  handler,
+  otpRequests;
 const params = new URLSearchParams('next=/contests');
 const navigate = (...args) => navigation.push(args[0]);
 const session = {
@@ -97,7 +105,8 @@ const mocks = {
     },
   },
   '@/domains/identityAccess/api': {
-    requestGeneralOtp: async () => {
+    requestGeneralOtp: async (...args) => {
+      otpRequests.push(args);
       calls.push(['request-otp']);
       return { cooldown_seconds: 10 };
     },
@@ -188,6 +197,7 @@ function reset() {
   for (const key of [...params.keys()]) params.delete(key);
   params.set('next', '/contests');
   calls = [];
+  otpRequests = [];
   navigation = [];
   supported = true;
   options = { password_available: false, passkey_available: false };
@@ -743,3 +753,34 @@ for (const method of ['otp', 'password', 'passkey']) {
     await v.close();
   });
 }
+
+for (const target of [
+  '/editor/return?next=%2Fproblems%2Fabc',
+  '/editor/account?section=passkeys&next=%2Fproblems',
+]) {
+  test(
+    'Editor onboarding uses the explicit signup path and returns after enrollment: ' +
+      target,
+    async () => {
+      const v = await mount();
+      params.delete('next');
+      params.set('moveTo', target);
+      await input(v, '#login-email', 'user@example.com');
+      await submit(v);
+      assert.deepEqual(otpRequests, [['user@example.com', true]]);
+      await input(v, '#login-otp', '123456');
+      await submit(v);
+      assert.match(v.host.textContent, /패스키를 등록할까요/);
+      await click(v, '나중에');
+      assert.ok(navigation.includes(target));
+      await v.close();
+    },
+  );
+}
+test('Ordinary ZOJ sign-in does not enable new Editor account onboarding', async () => {
+  const v = await mount();
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  assert.deepEqual(otpRequests, [['user@example.com']]);
+  await v.close();
+});

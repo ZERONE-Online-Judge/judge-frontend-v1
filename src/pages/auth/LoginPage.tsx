@@ -225,6 +225,9 @@ export default function LoginPage() {
   );
   const [email, setEmail] = useState(changedEmail);
   const presentationLogin = isPresentationEmail(email);
+  const editorOnboarding = /^\/editor\/(?:return|account)(?:\?|$)/.test(
+    readLoginRedirectTarget(searchParams) ?? '',
+  );
   const [otpCode, setOtpCode] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -394,7 +397,9 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await requestGeneralOtp(requestedEmail);
+      const response = editorOnboarding
+        ? await requestGeneralOtp(requestedEmail, true)
+        : await requestGeneralOtp(requestedEmail);
       const cooldown =
         response.cooldown_seconds > 0 ? response.cooldown_seconds : 10;
       const requestedAt = currentTimestamp();
@@ -1020,9 +1025,11 @@ export default function LoginPage() {
           <PageNotice message={message} status={messageStatus} />
           {!presentationLogin && (
             <p className="login-form-note">
-              {otpRequested
-                ? loginPageText.spamHelp
-                : '참가자와 운영자 모두 같은 화면에서 로그인합니다.'}
+              {editorOnboarding
+                ? '인증 후 ZOJ Editor의 원래 작업 화면으로 돌아갑니다.'
+                : otpRequested
+                  ? loginPageText.spamHelp
+                  : '참가자와 운영자 모두 같은 화면에서 로그인합니다.'}
             </p>
           )}
         </form>

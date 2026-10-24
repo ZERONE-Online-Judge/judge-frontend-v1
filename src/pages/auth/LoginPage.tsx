@@ -394,7 +394,12 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await requestGeneralOtp(requestedEmail);
+      const editorOnboarding = /^\/editor\/(?:return|account)(?:\?|$)/.test(
+        readLoginRedirectTarget(searchParams) ?? '',
+      );
+      const response = editorOnboarding
+        ? await requestGeneralOtp(requestedEmail, true)
+        : await requestGeneralOtp(requestedEmail);
       const cooldown =
         response.cooldown_seconds > 0 ? response.cooldown_seconds : 10;
       const requestedAt = currentTimestamp();

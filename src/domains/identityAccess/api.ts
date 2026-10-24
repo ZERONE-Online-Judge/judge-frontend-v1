@@ -21,8 +21,14 @@ export async function detectGeneralLoginMethod(email: string) {
   });
 }
 
-export async function requestGeneralOtp(email: string) {
-  return apiRequest<OtpRequestResponse>('/auth/general/otp/request', undefined, {
+export async function requestGeneralOtp(
+  email: string,
+  editorOnboarding = false,
+) {
+  const path = editorOnboarding
+    ? '/auth/general/editor/otp/request'
+    : '/auth/general/otp/request';
+  return apiRequest<OtpRequestResponse>(path, undefined, {
     method: 'POST',
     body: JSON.stringify({ email }),
   });

@@ -34,8 +34,17 @@ export type ParticipantSession = {
   isPreview?: boolean;
   accessToken: string;
   contestId: string;
-  team: { team_name: string };
-  member: { name: string; email: string };
+  team: {
+    team_name: string;
+    participant_team_id?: string;
+    members?: TeamMember[];
+  };
+  member: {
+    name: string;
+    email: string;
+    team_member_id?: string;
+    role?: TeamMemberRole;
+  };
   division: Division;
 };
 

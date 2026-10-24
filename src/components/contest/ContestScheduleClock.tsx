@@ -267,8 +267,8 @@ function ScheduleMoment({
       <dt>{label}</dt>
       <dd>
         <time dateTime={value} aria-label={formatOperatorMoment(value)}>
-          <span>{dateFormat.format(new Date(value))}</span>
           <strong>{timeFormat.format(new Date(value))}</strong>
+          <span>{dateFormat.format(new Date(value))}</span>
         </time>
       </dd>
     </div>

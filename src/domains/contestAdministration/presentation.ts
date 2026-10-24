@@ -29,10 +29,13 @@ export function contestCountdownLabel(contest: Contest) {
   }
 
   if (phase === 'before') {
-    const diff = new Date(contest.start_at).getTime() - Date.now();
-    const days = Math.ceil(diff / 86_400_000);
+    // Compare Korean calendar dates, independently of the start time.
+    const koreanDay = (timestamp: number) =>
+      Math.floor((timestamp + 9 * 3_600_000) / 86_400_000);
+    const days =
+      koreanDay(Date.parse(contest.start_at)) - koreanDay(Date.now());
     if (days > 0) return `D-${days}`;
-    return `D-Day · 시작까지 ${timeLeft(contest.start_at)}`;
+    return 'D-Day';
   }
 
   if (phase === 'schedule_tbd') return '초안';

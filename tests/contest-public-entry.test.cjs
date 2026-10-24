@@ -143,6 +143,20 @@ const mocks = {
     },
   },
   '@/domains/teamParticipation/api': {
+    getParticipantSessionMe: async () => ({
+      ...participant,
+      team: {
+        ...participant.team,
+        members: [
+          participant.member,
+          {
+            name: '복원한 팀원',
+            email: 'restored@example.test',
+            role: 'member',
+          },
+        ],
+      },
+    }),
     createParticipantSessionFromGeneralToken: async () => {
       calls.push({ url: '/participant-session' });
       return participant;
@@ -413,8 +427,8 @@ test('public overview includes the real participant totals, duration, host, desc
   assert.match(facts.textContent, /43개 참가팀/);
   assert.match(facts.textContent, /4시간/);
   assert.match(facts.textContent, /한국 시간 \(KST\)/);
-  assert.match(facts.textContent, /2024년 1월 1일.*10:00/);
-  assert.match(facts.textContent, /2024년 1월 1일.*14:00/);
+  assert.match(facts.textContent, /10:00.*2024년 1월 1일/);
+  assert.match(facts.textContent, /14:00.*2024년 1월 1일/);
   assert.ok(host.textContent.includes(division.name));
 });
 
@@ -815,8 +829,8 @@ test('public schedule preserves KST midnight and the next-day end date', async (
     ),
   ];
   assert.equal(moments[0].dateTime, contest.start_at);
-  assert.match(moments[0].textContent, /2024년 1월 2일.*00:00/);
-  assert.match(moments[1].textContent, /2024년 1월 3일.*03:30/);
+  assert.match(moments[0].textContent, /00:00.*2024년 1월 2일/);
+  assert.match(moments[1].textContent, /03:30.*2024년 1월 3일/);
 });
 
 test('unconfirmed or invalid schedules never show a misleading countdown', async () => {
@@ -928,4 +942,78 @@ test('an ended private scoreboard stays closed when live public access was enabl
     false,
   );
   assert.doesNotMatch(host.textContent, /공개 순위 팀/);
+});
+
+for (const phase of ['before', 'running', 'ended']) {
+  test('prestart participant total visibility: ' + phase, async () => {
+    contest.hide_participation_counts_before_start = true;
+    contest.status = phase === 'ended' ? 'ended' : 'open';
+    contest.start_at = new Date(
+      Date.now() + (phase === 'before' ? 3600000 : -3600000),
+    ).toISOString();
+    contest.end_at = new Date(
+      Date.now() + (phase === 'ended' ? -1000 : 7200000),
+    ).toISOString();
+    await render();
+    const facts = host.querySelector('[aria-label="대회 일정과 참가 규모"]');
+    assert.equal(facts.textContent.includes('127명'), phase !== 'before');
+    assert.equal(facts.textContent.includes('43개 참가팀'), phase !== 'before');
+  });
+}
+test('participant overview shows all teammates, team size, leader and the current member', async () => {
+  login(true);
+  const members = [
+    {
+      team_member_id: 'leader',
+      name: '팀장 이름',
+      email: 'leader@example.test',
+      role: 'leader',
+    },
+    { team_member_id: 'me', ...participant.member, role: 'member' },
+    {
+      team_member_id: 'third',
+      name: '세 번째 팀원',
+      email: 'third@example.test',
+      role: 'member',
+    },
+  ];
+  state.generalSession.participantContests[0].team = {
+    ...participant.team,
+    members,
+  };
+  state.participantSession = {
+    ...participant,
+    team: { ...participant.team, members },
+  };
+  await render();
+  const roster = host.querySelector('[aria-label="내 팀과 팀원"]');
+  assert.ok(roster);
+  assert.match(roster.textContent, /3명/);
+  assert.equal(roster.querySelectorAll('li').length, 3);
+  assert.match(
+    roster.querySelector('li:first-child').textContent,
+    /팀장 이름.*팀장/,
+  );
+  assert.match(
+    roster.querySelector('[data-me="true"]').textContent,
+    /참가자 이름.*나/,
+  );
+  assert.match(roster.textContent, /세 번째 팀원/);
+});
+test('participant overview restores the roster for a session saved before roster support', async () => {
+  state.participantSession = { ...participant };
+  await render();
+  await flush();
+  assert.match(
+    host.querySelector('[aria-label="내 팀과 팀원"]').textContent,
+    /복원한 팀원/,
+  );
+  assert.match(
+    host.querySelector('[aria-label="내 팀과 팀원"]').textContent,
+    /2명/,
+  );
+  assert.match(
+    host.querySelector('[aria-label="내 팀과 팀원"]').textContent,
+    /참가자 이름/,
+  );
 });

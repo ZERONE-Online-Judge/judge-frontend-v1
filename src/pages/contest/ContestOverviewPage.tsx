@@ -1,3 +1,5 @@
+import ContestTeamRoster from '@/components/contest/ContestTeamRoster';
+import { getParticipantSessionMe } from '@/domains/teamParticipation/api';
 import ContestParticipantSummary from '@/components/contest/ContestParticipantSummary';
 import ContestPublicOverview from '@/components/contest/ContestPublicOverview';
 import ContestProgressStatus from '@/components/contest/ContestProgressStatus';
@@ -180,6 +182,26 @@ function ContestOverviewContent({
     participantSession,
     token,
   } = useContestParticipantSession(contest.contest_id);
+  const roster = useQuery({
+    queryKey: [
+      'participant-roster',
+      contest.contest_id,
+      participantSessionQueryIdentity(
+        activeParticipantSession,
+        participantContest,
+      ),
+    ],
+    enabled: Boolean(
+      activeParticipantSession &&
+      !activeParticipantSession.team.members &&
+      !participantContest?.team.members,
+    ),
+    queryFn: async () => {
+      const session = await ensureParticipantSession();
+      if (!session) throw new Error('참가자 세션이 필요합니다.');
+      return getParticipantSessionMe(contest.contest_id, session.accessToken);
+    },
+  });
   const noticeAccess = contestResourceAccess(contest, 'notice');
   const hasParticipantAccess = Boolean(
     participantContest || activeParticipantSession,
@@ -260,7 +282,17 @@ function ContestOverviewContent({
 
       <section className="zoj-overview-cards mt-4 grid gap-4">
         <OverviewCard icon="user" subtitle={memberEmail} title={memberName} />
-        <OverviewCard icon="team" subtitle={divisionName} title={teamName} />
+        <ContestTeamRoster
+          teamName={teamName}
+          divisionName={divisionName}
+          members={
+            roster.data?.team.members ??
+            participantContest?.team.members ??
+            activeParticipantSession?.team.members
+          }
+          currentEmail={memberEmail}
+          currentName={memberName}
+        />
       </section>
 
       <div className="zoj-overview-notices zoj-card mt-6">

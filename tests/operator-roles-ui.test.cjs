@@ -1168,3 +1168,18 @@ test('running public access does not overwrite the private archive setting on an
     scoreboard_public_during_contest: false,
   });
 });
+
+test('prestart participation totals default visible and the hide option saves independently', async () => {
+  await render(SettingsPage, 'settings');
+  const label = [...container.querySelectorAll('label')].find((item) =>
+    item.textContent.includes('대회 시작 전 참가팀 수·참가인원 숨기기'),
+  );
+  assert.ok(label);
+  const input = label.querySelector('input[type="checkbox"]');
+  assert.equal(input.checked, false);
+  await click(input);
+  await click(button('변경사항 저장'));
+  assert.deepEqual(settingsChanges[0].body, {
+    hide_participation_counts_before_start: true,
+  });
+});

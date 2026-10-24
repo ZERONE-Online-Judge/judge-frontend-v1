@@ -1,0 +1,74 @@
+.contest-team-roster {
+  min-width: 0;
+}
+.contest-team-roster-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.contest-team-roster-heading > div {
+  min-width: 0;
+}
+.contest-team-roster-heading h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.contest-team-roster-heading > div > span {
+  color: var(--zoj-muted);
+  font-size: 12px;
+}
+.contest-team-roster-count {
+  flex: none;
+  color: var(--zoj-muted);
+  font-size: 13px;
+}
+.contest-team-roster ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.contest-team-roster li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.contest-team-roster li strong {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.contest-team-roster-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--zoj-background, #f5f5fa);
+  color: var(--zoj-muted);
+  font-size: 12px;
+}
+.contest-team-roster li[data-me='true'] .contest-team-roster-avatar {
+  background: #f0edff;
+  color: var(--zoj-accent);
+}
+.contest-team-roster-role,
+.contest-team-roster-me {
+  flex: none;
+  font-size: 11px;
+  color: var(--zoj-muted);
+}
+.contest-team-roster-me {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--zoj-accent);
+  background: #f0edff;
+}

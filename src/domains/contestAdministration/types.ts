@@ -44,6 +44,7 @@ export type Contest = {
   scoring_mode?: ContestFormatType | null;
   scoring_type?: ContestFormatType | null;
   scoreboard_public_during_contest?: boolean;
+  hide_participation_counts_before_start?: boolean;
   scoreboard_access_after_end?: ContestResourceAccess;
   submission_access_after_end?: ContestResourceAccess;
   board_access_after_end?: ContestResourceAccess;
@@ -123,6 +124,7 @@ export type ContestSettingsPatch = Partial<
     | 'freeze_at'
     | 'problem_access_after_end'
     | 'scoreboard_public_during_contest'
+    | 'hide_participation_counts_before_start'
     | 'scoreboard_access_after_end'
     | 'submission_access_after_end'
     | 'board_access_after_end'

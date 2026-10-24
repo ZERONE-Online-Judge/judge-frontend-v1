@@ -232,3 +232,50 @@ test('directory requests and caches are scoped to the authenticated account and 
   assert.equal(await anonymous.queryFn(), undefined);
   assert.notDeepEqual(second.queryKey, anonymous.queryKey);
 });
+
+const { contestCountdownLabel } = source(
+  'domains/contestAdministration/presentation.ts',
+);
+for (const [label, now, start, expected] of [
+  [
+    'same Korean date',
+    '2026-10-24T00:01:00+09:00',
+    '2026-10-24T23:59:00+09:00',
+    'D-Day',
+  ],
+  [
+    'one minute across midnight',
+    '2026-10-24T23:59:00+09:00',
+    '2026-10-25T00:00:00+09:00',
+    'D-1',
+  ],
+  [
+    'late start time does not add a day',
+    '2026-10-24T00:01:00+09:00',
+    '2026-11-11T23:59:00+09:00',
+    'D-18',
+  ],
+  [
+    'Korean date differs from UTC date',
+    '2026-10-24T14:59:00Z',
+    '2026-10-24T15:01:00Z',
+    'D-1',
+  ],
+]) {
+  test('D-day uses calendar dates: ' + label, () => {
+    const original = Date.now;
+    Date.now = () => Date.parse(now);
+    try {
+      assert.equal(
+        contestCountdownLabel({
+          status: 'open',
+          start_at: start,
+          end_at: '2026-11-12T20:00:00+09:00',
+        }),
+        expected,
+      );
+    } finally {
+      Date.now = original;
+    }
+  });
+}

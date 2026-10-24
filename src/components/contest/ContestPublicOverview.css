@@ -792,3 +792,7 @@
     font-size: 23px;
   }
 }
+
+.contest-public-facts[data-counts-hidden='true'] > .contest-public-stat {
+  grid-column: 1 / -1;
+}

@@ -30,6 +30,7 @@ export function emptyContest(contestId?: string): Contest {
     freeze_at: now,
     problem_access_after_end: 'private',
     scoreboard_public_during_contest: false,
+    hide_participation_counts_before_start: false,
     scoreboard_access_after_end: 'private',
     submission_access_after_end: 'private',
     board_access_after_end: 'participants',

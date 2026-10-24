@@ -17,10 +17,18 @@ dom.window.HTMLDialogElement.prototype.showModal = function () {
 dom.window.HTMLDialogElement.prototype.close = function () {
   this.open = false;
 };
+const desktopListeners = new Set();
+window.matchMedia = (query) => ({
+  matches: false,
+  addEventListener: (_type, fn) => {
+    if (query === '(min-width: 1200px)') desktopListeners.add(fn);
+  },
+  removeEventListener: (_type, fn) => desktopListeners.delete(fn),
+});
 const React = require('react');
 const { act } = React;
 const { createRoot } = require('react-dom/client');
-const { MemoryRouter } = require('react-router-dom');
+const { MemoryRouter, useNavigate } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 const h = React.createElement;
 
@@ -214,7 +222,11 @@ const {
   saveGeneralSession,
   loadStoredGeneralSession,
 } = source('domains/identityAccess/sessionStorage.ts');
-let root, container, client;
+let root, container, client, navigate;
+function NavigationObserver() {
+  navigate = useNavigate();
+  return null;
+}
 beforeEach(() => {
   session = null;
   reads = [];
@@ -243,6 +255,7 @@ async function render(element = h(OperatorTabs, { contestId: 'contest' })) {
         h(
           MemoryRouter,
           { initialEntries: ['/operator/contests/contest'] },
+          h(NavigationObserver),
           element,
         ),
       ),
@@ -1019,25 +1032,41 @@ test('running operators read problem statements without review, test or edit pow
   }
 });
 
-test('compact operator menu closes on Escape and navigation while preserving the active page', async () => {
+function menuTrigger() {
+  return container.querySelector('[aria-label="운영자 메뉴 열기"]');
+}
+async function openMenu() {
+  menuTrigger().focus();
+  await act(async () => menuTrigger().click());
+  return document.querySelector('dialog');
+}
+
+test('drawer keeps permitted links and active page, closes on navigation and stays closed on back', async () => {
   session = forRoles('settings_manager');
   await render();
-  const trigger = container.querySelector('.operator-menu-trigger');
+  const trigger = menuTrigger();
   assert.equal(trigger.getAttribute('aria-expanded'), 'false');
-  assert.ok(document.getElementById(trigger.getAttribute('aria-controls')));
-  await act(async () => trigger.click());
+  assert.equal(document.querySelector('dialog'), null);
+  const dialog = await openMenu();
   assert.equal(trigger.getAttribute('aria-expanded'), 'true');
-  await act(async () =>
-    trigger.dispatchEvent(
-      new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+  assert.ok(
+    dialog.querySelector(`[id="${trigger.getAttribute('aria-controls')}"]`),
+  );
+  const links = [...dialog.querySelectorAll('nav a')];
+  assert.deepEqual(
+    links.map((link) => link.getAttribute('href')),
+    [...container.querySelectorAll('nav a')].map((link) =>
+      link.getAttribute('href'),
     ),
   );
-  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
-  assert.equal(document.activeElement, trigger);
-  await act(async () => trigger.click());
-  await act(async () =>
-    container.querySelector('nav a[href$="/settings"]').click(),
+  assert.ok(
+    dialog.querySelector(
+      'a[aria-current="page"][href="/operator/contests/contest"]',
+    ),
   );
+  assert.equal(dialog.querySelector('a[href$="/operators"]'), null);
+  await act(async () => dialog.querySelector('a[href$="/settings"]').click());
+  assert.equal(document.querySelector('dialog'), null);
   assert.equal(trigger.getAttribute('aria-expanded'), 'false');
   assert.match(trigger.textContent, /설정/);
   assert.equal(
@@ -1046,6 +1075,59 @@ test('compact operator menu closes on Escape and navigation while preserving the
       .getAttribute('aria-current'),
     'page',
   );
+  await act(async () => navigate(-1));
+  assert.equal(document.querySelector('dialog'), null);
+});
+
+test('drawer restores focus and scrolling on Escape, backdrop and close button', async () => {
+  session = forRoles('settings_manager');
+  await render();
+  for (const close of [
+    (dialog) =>
+      dialog.dispatchEvent(
+        new dom.window.Event('cancel', { cancelable: true }),
+      ),
+    (dialog) => {
+      const backdrop = dialog.querySelector('.zoj-modal-backdrop');
+      backdrop.dispatchEvent(
+        new dom.window.Event('pointerdown', { bubbles: true }),
+      );
+      backdrop.click();
+    },
+    (dialog) => dialog.querySelector('[aria-label="운영자 메뉴 닫기"]').click(),
+  ]) {
+    const dialog = await openMenu();
+    assert.equal(document.body.style.overflow, 'hidden');
+    // Clicking inside the drawer must not dismiss it.
+    await act(async () => dialog.querySelector('h2').click());
+    assert.ok(document.querySelector('dialog'));
+    await act(async () => close(dialog));
+    assert.equal(document.querySelector('dialog'), null);
+    assert.equal(document.body.style.overflow, '');
+    assert.equal(document.activeElement, menuTrigger());
+  }
+});
+
+test('desktop resize dismisses drawer without changing saved sidebar collapse', async () => {
+  session = forRoles('settings_manager');
+  window.localStorage.setItem('zoj.operator.sidebarCollapsed', 'true');
+  await render();
+  await openMenu();
+  await act(async () => {
+    for (const listener of desktopListeners) listener({ matches: true });
+  });
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.body.style.overflow, '');
+  assert.equal(
+    container.querySelector('.operator-navigation').dataset.collapsed,
+    'true',
+  );
+  assert.equal(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'true',
+  );
+  await act(async () => root.render(null));
+  assert.equal(desktopListeners.size, 0);
 });
 
 test('participant preview appears in the top contest context, outside the collapsed menu', async () => {

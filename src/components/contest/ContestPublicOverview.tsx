@@ -91,7 +91,7 @@ export default function ContestPublicOverview({
     participant_count: participantCount,
     team_count: teamCount,
   } = detail;
-  const now = useClockTick();
+  const now = useClockTick(250);
   const phase = contestAccessPhase(contest);
   const ended = phase === 'ended';
   const scheduleTbd = phase === 'schedule_tbd';

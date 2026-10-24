@@ -1,3 +1,4 @@
+import ContestParticipantSummary from '@/components/contest/ContestParticipantSummary';
 import ContestPublicOverview from '@/components/contest/ContestPublicOverview';
 import ContestProgressStatus from '@/components/contest/ContestProgressStatus';
 import { useMemo } from 'react';
@@ -254,6 +255,8 @@ function ContestOverviewContent({
       <div className="mt-6">
         <ContestProgressStatus contest={contest} />
       </div>
+
+      <ContestParticipantSummary contest={contest} />
 
       <section className="zoj-overview-cards mt-4 grid gap-4">
         <OverviewCard icon="user" subtitle={memberEmail} title={memberName} />

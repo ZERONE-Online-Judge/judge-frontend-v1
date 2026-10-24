@@ -1,3 +1,6 @@
+import { ContestCountdown } from '@/components/contest/ContestScheduleClock';
+import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
+import './OperatorScoreboardPresentationPage.css';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { getPresentationScoreboard } from '@/domains/presentationAccess/api';
 import { usePresentationSession } from '@/domains/presentationAccess/session';
@@ -20,7 +23,7 @@ import type {
 import { formatDateTime } from '@/shared/lib/dateTime';
 import { formatApiError } from '@/shared/api/errors';
 
-function useNow(intervalMs = 1000) {
+function useNow(intervalMs = 250) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -45,20 +48,6 @@ function timeLeftLabel(target?: string | null, now = Date.now()) {
   if (hours > 0) return `${hours}h ${minutes}m`;
   if (minutes > 0) return `${minutes}m ${seconds}s`;
   return `${seconds}s`;
-}
-
-function largeCountdownLabel(target?: string | null, now = Date.now()) {
-  if (!target) return '-';
-
-  const diff = new Date(target).getTime() - now;
-  if (diff <= 0) return '0시간 0분 0초';
-
-  const totalSeconds = Math.floor(diff / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${hours}시간 ${minutes}분 ${seconds}초`;
 }
 
 function splitContestTitle(title?: string | null) {
@@ -382,6 +371,7 @@ export function OperatorScoreboardPresentationContent({
       )
     : sections;
   const titleParts = splitContestTitle(contest?.title);
+  const timerState = contest ? contestTimerState(contest, now, true) : null;
   const startsAt = contest?.start_at ? new Date(contest.start_at).getTime() : 0;
   const isEnded = Boolean(
     contest &&
@@ -419,6 +409,22 @@ export function OperatorScoreboardPresentationContent({
             '프레젠테이션 스코어보드를 불러오지 못했습니다',
           )}
         </div>
+      </section>
+    );
+  }
+
+  if (contest && timerState?.showPresentationCountdown) {
+    return (
+      <section
+        className="presentation-contest-countdown"
+        aria-label="프레젠테이션 카운트다운"
+      >
+        <header>
+          <p>ZOJ · PRESENTATION SCOREBOARD</p>
+          <h1>{contest.title}</h1>
+        </header>
+        <ContestCountdown state={timerState} />
+        <footer>한국 시간(KST) 기준</footer>
       </section>
     );
   }
@@ -478,12 +484,7 @@ export function OperatorScoreboardPresentationContent({
                 ) : null}
               </h1>
             </div>
-            {isBeforeContestStart ? (
-              <PreStartCountdown
-                startAt={contest?.start_at}
-                value={largeCountdownLabel(contest?.start_at, now)}
-              />
-            ) : (
+            {
               <div className="grid gap-[clamp(0.65rem,1.2vw,1.2rem)] md:grid-cols-2">
                 <TimePanel
                   label="스코어보드 프리즈"
@@ -510,7 +511,7 @@ export function OperatorScoreboardPresentationContent({
                   }
                 />
               </div>
-            )}
+            }
           </div>
         </header>
 
@@ -549,28 +550,6 @@ export function OperatorScoreboardPresentationContent({
         ) : null}
       </div>
     </section>
-  );
-}
-
-function PreStartCountdown({
-  startAt,
-  value,
-}: {
-  startAt?: string | null;
-  value: string;
-}) {
-  return (
-    <div className="rounded-[1rem] border border-violet-300/20 bg-violet-500/10 px-[clamp(1rem,3vw,3rem)] py-[clamp(1rem,2.5vw,2.5rem)] text-center shadow-[0_1rem_3rem_rgba(0,0,0,0.2)]">
-      <p className="text-[clamp(0.85rem,1.4vw,1.25rem)] font-black tracking-[0.3em] text-violet-200 uppercase">
-        Contest Starts In
-      </p>
-      <p className="mt-3 text-[clamp(3rem,8vw,8rem)] leading-none font-black tracking-normal text-white">
-        {value}
-      </p>
-      <p className="mt-3 text-[clamp(0.9rem,1.5vw,1.25rem)] font-bold text-white/70">
-        시작 시각 {formatDateTime(startAt ?? undefined)}
-      </p>
-    </div>
   );
 }
 

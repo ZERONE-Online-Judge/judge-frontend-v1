@@ -8,7 +8,7 @@ export default function PresentationPage() {
   const session = usePresentationSession((state) => state.session);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(interval);
   }, []);
   useEffect(() => {

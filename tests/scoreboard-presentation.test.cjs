@@ -160,6 +160,7 @@ function source(relative) {
   loaded.paths = Module._nodeModulePaths(path.dirname(filename));
   const nativeRequire = loaded.require.bind(loaded);
   loaded.require = (id) => {
+    if (id.endsWith('.css')) return {};
     if (mocks[id]) return mocks[id];
     if (!id.startsWith('@/')) return nativeRequire(id);
     return source(
@@ -798,4 +799,81 @@ test('immediate undo presentation keeps the frozen table without medals or relea
   );
   assert.equal(display.querySelector('svg[role="img"]'), null);
   assert.equal(display.querySelectorAll('button, select, input').length, 0);
+});
+
+test('presentation replaces tables with start and final-minute countdowns then resumes selected rankings', async () => {
+  const original = { ...contest };
+  const start = Date.now() + 3600000,
+    end = start + 4 * 3600000;
+  Object.assign(contest, {
+    status: 'open',
+    start_at: new Date(start).toISOString(),
+    end_at: new Date(end).toISOString(),
+    freeze_at: new Date(end - 3600000).toISOString(),
+  });
+  let setNow;
+  const { OperatorScoreboardPresentationContent: Content } = source(
+    'pages/operator/OperatorScoreboardPresentationPage.tsx',
+  );
+  function TimedPresentation() {
+    const [now, update] = React.useState(start - 90000);
+    setNow = update;
+    return h(Content, {
+      contestId: 'contest',
+      token: 'display-token',
+      displayOnly: true,
+      now,
+    });
+  }
+  try {
+    const display = await renderPage(
+      TimedPresentation,
+      '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+    );
+    assert.ok(display.querySelector('.presentation-contest-countdown'));
+    assert.equal(display.querySelector('table'), null);
+    assert.equal(
+      display.querySelector('.contest-clock-timer').getAttribute('aria-label'),
+      '대회 시작까지',
+    );
+    const tick = async (time) => act(async () => setNow(time));
+    await tick(start - 10000);
+    assert.equal(
+      display.querySelector('.contest-clock-focus strong').textContent,
+      '10',
+    );
+    await tick(start);
+    assert.match(display.textContent, /대회가 시작되었습니다/);
+    assert.equal(display.querySelector('table'), null);
+    await tick(start + 2000);
+    assert.equal(
+      display.querySelector('.presentation-contest-countdown'),
+      null,
+    );
+    assert.equal(display.querySelectorAll('table').length, 1);
+    assert.match(display.textContent, /A 유형/);
+    assert.doesNotMatch(display.textContent, /B 유형/);
+    await tick(end - 60001);
+    assert.ok(display.querySelector('table'));
+    await tick(end - 60000);
+    assert.equal(display.querySelector('table'), null);
+    assert.equal(
+      display.querySelector('.contest-clock-focus strong').textContent,
+      '60',
+    );
+    assert.match(display.textContent, /대회 종료까지/);
+    await tick(end - 1);
+    assert.equal(
+      display.querySelector('.contest-clock-focus strong').textContent,
+      '1',
+    );
+    await tick(end);
+    assert.match(display.textContent, /대회가 종료되었습니다/);
+    await tick(end + 2000);
+    assert.equal(display.querySelectorAll('table').length, 1);
+    assert.equal(display.querySelectorAll('button, input, select').length, 0);
+    assert.equal(presentationReads, 0);
+  } finally {
+    Object.assign(contest, original);
+  }
 });

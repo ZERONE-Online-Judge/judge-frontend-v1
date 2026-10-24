@@ -200,7 +200,7 @@ afterEach(async () => {
   window.clearInterval = realClear;
 });
 after(() => dom.window.close());
-test('mounted status counts down, changes phase without reload, preserves settings permissions and clears its clock', async () => {
+test('operator clock crosses countdown, notice, freeze and end with settings permissions intact', async () => {
   let now = start - 1000;
   Date.now = () => now;
   const ticks = new Map();
@@ -212,17 +212,13 @@ test('mounted status counts down, changes phase without reload, preserves settin
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
-  const render = async (props) => {
+  const render = async (props = {}) => {
     await act(async () =>
       root.render(
         React.createElement(
           MemoryRouter,
           null,
-          React.createElement(StatusPanel, {
-            contest,
-            canManageSettings: false,
-            ...props,
-          }),
+          React.createElement(StatusPanel, { contest, ...props }),
         ),
       ),
     );
@@ -236,33 +232,55 @@ test('mounted status counts down, changes phase without reload, preserves settin
   };
   await render();
   assert.match(container.textContent, /대회 시작 전/);
-  assert.match(container.querySelector('[role="timer"]').textContent, /01초/);
+  assert.equal(
+    container.querySelector('[role="timer"]').getAttribute('aria-label'),
+    '대회 시작까지 1초',
+  );
   assert.equal(container.querySelector('a'), null);
   await tick(start);
-  assert.match(container.textContent, /대회 진행 중/);
-  assert.match(container.textContent, /제출 가능/);
-  assert.equal(container.querySelector('progress').value, 0);
-  assert.equal(container.querySelectorAll('progress').length, 1);
+  assert.match(container.textContent, /대회가 시작되었습니다/);
+  await tick(start + 1999);
+  assert.match(container.textContent, /대회가 시작되었습니다/);
+  await tick(start + 2000);
   assert.equal(
-    container.querySelector('.contest-progress-status__freeze-marker').style
-      .left,
-    '75%',
+    container.querySelector('.contest-clock-timer').getAttribute('aria-label'),
+    '대회 종료까지',
   );
   assert.equal(
-    container.querySelectorAll('.contest-progress-status__schedule > div')
-      .length,
-    2,
+    container
+      .querySelector('[role="progressbar"]')
+      .getAttribute('aria-valuenow'),
+    '0',
   );
-  assert.match(
-    container.querySelector('.contest-progress-status__freeze-label')
-      .textContent,
-    /프리즈13:00/,
+  assert.equal(container.querySelectorAll('.contest-clock-moment').length, 3);
+  assert.equal(
+    container.querySelector('[data-kind=end]').dataset.compact,
+    'true',
   );
   await tick(freeze);
   assert.match(container.textContent, /프리즈 적용 중/);
-  assert.equal(container.querySelector('progress').value, 75);
+  assert.equal(
+    container
+      .querySelector('[role="progressbar"]')
+      .getAttribute('aria-valuenow'),
+    '75',
+  );
+  assert.equal(
+    container.querySelector('[data-kind=start]').dataset.compact,
+    'true',
+  );
+  assert.equal(
+    container.querySelector('[data-kind=end]').dataset.compact,
+    'false',
+  );
+  await tick(end - 10_000);
+  assert.equal(
+    container.querySelector('[role="timer"]').getAttribute('aria-label'),
+    '대회 종료까지 10초',
+  );
+  assert.equal(container.querySelector('.contest-clock-timeline'), null);
   await tick(end);
-  assert.match(container.textContent, /마감되었습니다/);
+  assert.match(container.textContent, /대회가 종료되었습니다/);
   assert.equal(container.querySelector('[role="timer"]'), null);
   await render({ canManageSettings: true, stale: true });
   assert.equal(
@@ -275,18 +293,18 @@ test('mounted status counts down, changes phase without reload, preserves settin
   assert.equal(ticks.size, 0);
 });
 
-test('participant progress follows the same phase, freeze and countdown boundaries without operator controls', async () => {
+test('participant clock shares the timeline and omits operator controls and disabled freeze', async () => {
   const ParticipantStatus = source(
     'components/contest/ContestProgressStatus.tsx',
   ).default;
-  let now = start - 1000;
+  let now = start + (end - start) / 2;
   Date.now = () => now;
-  const ticks = new Map();
+  let tick;
   window.setInterval = (callback) => {
-    ticks.set(1, callback);
+    tick = callback;
     return 1;
   };
-  window.clearInterval = (id) => ticks.delete(id);
+  window.clearInterval = () => {};
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -303,43 +321,134 @@ test('participant progress follows the same phase, freeze and countdown boundari
       async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
     );
   };
-  const tick = async (time) => {
-    now = time;
-    await act(async () => ticks.forEach((callback) => callback()));
-  };
   await render();
-  assert.equal(container.querySelector('progress').value, 0);
-  assert.match(container.textContent, /대회 시작까지/);
-  assert.equal(container.querySelector('a'), null);
-  assert.doesNotMatch(
-    container.textContent,
-    /운영자만|대회 목록|후속 운영|15초/,
+  assert.equal(
+    container
+      .querySelector('[role="progressbar"]')
+      .getAttribute('aria-valuenow'),
+    '50',
   );
-  await tick(start + (end - start) / 2);
-  assert.equal(container.querySelector('progress').value, 50);
   assert.match(container.textContent, /대회 종료까지/);
-  assert.match(container.textContent, /제출 가능/);
+  assert.equal(container.querySelector('a'), null);
+  assert.doesNotMatch(container.textContent, /운영자만|후속 운영|15초/);
   assert.equal(container.querySelectorAll('time').length, 3);
-  await tick(freeze);
-  assert.equal(container.querySelector('progress').value, 75);
+  now = freeze;
+  await act(async () => tick());
   assert.match(container.textContent, /프리즈 적용 중/);
   await render({ scoreboard_freeze_mode: 'live' });
   assert.doesNotMatch(container.textContent, /프리즈 적용 중/);
-  assert.match(container.textContent, /프리즈 해제/);
-  assert.match(
-    container.querySelector('.contest-progress-status__freeze-label')
-      .textContent,
-    /프리즈 기준/,
-  );
-  await render({ freeze_at: 'invalid' });
-  assert.equal(
-    container.querySelector('.contest-progress-status__freeze-marker'),
-    null,
-  );
+  assert.equal(container.querySelector('[data-kind=freeze]'), null);
   assert.equal(container.querySelectorAll('time').length, 2);
+  await render({ freeze_at: 'invalid' });
+  assert.equal(container.querySelector('[data-kind=freeze]'), null);
   await render();
-  await tick(end);
-  assert.equal(container.querySelector('progress').value, 100);
+  now = end;
+  await act(async () => tick());
   assert.equal(container.querySelector('[role="timer"]'), null);
   assert.match(container.textContent, /제출이 마감되었습니다/);
+});
+
+const { contestTimerState: timerState } = source(
+  'domains/contestAdministration/contestTimer.ts',
+);
+test('shared timer has exact 10-second, 2-second and presentation 60-second boundaries', () => {
+  for (const presentation of [false, true]) {
+    assert.equal(
+      timerState(contest, start - 10001, presentation).view,
+      'waiting',
+    );
+    assert.equal(
+      timerState(contest, start - 10000, presentation).view,
+      'startCountdown',
+    );
+    assert.equal(
+      timerState(contest, start - 1, presentation).view,
+      'startCountdown',
+    );
+    assert.equal(timerState(contest, start, presentation).view, 'started');
+    assert.equal(
+      timerState(contest, start + 1999, presentation).view,
+      'started',
+    );
+    assert.equal(
+      timerState(contest, start + 2000, presentation).view,
+      'running',
+    );
+    const threshold = presentation ? 60000 : 10000;
+    assert.equal(
+      timerState(contest, end - threshold - 1, presentation).view,
+      'running',
+    );
+    assert.equal(
+      timerState(contest, end - threshold, presentation).view,
+      'endCountdown',
+    );
+    assert.equal(
+      timerState(contest, end - 1, presentation).view,
+      'endCountdown',
+    );
+    assert.equal(timerState(contest, end, presentation).view, 'ended');
+  }
+  assert.equal(
+    timerState(contest, end + 1999, true).showPresentationCountdown,
+    true,
+  );
+  assert.equal(
+    timerState(contest, end + 2000, true).showPresentationCountdown,
+    false,
+  );
+  assert.equal(
+    timerState(contest, start - 86400000, true).showPresentationCountdown,
+    true,
+  );
+});
+test('timeline interpolates the current interval, compresses other milestones and tolerates absent freeze', () => {
+  const pre = timerState(contest, start + (freeze - start) / 2);
+  assert.equal(pre.current, (pre.anchors.start + pre.anchors.freeze) / 2);
+  assert.equal(pre.afterFreeze, false);
+  const at = timerState(contest, freeze);
+  assert.equal(at.current, at.anchors.freeze);
+  assert.equal(at.freezeActive, true);
+  const post = timerState(contest, freeze + (end - freeze) / 2);
+  assert.equal(post.current, (post.anchors.freeze + post.anchors.end) / 2);
+  assert.equal(post.afterFreeze, true);
+  for (const freeze_at of ['invalid', contest.start_at, contest.end_at]) {
+    const result = timerState(
+      { ...contest, freeze_at },
+      start + (end - start) / 2,
+    );
+    assert.equal(result.hasFreeze, false);
+    assert.equal(
+      result.current,
+      (result.anchors.start + result.anchors.end) / 2,
+    );
+  }
+  assert.equal(
+    timerState({ ...contest, scoreboard_freeze_mode: 'live' }, freeze)
+      .hasFreeze,
+    false,
+  );
+  const manual = timerState(
+    { ...contest, scoreboard_freeze_mode: 'frozen' },
+    start + 3000,
+  );
+  assert.equal(manual.freezeActive, true);
+  assert.equal(manual.freezeRemaining, null);
+});
+test('draft, invalid, forced-ended and uninitialized clocks never run misleading countdowns', () => {
+  for (const overrides of [
+    { status: 'draft' },
+    { status: 'schedule_tbd' },
+    { start_at: 'invalid' },
+    { end_at: contest.start_at },
+    { status: 'ended' },
+    { status: 'finalized' },
+    { status: 'archived' },
+  ]) {
+    const result = timerState({ ...contest, ...overrides }, start - 5000, true);
+    assert.equal(result.showPresentationCountdown, false);
+    assert.equal(result.remaining, null);
+  }
+  assert.equal(timerState(contest, 0).view, 'unavailable');
+  assert.equal(timerState(contest, NaN).view, 'unavailable');
 });

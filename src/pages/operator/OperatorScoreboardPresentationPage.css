@@ -1,0 +1,82 @@
+.presentation-contest-countdown {
+  --clock-accent: #c4b5fd;
+  --clock-green: #6ee7b7;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3vh, 40px);
+  padding: clamp(20px, 4vw, 64px);
+  overflow: auto;
+  background: radial-gradient(ellipse at 50% 65%, #242059 0%, #090b14 70%);
+  color: #fff;
+  text-align: center;
+}
+.presentation-contest-countdown header {
+  width: 100%;
+}
+.presentation-contest-countdown header > p {
+  font-size: clamp(11px, 1vw, 16px);
+  letter-spacing: 0.2em;
+  color: #c4b5fd;
+}
+.presentation-contest-countdown h1 {
+  font-size: clamp(20px, 3vw, 54px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.presentation-contest-countdown .contest-clock-focus {
+  min-height: 0;
+  flex: 1;
+  max-height: 65vh;
+}
+.presentation-contest-countdown .contest-clock-focus > strong {
+  font-size: min(48vh, 40vw);
+  line-height: 1;
+}
+.presentation-contest-countdown .contest-clock-focus > p,
+.presentation-contest-countdown .contest-clock-rolling > p {
+  font-size: clamp(16px, 2.5vw, 38px);
+  color: #c4b5fd;
+  margin-bottom: clamp(12px, 3vh, 32px);
+}
+.presentation-contest-countdown .contest-clock-focus > span {
+  font-size: clamp(12px, 1.5vw, 24px);
+  color: #c3c5d2;
+}
+.presentation-contest-countdown .contest-clock-digit {
+  font-size: clamp(28px, 10vw, 190px);
+}
+.presentation-contest-countdown .contest-clock-timer {
+  gap: clamp(4px, 1vw, 20px);
+  justify-content: center;
+}
+.presentation-contest-countdown .contest-clock-timer b {
+  font-size: clamp(24px, 7vw, 120px);
+  color: #9992c2;
+}
+.presentation-contest-countdown .contest-clock-timer small {
+  color: #c3c5d2;
+  font-size: clamp(11px, 1.5vw, 24px);
+}
+.presentation-contest-countdown .contest-clock-message {
+  min-height: 35vh;
+}
+.presentation-contest-countdown .contest-clock-message > strong {
+  color: #fff;
+  font-size: clamp(24px, 5vw, 82px);
+}
+.presentation-contest-countdown .contest-clock-message > svg {
+  width: clamp(30px, 5vw, 70px);
+  height: auto;
+  color: #6ee7b7;
+}
+.presentation-contest-countdown footer {
+  color: #9fa4bb;
+  font-size: clamp(11px, 1vw, 16px);
+}

@@ -5,7 +5,8 @@ import {
   hasParticipantPreviewAccess,
   participantPreviewPath,
 } from '@/domains/identityAccess/participantPreview';
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import ModalDialog from '@/shared/ui/ModalDialog';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -262,14 +263,23 @@ export function OperatorAccessGate({
 }
 
 export function OperatorTabs({ contestId }: OperatorTabsProps) {
-  const { pathname } = useLocation();
-  const [openPath, setOpenPath] = useState<string | null>(null);
+  const { pathname, key: locationKey } = useLocation();
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     storedSidebarCollapsed,
   );
   const menuId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuOpen = openPath === pathname;
+  const menuOpen = openedAt === locationKey;
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(min-width: 1200px)');
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpenedAt(null);
+    };
+    media.addEventListener('change', closeOnDesktop);
+    return () => media.removeEventListener('change', closeOnDesktop);
+  }, []);
   const generalSession = useSessionStore((state) => state.generalSession);
   const staffSession = staffSessionFromGeneralSession(generalSession);
   const token = staffSession?.accessToken;
@@ -348,17 +358,42 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       ? pathname.startsWith(`${basePath}/${tab.path}`)
       : pathname === basePath,
   );
+  function menuLinks() {
+    return visibleTabs.map((tab) => {
+      const Icon = tab.icon;
+      const to = tab.path ? `${basePath}/${tab.path}` : basePath;
+      const count =
+        tab.path === 'notices'
+          ? noticeCountLabel
+          : tab.path === 'board'
+            ? boardCountLabel
+            : tab.path === 'participants'
+              ? participantCountLabel
+              : tab.path === 'problems'
+                ? problemCountLabel
+                : '';
+      return (
+        <NavLink
+          className="operator-menu__link"
+          aria-label={count ? `${tab.label} ${count}` : tab.label}
+          title={count ? `${tab.label} · ${count}` : tab.label}
+          end={'end' in tab ? tab.end : undefined}
+          key={tab.label}
+          to={to}
+          onClick={() => setOpenedAt(null)}
+        >
+          <Icon />
+          <span className="operator-menu__label">{tab.label}</span>
+          {count ? <TabCountBadge>{count}</TabCountBadge> : null}
+        </NavLink>
+      );
+    });
+  }
   return (
     <div
       className="operator-navigation"
       data-open={menuOpen}
       data-collapsed={sidebarCollapsed}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && menuOpen) {
-          setOpenPath(null);
-          triggerRef.current?.focus();
-        }
-      }}
     >
       <div className="operator-context">
         <div className="operator-context__toolbar">
@@ -379,7 +414,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             }
             title={sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'}
             aria-expanded={!sidebarCollapsed}
-            aria-controls={menuId}
+            aria-controls={`${menuId}-desktop`}
             onClick={() => {
               const next = !sidebarCollapsed;
               setSidebarCollapsed(next);
@@ -430,16 +465,17 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
         ) : null}
       </div>
       <button
-        ref={triggerRef}
         type="button"
         className="operator-menu-trigger"
         aria-expanded={menuOpen}
-        aria-controls={menuId}
-        onClick={() => setOpenPath(menuOpen ? null : pathname)}
+        aria-label="운영자 메뉴 열기"
+        aria-controls={menuOpen ? menuId : undefined}
+        aria-haspopup="dialog"
+        onClick={() => setOpenedAt(locationKey)}
       >
         <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
           <path
-            d={menuOpen ? 'm5 5 10 10M15 5 5 15' : 'M3 5h14M3 10h14M3 15h14'}
+            d="M3 5h14M3 10h14M3 15h14"
             stroke="currentColor"
             strokeWidth="1.5"
             strokeLinecap="round"
@@ -448,41 +484,27 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
         <span>{activeTab?.label ?? '운영자 메뉴'}</span>
         <span className="operator-menu-trigger__hint">메뉴</span>
       </button>
-      <div className="operator-menu-collapse" id={menuId}>
+      <div className="operator-menu-collapse" id={`${menuId}-desktop`}>
         <div className="operator-menu-collapse__inner">
           <nav aria-label="운영자 메뉴" className="operator-menu">
-            {visibleTabs.map((tab) => {
-              const Icon = tab.icon;
-              const to = tab.path ? `${basePath}/${tab.path}` : basePath;
-              const count =
-                tab.path === 'notices'
-                  ? noticeCountLabel
-                  : tab.path === 'board'
-                    ? boardCountLabel
-                    : tab.path === 'participants'
-                      ? participantCountLabel
-                      : tab.path === 'problems'
-                        ? problemCountLabel
-                        : '';
-              return (
-                <NavLink
-                  className="operator-menu__link"
-                  aria-label={count ? `${tab.label} ${count}` : tab.label}
-                  title={count ? `${tab.label} · ${count}` : tab.label}
-                  end={'end' in tab ? tab.end : undefined}
-                  key={tab.label}
-                  to={to}
-                  onClick={() => setOpenPath(null)}
-                >
-                  <Icon />
-                  <span className="operator-menu__label">{tab.label}</span>
-                  {count ? <TabCountBadge>{count}</TabCountBadge> : null}
-                </NavLink>
-              );
-            })}
+            {menuLinks()}
           </nav>
         </div>
       </div>
+      {menuOpen ? (
+        <ModalDialog
+          className="operator-menu-drawer"
+          title="운영자 메뉴"
+          description={dashboardQuery.data?.contest?.title}
+          onClose={() => setOpenedAt(null)}
+          closeLabel="운영자 메뉴 닫기"
+          drawer
+        >
+          <nav id={menuId} aria-label="운영자 메뉴" className="operator-menu">
+            {menuLinks()}
+          </nav>
+        </ModalDialog>
+      ) : null}
     </div>
   );
 }

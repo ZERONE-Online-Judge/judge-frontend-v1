@@ -38,7 +38,7 @@ export function emptyContest(contestId?: string): Contest {
     scoreboard_release_mode: 'manual',
     mock_judging_enabled: false,
     freeze_submission_count_visible: false,
-    participant_progress_visible: true,
+    participant_progress_visible: false,
     mock_judging_progress_visible: false,
     emergency_notice: null,
   };

@@ -95,6 +95,22 @@ async function apiRequest(url, token, init) {
     if (contestError) throw contestError;
     return detail;
   }
+  if (url.endsWith('/scoreboard'))
+    return {
+      division,
+      frozen: false,
+      rows: [
+        {
+          team_id: 'public-team',
+          team_name: '공개 순위 팀',
+          rank: 1,
+          solved: 0,
+          submission_count: 0,
+          penalty: 0,
+          problem_scores: [],
+        },
+      ],
+    };
   if (url.endsWith('/problems')) return [problem];
   if (url.endsWith('/boards')) {
     if (init?.method === 'POST') {
@@ -180,6 +196,7 @@ function source(relative) {
 }
 const Overview = source('pages/contest/ContestOverviewPage.tsx').default;
 const Problems = source('pages/contest/ContestProblemsPage.tsx').default;
+const Scoreboard = source('pages/contest/ContestScoreboardPage.tsx').default;
 const Board = source('pages/contest/ContestBoardPage.tsx').default;
 const Share = source('pages/public/ContestSharePage.tsx').default;
 const Navigation = source(
@@ -295,6 +312,10 @@ async function render(url = '/contests/public-contest', element) {
               h(Route, {
                 path: '/contests/:contestId/problems',
                 element: h(Problems),
+              }),
+              h(Route, {
+                path: '/contests/:contestId/scoreboard',
+                element: h(Scoreboard),
               }),
               h(Route, {
                 path: '/contests/:contestId/board',
@@ -821,4 +842,90 @@ test('unconfirmed or invalid schedules never show a misleading countdown', async
     host.querySelector('.contest-public-schedule').textContent,
     /NaN|Invalid Date/,
   );
+});
+
+function liveContest(enabled) {
+  const now = Date.now();
+  Object.assign(contest, {
+    status: 'running',
+    visibility: 'public',
+    start_at: new Date(now - 3600000).toISOString(),
+    freeze_at: new Date(now + 3600000).toISOString(),
+    end_at: new Date(now + 7200000).toISOString(),
+    scoreboard_public_during_contest: enabled,
+    scoreboard_access_after_end: 'private',
+  });
+}
+test('anonymous live scoreboard is linked from overview and loads without private problem or session requests', async () => {
+  liveContest(true);
+  await render();
+  assert.ok(navigationPaths().includes('/contests/public-contest/scoreboard'));
+  const link = host.querySelector(
+    '.contest-public-resource[href$="/scoreboard"]',
+  );
+  assert.ok(link);
+  assertNoProtectedPrefetch();
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/scoreboard')),
+    false,
+  );
+  await click(link);
+  await flush();
+  assert.equal(currentPath, '/contests/public-contest/scoreboard');
+  assert.match(host.textContent, /공개 순위 팀/);
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.ok(calls.some((call) => call.url.endsWith('/scoreboard')));
+  assert.equal(
+    calls.some(
+      (call) =>
+        call.url.endsWith('/problems') || call.url === '/participant-session',
+    ),
+    false,
+  );
+});
+test('archive public access does not enable anonymous live scoreboard without the separate switch', async () => {
+  liveContest(false);
+  contest.scoreboard_access_after_end = 'public';
+  await render('/contests/public-contest/scoreboard');
+  await flush();
+  assert.equal(currentPath, '/login');
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/scoreboard')),
+    false,
+  );
+});
+test('live public scoreboard permits signed-in nonparticipants without a participant authorization prompt', async () => {
+  liveContest(true);
+  login(false);
+  await render('/contests/public-contest/scoreboard');
+  await flush();
+  assert.equal(currentPath, '/contests/public-contest/scoreboard');
+  assert.match(host.textContent, /공개 순위 팀/);
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(
+    calls.some((call) => call.url === '/participant-session'),
+    false,
+  );
+});
+test('live public switch never grants access before start or changes ended archive policy', async () => {
+  liveContest(true);
+  contest.start_at = new Date(Date.now() + 3600000).toISOString();
+  await render('/contests/public-contest/scoreboard');
+  await flush();
+  assert.equal(currentPath, '/login');
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/scoreboard')),
+    false,
+  );
+});
+test('an ended private scoreboard stays closed when live public access was enabled', async () => {
+  contest.scoreboard_public_during_contest = true;
+  contest.scoreboard_access_after_end = 'private';
+  await render('/contests/public-contest/scoreboard');
+  await flush();
+  assert.equal(
+    calls.some((call) => call.url.endsWith('/scoreboard')),
+    false,
+  );
+  assert.doesNotMatch(host.textContent, /공개 순위 팀/);
 });

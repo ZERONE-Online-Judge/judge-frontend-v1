@@ -43,6 +43,7 @@ export type Contest = {
   problem_access_after_end?: ContestResourceAccess;
   scoring_mode?: ContestFormatType | null;
   scoring_type?: ContestFormatType | null;
+  scoreboard_public_during_contest?: boolean;
   scoreboard_access_after_end?: ContestResourceAccess;
   submission_access_after_end?: ContestResourceAccess;
   board_access_after_end?: ContestResourceAccess;
@@ -121,6 +122,7 @@ export type ContestSettingsPatch = Partial<
     | 'end_at'
     | 'freeze_at'
     | 'problem_access_after_end'
+    | 'scoreboard_public_during_contest'
     | 'scoreboard_access_after_end'
     | 'submission_access_after_end'
     | 'board_access_after_end'

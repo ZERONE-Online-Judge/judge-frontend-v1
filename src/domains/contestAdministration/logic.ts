@@ -29,6 +29,7 @@ export function emptyContest(contestId?: string): Contest {
     end_at: now,
     freeze_at: now,
     problem_access_after_end: 'private',
+    scoreboard_public_during_contest: false,
     scoreboard_access_after_end: 'private',
     submission_access_after_end: 'private',
     board_access_after_end: 'participants',
@@ -175,6 +176,11 @@ export function contestResourceAccess(
     return contest.problem_access_after_end ?? 'private';
   }
   if (resource === 'scoreboard') {
+    if (contestAccessPhase(contest) === 'running') {
+      return contest.scoreboard_public_during_contest
+        ? 'public'
+        : 'participants';
+    }
     return contest.scoreboard_access_after_end ?? 'private';
   }
   if (resource === 'submission') {
@@ -290,13 +296,7 @@ export function freezeAnnouncement(contest: Contest) {
   if (diffMinutes <= 0 || diffMinutes > 30) return '';
 
   const threshold =
-    diffMinutes <= 1
-      ? 1
-      : diffMinutes <= 5
-        ? 5
-        : diffMinutes <= 10
-          ? 10
-          : 30;
+    diffMinutes <= 1 ? 1 : diffMinutes <= 5 ? 5 : diffMinutes <= 10 ? 10 : 30;
   return `스코어보드 프리즈 ${threshold}분 전입니다. 프리즈 이후 공개 스코어보드는 프리즈 시점 순위만 표시됩니다.`;
 }
 
@@ -307,13 +307,7 @@ export function contestStartAnnouncement(contest: Contest) {
   if (diffMinutes <= 0 || diffMinutes > 30) return '';
 
   const threshold =
-    diffMinutes <= 1
-      ? 1
-      : diffMinutes <= 5
-        ? 5
-        : diffMinutes <= 10
-          ? 10
-          : 30;
+    diffMinutes <= 1 ? 1 : diffMinutes <= 5 ? 5 : diffMinutes <= 10 ? 10 : 30;
   return `대회 시작 ${threshold}분 전입니다. 시작 후 문제와 제출 기능이 열립니다.`;
 }
 
@@ -324,12 +318,6 @@ export function scoreboardFreezeEndAnnouncement(contest: Contest) {
   if (diffMinutes <= 0 || diffMinutes > 30) return '';
 
   const threshold =
-    diffMinutes <= 1
-      ? 1
-      : diffMinutes <= 5
-        ? 5
-        : diffMinutes <= 10
-          ? 10
-          : 30;
+    diffMinutes <= 1 ? 1 : diffMinutes <= 5 ? 5 : diffMinutes <= 10 ? 10 : 30;
   return `스코어보드 프리즈 종료 ${threshold}분 전입니다. 대회 종료 후에는 제출할 수 없습니다.`;
 }

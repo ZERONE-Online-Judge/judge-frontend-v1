@@ -115,7 +115,10 @@ export default function ContestPublicOverview({
       icon: 'book',
     });
   }
-  if (ended && contestResourceAccess(contest, 'scoreboard') === 'public') {
+  if (
+    (ended || (phase === 'running' && contest.visibility !== 'private')) &&
+    contestResourceAccess(contest, 'scoreboard') === 'public'
+  ) {
     resourceCards.push({
       path: 'scoreboard',
       title: '스코어보드',
@@ -313,14 +316,16 @@ export default function ContestPublicOverview({
           </aside>
         </div>
 
-        {ended ? (
+        {ended || resourceCards.length > 0 ? (
           <section
             className="contest-public-resources"
             aria-labelledby="contest-public-resources-title"
           >
             <div className="contest-public-resources-heading">
               <div>
-                <p className="contest-public-section-label">OPEN ARCHIVE</p>
+                <p className="contest-public-section-label">
+                  {ended ? 'OPEN ARCHIVE' : 'LIVE SCOREBOARD'}
+                </p>
                 <h2 id="contest-public-resources-title">
                   누구나 볼 수 있는 대회 자료
                 </h2>

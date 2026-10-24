@@ -105,13 +105,27 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
         ),
       )
     : false;
+  const isPublicLiveScoreboard = Boolean(
+    contest &&
+    location.pathname.replace(/\/$/, '') ===
+      `/contests/${encodeURIComponent(resolvedContestId)}/scoreboard` &&
+    contestAccessPhase(contest) === 'running' &&
+    canViewContestResource(
+      contest,
+      false,
+      contestResourceAccess(contest, 'scoreboard'),
+    ),
+  );
   const shouldRequireParticipantAccess =
-    !isOverview && (!contest || contestAccessPhase(contest) !== 'ended');
+    !isOverview &&
+    !isPublicLiveScoreboard &&
+    (!contest || contestAccessPhase(contest) !== 'ended');
   const hasContestParticipantAccess =
     isOverview ||
     !generalSession ||
     Boolean(activeParticipantSession) ||
     Boolean(participantContest) ||
+    isPublicLiveScoreboard ||
     (!shouldRequireParticipantAccess && hasPublicAfterEndResource);
   const shouldCheckParticipantAccess = Boolean(
     contestId &&

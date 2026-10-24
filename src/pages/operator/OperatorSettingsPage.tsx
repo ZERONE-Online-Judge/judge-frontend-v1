@@ -55,6 +55,7 @@ type SettingsForm = BoardWritingPolicy & {
   organization_name: string;
   overview: string;
   problem_access_after_end: ContestResourceAccess;
+  scoreboard_public_during_contest: boolean;
   scoreboard_access_after_end: ContestResourceAccess;
   scoreboard_release_mode: ScoreboardReleaseMode;
   start_at: string;
@@ -119,7 +120,11 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
     organization_name: contest.organization_name,
     overview: contest.overview,
     problem_access_after_end: contestResourceAccess(contest, 'problem'),
-    scoreboard_access_after_end: contestResourceAccess(contest, 'scoreboard'),
+    scoreboard_public_during_contest: Boolean(
+      contest.scoreboard_public_during_contest,
+    ),
+    scoreboard_access_after_end:
+      contest.scoreboard_access_after_end ?? 'private',
     scoreboard_release_mode: contest.scoreboard_release_mode ?? 'manual',
     start_at: dateTimeLocalValue(contest.start_at),
     status,
@@ -234,6 +239,7 @@ function OperatorSettingsContent({
       visibility: form.visibility,
       visibility_after_end: form.visibility_after_end,
       problem_access_after_end: form.problem_access_after_end,
+      scoreboard_public_during_contest: form.scoreboard_public_during_contest,
       scoreboard_access_after_end: form.scoreboard_access_after_end,
       scoreboard_release_mode: form.scoreboard_release_mode,
       submission_access_after_end: form.submission_access_after_end,
@@ -534,6 +540,31 @@ function OperatorSettingsContent({
                       onChange={(field, value) =>
                         setSettingsForm((prev) =>
                           prev ? { ...prev, [field]: value } : prev,
+                        )
+                      }
+                    />
+                  </SettingsSection>
+                  <SettingsSection
+                    title="진행 중 스코어보드 공개"
+                    summary={
+                      settingsForm.scoreboard_public_during_contest
+                        ? '비로그인 공개'
+                        : '참가자만 열람'
+                    }
+                  >
+                    <ChoiceCard
+                      checked={settingsForm.scoreboard_public_during_contest}
+                      type="checkbox"
+                      title="진행 중 스코어보드 비로그인 공개"
+                      description="공개 대회가 진행 중일 때 로그인하지 않은 방문자도 스코어보드를 볼 수 있습니다. 프리즈와 미공개 결과 숨김은 그대로 적용됩니다. 종료 후에는 아래 ‘종료 후 자료 공개 범위’ 설정을 따릅니다."
+                      onChange={(checked) =>
+                        setSettingsForm((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                scoreboard_public_during_contest: checked,
+                              }
+                            : prev,
                         )
                       }
                     />

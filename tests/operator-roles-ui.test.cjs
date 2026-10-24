@@ -1134,3 +1134,37 @@ test('saving one field sends only that field and leaves untouched schedules inta
   assert.deepEqual(settingsChanges.at(-1).body, { title: '제목만 변경' });
   assert.equal(contestOverrides.start_at, '2026-10-01T01:00:37Z');
 });
+
+test('live public scoreboard defaults off and saves independently from archive visibility', async () => {
+  await render(SettingsPage, 'settings');
+  const label = [...container.querySelectorAll('label')].find((item) =>
+    item.textContent.includes('진행 중 스코어보드 비로그인 공개'),
+  );
+  assert.ok(label);
+  const input = label.querySelector('input[type="checkbox"]');
+  assert.equal(input.checked, false);
+  await click(input);
+  await click(button('변경사항 저장'));
+  assert.deepEqual(settingsChanges[0].body, {
+    scoreboard_public_during_contest: true,
+  });
+});
+test('running public access does not overwrite the private archive setting on an unrelated save', async () => {
+  contestOverrides = {
+    status: 'running',
+    start_at: new Date(Date.now() - 3600000).toISOString(),
+    end_at: new Date(Date.now() + 3600000).toISOString(),
+    scoreboard_public_during_contest: true,
+    scoreboard_access_after_end: 'private',
+  };
+  await render(SettingsPage, 'settings');
+  const label = [...container.querySelectorAll('label')].find((item) =>
+    item.textContent.includes('진행 중 스코어보드 비로그인 공개'),
+  );
+  assert.equal(label.querySelector('input').checked, true);
+  await click(label.querySelector('input'));
+  await click(button('변경사항 저장'));
+  assert.deepEqual(settingsChanges[0].body, {
+    scoreboard_public_during_contest: false,
+  });
+});

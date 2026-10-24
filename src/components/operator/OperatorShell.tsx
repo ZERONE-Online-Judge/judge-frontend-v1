@@ -1,6 +1,5 @@
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
-import ContestShareButton from '@/components/operator/ContestShareButton';
 import {
   hasParticipantPreviewAccess,
   participantPreviewPath,
@@ -358,43 +357,64 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       ? pathname.startsWith(`${basePath}/${tab.path}`)
       : pathname === basePath,
   );
-  function menuLinks() {
-    return visibleTabs.map((tab) => {
-      const Icon = tab.icon;
-      const to = tab.path ? `${basePath}/${tab.path}` : basePath;
-      const count =
-        tab.path === 'notices'
-          ? noticeCountLabel
-          : tab.path === 'board'
-            ? boardCountLabel
-            : tab.path === 'participants'
-              ? participantCountLabel
-              : tab.path === 'problems'
-                ? problemCountLabel
-                : '';
-      return (
-        <NavLink
-          className="operator-menu__link"
-          aria-label={count ? `${tab.label} ${count}` : tab.label}
-          title={count ? `${tab.label} · ${count}` : tab.label}
-          end={'end' in tab ? tab.end : undefined}
-          key={tab.label}
-          to={to}
-          onClick={() => setOpenedAt(null)}
-        >
-          <Icon />
-          <span className="operator-menu__label">{tab.label}</span>
-          {count ? <TabCountBadge>{count}</TabCountBadge> : null}
-        </NavLink>
-      );
-    });
+  function tabLink(tab: (typeof visibleTabs)[number]) {
+    const Icon = tab.icon;
+    const to = tab.path ? `${basePath}/${tab.path}` : basePath;
+    const count =
+      tab.path === 'notices'
+        ? noticeCountLabel
+        : tab.path === 'board'
+          ? boardCountLabel
+          : tab.path === 'participants'
+            ? participantCountLabel
+            : tab.path === 'problems'
+              ? problemCountLabel
+              : '';
+    return (
+      <NavLink
+        className="operator-menu__link"
+        aria-label={count ? `${tab.label} ${count}` : tab.label}
+        title={count ? `${tab.label} · ${count}` : tab.label}
+        end={'end' in tab ? tab.end : undefined}
+        key={tab.label}
+        to={to}
+        onClick={() => setOpenedAt(null)}
+      >
+        <Icon />
+        <span className="operator-menu__label">{tab.label}</span>
+        {count ? <TabCountBadge>{count}</TabCountBadge> : null}
+      </NavLink>
+    );
   }
-  return (
-    <div
-      className="operator-navigation"
-      data-open={menuOpen}
-      data-collapsed={sidebarCollapsed}
-    >
+  function menuLinks() {
+    return (
+      <>
+        {visibleTabs.filter((tab) => !tab.path).map(tabLink)}
+        {hasParticipantPreviewAccess(generalSession, contestId!) ? (
+          <Link
+            to={participantPreviewPath(contestId!)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="operator-menu__link operator-menu__preview"
+            aria-label="참가자 화면 미리보기"
+            title="참가자 화면 미리보기 · 새 탭에서 열기"
+            onClick={() => setOpenedAt(null)}
+          >
+            <InterfaceIcon name="search" />
+            <span className="operator-menu__label">참가자 화면 미리보기</span>
+            <InterfaceIcon
+              name="arrowUpRight"
+              className="operator-menu__external"
+            />
+          </Link>
+        ) : null}
+        {visibleTabs.filter((tab) => tab.path).map(tabLink)}
+      </>
+    );
+  }
+
+  function contestContext(inDrawer = false) {
+    return (
       <div className="operator-context">
         <div className="operator-context__toolbar">
           <Link
@@ -402,34 +422,39 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             className="operator-context__back"
             aria-label="대회 목록"
             title="대회 목록"
+            onClick={() => setOpenedAt(null)}
           >
             <InterfaceIcon name="arrowLeft" />
             <span>대회 목록</span>
           </Link>
-          <button
-            type="button"
-            className="operator-sidebar-toggle"
-            aria-label={
-              sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
-            }
-            title={sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'}
-            aria-expanded={!sidebarCollapsed}
-            aria-controls={`${menuId}-desktop`}
-            onClick={() => {
-              const next = !sidebarCollapsed;
-              setSidebarCollapsed(next);
-              try {
-                window.localStorage.setItem(
-                  SIDEBAR_COLLAPSED_KEY,
-                  String(next),
-                );
-              } catch {
-                // The menu remains usable when browser storage is unavailable.
+          {!inDrawer ? (
+            <button
+              type="button"
+              className="operator-sidebar-toggle"
+              aria-label={
+                sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
               }
-            }}
-          >
-            <InterfaceIcon name="menu" />
-          </button>
+              title={
+                sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
+              }
+              aria-expanded={!sidebarCollapsed}
+              aria-controls={`${menuId}-desktop`}
+              onClick={() => {
+                const next = !sidebarCollapsed;
+                setSidebarCollapsed(next);
+                try {
+                  window.localStorage.setItem(
+                    SIDEBAR_COLLAPSED_KEY,
+                    String(next),
+                  );
+                } catch {
+                  // The menu remains usable when browser storage is unavailable.
+                }
+              }}
+            >
+              <InterfaceIcon name="menu" />
+            </button>
+          ) : null}
         </div>
         <strong
           className="operator-context__title"
@@ -443,27 +468,16 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             <span>{roleTitle}</span>
           </p>
         ) : null}
-        {hasParticipantPreviewAccess(generalSession, contestId) ? (
-          <Link
-            to={participantPreviewPath(contestId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="operator-preview-link operator-preview-top-link"
-            aria-label="참가자 화면 미리보기"
-            title="참가자 화면 미리보기"
-          >
-            <span>참가자 화면 미리보기</span>
-            <InterfaceIcon name="arrowUpRight" />
-          </Link>
-        ) : null}
-        {staffSession ? (
-          <ContestShareButton
-            key={contestId}
-            contestId={contestId}
-            token={staffSession.accessToken}
-          />
-        ) : null}
       </div>
+    );
+  }
+  return (
+    <div
+      className="operator-navigation"
+      data-open={menuOpen}
+      data-collapsed={sidebarCollapsed}
+    >
+      <div className="operator-desktop-context">{contestContext()}</div>
       <button
         type="button"
         className="operator-menu-trigger"
@@ -473,16 +487,17 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
         aria-haspopup="dialog"
         onClick={() => setOpenedAt(locationKey)}
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M3 5h14M3 10h14M3 15h14"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span>{activeTab?.label ?? '운영자 메뉴'}</span>
-        <span className="operator-menu-trigger__hint">메뉴</span>
+        <span className="operator-menu-trigger__icon">
+          <InterfaceIcon name="menu" />
+        </span>
+        <span className="operator-menu-trigger__copy">
+          <strong>운영 메뉴 열기</strong>
+          <span>현재 화면 · {activeTab?.label ?? '대회 운영'}</span>
+        </span>
+        <InterfaceIcon
+          name="arrowRight"
+          className="operator-menu-trigger__cue"
+        />
       </button>
       <div className="operator-menu-collapse" id={`${menuId}-desktop`}>
         <div className="operator-menu-collapse__inner">
@@ -495,11 +510,11 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
         <ModalDialog
           className="operator-menu-drawer"
           title="운영자 메뉴"
-          description={dashboardQuery.data?.contest?.title}
           onClose={() => setOpenedAt(null)}
           closeLabel="운영자 메뉴 닫기"
           drawer
         >
+          {contestContext(true)}
           <nav id={menuId} aria-label="운영자 메뉴" className="operator-menu">
             {menuLinks()}
           </nav>

@@ -48,7 +48,7 @@ export default function ContestShareButton({
     <>
       <button
         type="button"
-        className="operator-preview-link operator-share-link"
+        className="operator-action operator-action--secondary operator-share-link"
         aria-label="대회 링크 공유"
         title="대회 링크 공유"
         onClick={() => {

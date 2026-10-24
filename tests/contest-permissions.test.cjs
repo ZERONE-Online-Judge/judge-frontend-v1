@@ -148,7 +148,10 @@ const mocks = {
     createContestShareLink: async () => ({ code: 'shortCode01' }),
     getOperatorContestDashboard: async () => {
       reads.push('dashboard');
-      return { participant_count: 0, contest: { status: contestStatus } };
+      return {
+        participant_count: 0,
+        contest: { status: contestStatus, title: '운영 테스트 대회' },
+      };
     },
   },
   '@/domains/problemManagement/api': {
@@ -213,6 +216,9 @@ const {
   contestRolesForAccount,
   isAssignedContestMaster,
 } = source('domains/identityAccess/contestRoles.ts');
+const ContestShareButton = source(
+  'components/operator/ContestShareButton.tsx',
+).default;
 const { OperatorAccessGate, OperatorTabs } = source(
   'components/operator/OperatorShell.tsx',
 );
@@ -266,12 +272,15 @@ async function render(element = h(OperatorTabs, { contestId: 'contest' })) {
   );
 }
 function tabs() {
-  return [...container.querySelectorAll('nav[aria-label="운영자 메뉴"] a')].map(
-    (link) =>
-      link
-        .getAttribute('href')
-        .replace('/operator/contests/contest', '')
-        .replace(/^\//, ''),
+  return [
+    ...container.querySelectorAll(
+      'nav[aria-label="운영자 메뉴"] a:not([target="_blank"])',
+    ),
+  ].map((link) =>
+    link
+      .getAttribute('href')
+      .replace('/operator/contests/contest', '')
+      .replace(/^\//, ''),
   );
 }
 
@@ -284,7 +293,9 @@ test('operators share the participant URL without preview flags or credentials',
     value: { clipboard: { writeText: async (value) => copied.push(value) } },
   });
   try {
-    await render();
+    await render(
+      h(ContestShareButton, { contestId: 'contest', token: 'staff-token' }),
+    );
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
@@ -329,7 +340,9 @@ test('a rejected clipboard permission keeps a selectable participant URL availab
     },
   });
   try {
-    await render();
+    await render(
+      h(ContestShareButton, { contestId: 'contest', token: 'staff-token' }),
+    );
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
@@ -1130,14 +1143,57 @@ test('desktop resize dismisses drawer without changing saved sidebar collapse', 
   assert.equal(desktopListeners.size, 0);
 });
 
-test('participant preview appears in the top contest context, outside the collapsed menu', async () => {
+test('participant preview is a permission-gated menu tab in desktop and drawer navigation', async () => {
   session = forRoles('participant_preview');
   await render();
   const preview = container.querySelector(
     '[aria-label="참가자 화면 미리보기"]',
   );
-  assert.ok(preview);
-  assert.ok(preview.closest('.operator-context'));
-  assert.equal(preview.closest('.operator-menu-collapse'), null);
-  assert.match(preview.getAttribute('href'), /preview=1/);
+  assert.ok(preview.closest('nav[aria-label="운영자 메뉴"]'));
+  assert.equal(preview.closest('.operator-context'), null);
+  assert.equal(preview.target, '_blank');
+  assert.equal(preview.rel, 'noopener noreferrer');
+  const dialog = await openMenu();
+  const drawerPreview = dialog.querySelector(
+    '[aria-label="참가자 화면 미리보기"]',
+  );
+  assert.equal(
+    drawerPreview.getAttribute('href'),
+    '/contests/contest?preview=1',
+  );
+  assert.equal(drawerPreview.target, '_blank');
+  await act(async () =>
+    dialog.querySelector('[aria-label="운영자 메뉴 닫기"]').click(),
+  );
+  session = forRoles('settings_manager');
+  await render();
+  assert.equal(
+    container.querySelector('[aria-label="참가자 화면 미리보기"]'),
+    null,
+  );
+});
+
+test('compact menu trigger is explicit and contest context is inside the drawer without share controls', async () => {
+  session = forRoles('settings_manager');
+  await render();
+  assert.match(menuTrigger().textContent, /운영 메뉴 열기/);
+  assert.match(menuTrigger().textContent, /현재 화면 · 운영 홈/);
+  assert.equal(container.querySelector('[aria-label="대회 링크 공유"]'), null);
+  assert.ok(
+    container.querySelector('.operator-desktop-context .operator-context'),
+  );
+  const dialog = await openMenu();
+  assert.match(
+    dialog.querySelector('.operator-context__identity').textContent,
+    /운영진/,
+  );
+  assert.equal(
+    dialog.querySelector('.operator-context__title').textContent,
+    '운영 테스트 대회',
+  );
+  assert.ok(dialog.querySelector('.operator-context [href="/contests"]'));
+  assert.equal(dialog.querySelector('.operator-sidebar-toggle'), null);
+  assert.equal(dialog.querySelector('[aria-label="대회 링크 공유"]'), null);
+  await act(async () => dialog.querySelector('[href="/contests"]').click());
+  assert.equal(document.querySelector('dialog'), null);
 });

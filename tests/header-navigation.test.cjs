@@ -17,9 +17,9 @@ dom.window.HTMLDialogElement.prototype.showModal = function () {
 dom.window.HTMLDialogElement.prototype.close = function () {
   this.open = false;
 };
-let resized;
-window.matchMedia = () => ({
-  matches: false,
+let resized, reducedMotion;
+window.matchMedia = (query) => ({
+  matches: query === '(prefers-reduced-motion: reduce)' && reducedMotion,
   addEventListener: (_type, fn) => {
     resized = fn;
   },
@@ -75,6 +75,7 @@ function Observer() {
   return null;
 }
 beforeEach(async () => {
+  reducedMotion = false;
   document.body.innerHTML = '<main></main>';
   root = createRoot(document.querySelector('main'));
   await act(() =>
@@ -123,6 +124,12 @@ test('folded menu preserves destinations, selected page and account controls', a
     '내 정보',
   );
   await click(document.querySelector('[aria-label="메뉴 닫기"]'));
+  assert.equal(
+    document.querySelector('.site-menu-drawer').dataset.state,
+    'closing',
+  );
+  assert.equal(document.body.style.overflow, 'hidden');
+  await finishClosing();
   assert.equal(document.querySelector('dialog'), null);
   assert.equal(document.activeElement, menuButton());
 });
@@ -137,7 +144,7 @@ test('choosing a mobile destination closes the menu and back does not reopen it'
   assert.equal(document.querySelector('dialog'), null);
 });
 
-test('Escape closes the menu and restores page scrolling', async () => {
+test('Escape animates dismissal before restoring page scrolling', async () => {
   await click(menuButton());
   assert.equal(document.body.style.overflow, 'hidden');
   await act(() =>
@@ -145,6 +152,11 @@ test('Escape closes the menu and restores page scrolling', async () => {
       .querySelector('dialog')
       .dispatchEvent(new dom.window.Event('cancel', { cancelable: true })),
   );
+  assert.equal(
+    document.querySelector('.site-menu-drawer').dataset.state,
+    'closing',
+  );
+  await finishClosing();
   assert.equal(document.querySelector('dialog'), null);
   assert.equal(document.body.style.overflow, '');
 });
@@ -155,4 +167,54 @@ test('returning to a desktop width closes the menu and removes resize listeners 
   assert.equal(document.querySelector('dialog'), null);
   await act(() => root.render(null));
   assert.equal(resized, null);
+});
+
+async function finishClosing() {
+  const event = new dom.window.Event('animationend', { bubbles: true });
+  Object.defineProperty(event, 'animationName', {
+    value: 'site-menu-slide-out',
+  });
+  await act(() =>
+    document.querySelector('.site-menu-drawer').dispatchEvent(event),
+  );
+}
+
+test('backdrop dismissal uses the exit animation and restores trigger focus', async () => {
+  menuButton().focus();
+  await click(menuButton());
+  const backdrop = document.querySelector('.zoj-modal-backdrop');
+  await act(() => {
+    backdrop.dispatchEvent(
+      new dom.window.Event('pointerdown', { bubbles: true }),
+    );
+    backdrop.click();
+  });
+  assert.equal(
+    document.querySelector('.site-menu-drawer').dataset.state,
+    'closing',
+  );
+  assert.equal(menuButton().getAttribute('aria-expanded'), 'false');
+  await finishClosing();
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.activeElement, menuButton());
+});
+
+test('reduced motion dismisses immediately without waiting for animation', async () => {
+  reducedMotion = true;
+  await click(menuButton());
+  await click(document.querySelector('[aria-label="메뉴 닫기"]'));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.body.style.overflow, '');
+});
+
+test('interrupted animation still releases the modal and its scroll lock', async () => {
+  await click(menuButton());
+  await click(document.querySelector('[aria-label="메뉴 닫기"]'));
+  assert.equal(
+    document.querySelector('.site-menu-drawer').dataset.state,
+    'closing',
+  );
+  await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.body.style.overflow, '');
 });

@@ -39,6 +39,8 @@ const JudgeStatusPage = lazy(() => import('@/pages/public/JudgeStatusPage'));
 const PresentationPage = lazy(
   () => import('@/pages/presentation/PresentationPage'),
 );
+const EditorReturnPage = lazy(() => import('@/pages/auth/EditorReturnPage'));
+const EditorAccountPage = lazy(() => import('@/pages/auth/EditorAccountPage'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const MainPage = lazy(() => import('@/pages/main/MainPage'));
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'));
@@ -116,6 +118,18 @@ export const appRoutes: readonly AppRoute[] = [
     name: 'ZOJ 소개',
     path: '/about',
     Component: AboutPage,
+  },
+  {
+    name: '에디터로 돌아가기',
+    path: '/editor/return',
+    Component: EditorReturnPage,
+    showInNavigation: false,
+  },
+  {
+    name: '에디터 계정 보안',
+    path: '/editor/account',
+    Component: EditorAccountPage,
+    showInNavigation: false,
   },
   {
     name: 'Editor 소개',

@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
 import OperatorContestStatus from '@/components/operator/OperatorContestStatus';
+import ContestShareButton from '@/components/operator/ContestShareButton';
 import {
   JudgeIcon,
   OperatorAccessGate,
@@ -79,6 +80,13 @@ function OperatorHomeContent({
       description="운영 권한이 있는 대회의 참가팀, 문제, 제출, 공지를 관리합니다."
       eyebrow="Operator"
       title="운영 홈"
+      actions={
+        <ContestShareButton
+          key={contestId}
+          contestId={contestId}
+          token={token}
+        />
+      }
       width="full"
     >
       {dashboardQuery.error ? (

@@ -1082,3 +1082,14 @@ test('operator question thread matches chronological replies and keeps private r
   assert.equal(container.querySelector('textarea'), null);
   assert.match(container.textContent, /이전 댓글/);
 });
+
+test('contest sharing is available inside the operator home and absent from other pages', async () => {
+  await render(HomePage, '');
+  const share = container.querySelector('[aria-label="대회 링크 공유"]');
+  assert.ok(share);
+  assert.ok(share.closest('.operator-layout__content'));
+  assert.equal(share.closest('.operator-layout__navigation'), null);
+  await act(async () => root.render(null));
+  await render(SubmissionsPage, '/submissions');
+  assert.equal(container.querySelector('[aria-label="대회 링크 공유"]'), null);
+});

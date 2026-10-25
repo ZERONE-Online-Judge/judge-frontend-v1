@@ -396,8 +396,11 @@ for (const status of ['draft', 'schedule_tbd', 'open'])
 test('revoking live permission cannot reuse the cached internal board', async () => {
   await render();
   assert.match(container.textContent, /확인할 팀/);
+  await click(container.querySelector('table tbody tr td:last-child button'));
+  assert.ok(document.querySelector('dialog'));
   session.operatorSession.staff.contest_scopes.contest = ['contest.view'];
   await render();
+  assert.equal(document.querySelector('dialog'), null);
   assert.match(container.textContent, /참가자 표시 팀/);
   assert.doesNotMatch(container.textContent, /확인할 팀/);
   assert.equal(button('프레젠테이션 팝업'), undefined);

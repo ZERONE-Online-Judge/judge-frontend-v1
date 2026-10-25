@@ -392,7 +392,7 @@ export default function OperatorScoreboardPage() {
       {(session) =>
         contestId ? (
           <OperatorScoreboardContent
-            key={contestId}
+            key={`${contestId}:${hasContestPermission(session, contestId, 'contest.scoreboard.view')}`}
             canReadLive={hasContestPermission(
               session,
               contestId,
@@ -659,6 +659,9 @@ function OperatorScoreboardContent({
   );
 
   const rows = scoreboardQuery.data?.rows ?? [];
+  const penaltyRow = rows.find(
+    (row) => row.team_id === selectedPenaltyRow?.team_id,
+  );
   const problemStats = scoreboardQuery.data?.problem_stats ?? [];
 
   if (!canViewBoard)
@@ -930,12 +933,12 @@ function OperatorScoreboardContent({
           </p>
         ) : null}
       </OperatorPanel>
-      {selectedPenaltyRow ? (
+      {penaltyRow ? (
         <PenaltyBreakdownModal
           contestStartAt={contest?.start_at}
           onClose={() => setSelectedPenaltyRow(null)}
           problemById={problemById}
-          row={selectedPenaltyRow}
+          row={penaltyRow}
         />
       ) : null}
     </PageLayout>

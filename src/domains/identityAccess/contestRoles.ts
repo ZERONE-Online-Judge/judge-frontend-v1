@@ -53,7 +53,8 @@ export const CONTEST_ROLES = [
   {
     value: 'scoreboard_viewer',
     label: '대회 운영진 · 스코어보드 확인',
-    description: '스코어보드와 프레젠테이션을 조회합니다.',
+    description:
+      '프리즈를 무시한 실제 순위와 프레젠테이션을 조회합니다. 이 권한이 없어도 대회 시작 후 참가자 순위표는 볼 수 있습니다.',
   },
   {
     value: 'scoreboard_manager',

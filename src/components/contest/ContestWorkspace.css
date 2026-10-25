@@ -48,6 +48,7 @@ main:has(.zoj-contest-shell) {
   font-size: 0.8125rem;
 }
 .zoj-participant > .mt-9 {
+  min-width: 0;
   margin-top: 1.5rem;
 }
 .zoj-participant :is(input:not([type='range']), select, textarea) {
@@ -438,6 +439,8 @@ main:has(.zoj-contest-shell) {
   }
   .zoj-participant :is(.zoj-problems-table, .zoj-submissions-table) tbody {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
     gap: 0.875rem;
   }
   .zoj-participant .zoj-problems-table tr {
@@ -483,6 +486,8 @@ main:has(.zoj-contest-shell) {
   .zoj-participant .zoj-submission-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    max-width: 100%;
     gap: 1rem;
     padding: 1rem;
     border: 1px solid #e2e8f0;

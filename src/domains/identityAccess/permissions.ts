@@ -162,3 +162,17 @@ export function hasContestPermission(
         scopeMatches(scope, 'contest.problem.review')),
   );
 }
+
+export function canViewOperatorScoreboard(
+  session: PermissionSession,
+  contestId: string,
+  contestStatus?: string,
+) {
+  return (
+    hasContestPermission(session, contestId, 'contest.scoreboard.view') ||
+    (hasContestAccess(session, contestId) &&
+      ['running', 'ended', 'finalized', 'archived'].includes(
+        contestStatus ?? '',
+      ))
+  );
+}

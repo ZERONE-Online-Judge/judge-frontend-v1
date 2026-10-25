@@ -93,8 +93,13 @@ const mocks = {
   '@/domains/submissionScoreboard/api': {
     getOperatorDivisionScoreboard: async () => {
       reads.scoreboard += 1;
+      const live =
+        session.operatorSession.staff.contest_scopes.contest.includes(
+          'contest.scoreboard.view',
+        );
       return {
-        rows: [row],
+        rows: [{ ...row, team_name: live ? row.team_name : '참가자 표시 팀' }],
+        operator_live_view: live,
         frozen_public_view: true,
         problem_stats: [
           {
@@ -358,13 +363,46 @@ test('scoreboard managers can start and advance rank release', async () => {
   assert.equal(reads.problems, 0);
 });
 
-test('staff without scoreboard view cannot load scoreboard data', async () => {
+test('started staff without live permission see the participant board without controls', async () => {
   session.operatorSession.staff.contest_scopes.contest = [
     'contest.participant.view',
   ];
   await render();
-  assert.equal(reads.dashboard, 0);
-  assert.equal(reads.scoreboard, 0);
+  assert.ok(reads.dashboard > 0);
+  assert.ok(reads.scoreboard > 0);
+  assert.match(container.textContent, /참가자 표시 팀/);
+  assert.match(container.textContent, /프리즈가 적용된 참가자 순위표/);
+  assert.doesNotMatch(
+    container.textContent,
+    /최신 성적을 보여주는 운영자 내부 순위/,
+  );
+  assert.equal(button('프레젠테이션 팝업'), undefined);
+  assert.equal(reads.release, 0);
+  assert.deepEqual(changes, []);
+});
+
+for (const status of ['draft', 'schedule_tbd', 'open'])
+  test(`basic staff wait for start in ${status}`, async () => {
+    session.operatorSession.staff.contest_scopes.contest = ['contest.view'];
+    contest.status = status;
+    await render();
+    assert.equal(reads.scoreboard, 0);
+    assert.match(
+      container.textContent,
+      /대회 시작 후 참가자와 같은 스코어보드/,
+    );
+  });
+
+test('revoking live permission cannot reuse the cached internal board', async () => {
+  await render();
+  assert.match(container.textContent, /확인할 팀/);
+  await click(container.querySelector('table tbody tr td:last-child button'));
+  assert.ok(document.querySelector('dialog'));
+  session.operatorSession.staff.contest_scopes.contest = ['contest.view'];
+  await render();
+  assert.equal(document.querySelector('dialog'), null);
+  assert.match(container.textContent, /참가자 표시 팀/);
+  assert.doesNotMatch(container.textContent, /확인할 팀/);
   assert.equal(button('프레젠테이션 팝업'), undefined);
 });
 

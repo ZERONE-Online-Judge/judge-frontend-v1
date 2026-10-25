@@ -15,6 +15,7 @@ import { contestRoleTitleForAccount } from '@/domains/identityAccess/contestRole
 import {
   hasContestPermission,
   hasContestAccess,
+  canViewOperatorScoreboard,
   isServiceMaster,
   operatorHomePermissions,
   type ContestPermissionCode,
@@ -345,12 +346,18 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       : '';
 
   const visibleTabs = operatorTabs.filter((tab) =>
-    hasContestPermission(
-      generalSession,
-      contestId,
-      tab.permission,
-      dashboardQuery.data?.contest?.status,
-    ),
+    tab.path === 'scoreboard'
+      ? canViewOperatorScoreboard(
+          generalSession,
+          contestId,
+          dashboardQuery.data?.contest?.status,
+        )
+      : hasContestPermission(
+          generalSession,
+          contestId,
+          tab.permission,
+          dashboardQuery.data?.contest?.status,
+        ),
   );
   const activeTab = visibleTabs.find((tab) =>
     tab.path

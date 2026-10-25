@@ -475,7 +475,7 @@ function OperatorSubmissionsContent({
 
       <OperatorPanel
         actions={
-          <div className="flex flex-wrap gap-3">
+          <div className="flex max-w-full min-w-0 flex-wrap gap-3">
             <button
               type="button"
               className="h-10 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
@@ -493,10 +493,10 @@ function OperatorSubmissionsContent({
             >
               전체 제출 보기
             </button>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
               유형
               <Select
-                className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextDivisionId = event.target.value;
                   setDivisionId(nextDivisionId);
@@ -520,10 +520,10 @@ function OperatorSubmissionsContent({
                 ))}
               </Select>
             </label>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
               문제
               <Select
-                className="h-10 min-w-52 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                className="h-10 w-52 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextProblemId = event.target.value;
                   setProblemId(nextProblemId);
@@ -540,10 +540,10 @@ function OperatorSubmissionsContent({
                 ))}
               </Select>
             </label>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
               팀
               <Select
-                className="h-10 min-w-52 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                className="h-10 w-52 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 onChange={(event) => {
                   const nextTeamId = event.target.value;
                   setTeamId(nextTeamId);
@@ -812,7 +812,12 @@ function OperatorSubmissionsTable({
     'border-r border-slate-100 px-4 py-4 align-top last:border-r-0';
 
   return (
-    <div className="zoj-horizontal-scroll rounded-lg border border-slate-200 bg-white">
+    <div
+      className="zoj-horizontal-scroll rounded-lg border border-slate-200 bg-white"
+      role="region"
+      aria-label="제출 목록, 좌우로 스크롤하여 채점 정보 확인"
+      tabIndex={0}
+    >
       <table className="w-full min-w-[1180px] table-fixed border-collapse text-left text-sm">
         <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
           <tr>

@@ -388,14 +388,16 @@ export default function OperatorScoreboardPage() {
   const { contestId } = useParams();
 
   return (
-    <OperatorAccessGate
-      contestId={contestId}
-      permission="contest.scoreboard.view"
-    >
+    <OperatorAccessGate contestId={contestId}>
       {(session) =>
         contestId ? (
           <OperatorScoreboardContent
-            key={contestId}
+            key={`${contestId}:${hasContestPermission(session, contestId, 'contest.scoreboard.view')}`}
+            canReadLive={hasContestPermission(
+              session,
+              contestId,
+              'contest.scoreboard.view',
+            )}
             canManage={hasContestPermission(
               session,
               contestId,
@@ -548,11 +550,13 @@ function ScoreboardFreezeControl({
 
 function OperatorScoreboardContent({
   canManage,
+  canReadLive,
   canReadProblems,
   contestId,
   token,
 }: {
   canManage: boolean;
+  canReadLive: boolean;
   canReadProblems: boolean;
   contestId: string;
   token: string;
@@ -589,8 +593,14 @@ function OperatorScoreboardContent({
     refetchInterval: isVisible ? 5_000 : false,
     refetchIntervalInBackground: false,
   });
+  const contest = dashboardQuery.data?.contest;
+  const canViewBoard =
+    canReadLive ||
+    ['running', 'ended', 'finalized', 'archived'].includes(
+      contest?.status ?? '',
+    );
   const problemsQuery = useQuery({
-    enabled: canReadProblems,
+    enabled: canReadProblems && canViewBoard,
     queryKey: ['operator', 'problems', contestId, queryIdentity],
     queryFn: () => getOperatorProblems(contestId, token),
     placeholderData: keepPreviousData,
@@ -602,8 +612,15 @@ function OperatorScoreboardContent({
     ? selectedDivisionId
     : (divisions[0]?.division_id ?? '');
   const scoreboardQuery = useQuery({
-    enabled: Boolean(divisionId),
-    queryKey: ['operator', 'scoreboard', contestId, divisionId, queryIdentity],
+    enabled: Boolean(divisionId) && canViewBoard,
+    queryKey: [
+      'operator',
+      'scoreboard',
+      contestId,
+      divisionId,
+      queryIdentity,
+      canReadLive,
+    ],
     queryFn: () => getOperatorDivisionScoreboard(contestId, divisionId, token),
     refetchInterval: isVisible ? 5_000 : false,
     refetchIntervalInBackground: false,
@@ -627,7 +644,8 @@ function OperatorScoreboardContent({
     },
   });
 
-  const contest = dashboardQuery.data?.contest;
+  const liveView =
+    canReadLive && scoreboardQuery.data?.operator_live_view !== false;
   const freezeMode = contest?.scoreboard_freeze_mode ?? 'auto';
   const releaseMode = contest?.scoreboard_release_mode ?? 'manual';
   const releaseOption = scoreboardReleaseOption(releaseMode);
@@ -641,13 +659,43 @@ function OperatorScoreboardContent({
   );
 
   const rows = scoreboardQuery.data?.rows ?? [];
+  const penaltyRow = rows.find(
+    (row) => row.team_id === selectedPenaltyRow?.team_id,
+  );
   const problemStats = scoreboardQuery.data?.problem_stats ?? [];
+
+  if (!canViewBoard)
+    return (
+      <PageLayout
+        navigation={<OperatorTabs contestId={contestId} />}
+        variant="management"
+        title="스코어보드"
+      >
+        <p
+          role="status"
+          className="rounded-lg border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600"
+        >
+          {dashboardQuery.isPending
+            ? '대회 상태를 확인하고 있습니다.'
+            : dashboardQuery.error
+              ? formatApiError(
+                  dashboardQuery.error,
+                  '대회 상태를 불러오지 못했습니다',
+                )
+              : '대회 시작 후 참가자와 같은 스코어보드를 볼 수 있습니다.'}
+        </p>
+      </PageLayout>
+    );
 
   return (
     <PageLayout
       navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
-      description="운영자용 내부 순위입니다. 프리즈 이후에도 최신 채점 결과가 반영됩니다."
+      description={
+        liveView
+          ? '운영자용 내부 순위입니다. 프리즈 이후에도 최신 채점 결과가 반영됩니다.'
+          : '참가자와 같은 순위표입니다. 프리즈와 순위 공개 정책이 적용됩니다.'
+      }
       eyebrow="Operator"
       title="스코어보드"
       width="full"
@@ -691,11 +739,11 @@ function OperatorScoreboardContent({
           }}
         />
       ) : null}
-      {canManage ? (
+      {canManage && liveView ? (
         <PresentationAccountCard contestId={contestId} token={token} />
       ) : null}
 
-      {contest ? (
+      {contest && liveView ? (
         <section
           aria-label="종료 후 순위 공개 방식"
           className="grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-5"
@@ -758,7 +806,7 @@ function OperatorScoreboardContent({
         </section>
       ) : null}
 
-      {contest && !ended ? (
+      {contest && !ended && liveView ? (
         <ScoreboardFreezeControl
           canManage={canManage}
           disabled={freezeModeMutation.isPending}
@@ -797,15 +845,17 @@ function OperatorScoreboardContent({
       <OperatorPanel
         actions={
           <>
-            <button
-              className="zoj-pressable inline-flex h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-              disabled={!divisions.length}
-              onClick={() => setPresentationSetupOpen(true)}
-              type="button"
-            >
-              <ScoreboardIcon />
-              프레젠테이션 팝업
-            </button>
+            {liveView ? (
+              <button
+                className="zoj-pressable inline-flex h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                disabled={!divisions.length}
+                onClick={() => setPresentationSetupOpen(true)}
+                type="button"
+              >
+                <ScoreboardIcon />
+                프레젠테이션 팝업
+              </button>
+            ) : null}
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               <ScoreboardIcon />
               <Select
@@ -848,7 +898,7 @@ function OperatorScoreboardContent({
             를 선택하세요.
           </p>
         ) : null}
-        {canManage && contest && ended && divisionId ? (
+        {canManage && liveView && contest && ended && divisionId ? (
           <ScoreboardReleaseControl
             key={divisionId}
             contestId={contestId}
@@ -863,11 +913,13 @@ function OperatorScoreboardContent({
         ) : null}
         {scoreboardQuery.data?.frozen_public_view ? (
           <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-            공개 스코어보드는 프리즈 상태입니다. 이 화면은 최신 성적을 보여주는
-            운영자 내부 순위입니다.
+            {liveView
+              ? '공개 스코어보드는 프리즈 상태입니다. 이 화면은 최신 성적을 보여주는 운영자 내부 순위입니다.'
+              : '프리즈가 적용된 참가자 순위표입니다. 미공개 채점 결과는 표시되지 않습니다.'}
           </p>
         ) : null}
         <ContestScoreboardTable
+          release={scoreboardQuery.data?.release}
           onSelectPenaltyBreakdown={setSelectedPenaltyRow}
           problems={problems}
           rows={rows}
@@ -881,12 +933,12 @@ function OperatorScoreboardContent({
           </p>
         ) : null}
       </OperatorPanel>
-      {selectedPenaltyRow ? (
+      {penaltyRow ? (
         <PenaltyBreakdownModal
           contestStartAt={contest?.start_at}
           onClose={() => setSelectedPenaltyRow(null)}
           problemById={problemById}
-          row={selectedPenaltyRow}
+          row={penaltyRow}
         />
       ) : null}
     </PageLayout>

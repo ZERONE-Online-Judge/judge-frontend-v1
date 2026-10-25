@@ -65,9 +65,11 @@ export function contestTimerState(
       : 0;
   const afterFreeze = hasFreeze && now >= freeze;
   const anchors = hasFreeze
-    ? afterFreeze
-      ? { start: 40, freeze: 94, end: 250 }
-      : { start: 40, freeze: 194, end: 250 }
+    ? phase === 'before'
+      ? { start: 40, freeze: 145, end: 250 }
+      : afterFreeze
+        ? { start: 40, freeze: 94, end: 250 }
+        : { start: 40, freeze: 194, end: 250 }
     : { start: 40, freeze: 40, end: 216 };
   const current =
     !valid || now < start

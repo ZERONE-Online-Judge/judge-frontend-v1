@@ -857,7 +857,7 @@ export const operatorGuideCategories: GuideCategory[] = [
     route: 'scoreboard',
     permission: 'contest.scoreboard.view',
     description:
-      '운영자 내부 순위와 참가자 공개 순위를 나눠 이해하면 프리즈·리졸버·시상 발표가 쉬워집니다.',
+      '대회 시작 후 운영자는 참가자 순위를 볼 수 있습니다. 스코어보드 보기 권한이 있으면 프리즈를 무시한 내부 실제 순위를 확인합니다.',
     checklist: [
       '현재 표시 모드 확인',
       '유형별 순위와 남은 채점 확인',
@@ -875,7 +875,7 @@ export const operatorGuideCategories: GuideCategory[] = [
           '변경 확인 메시지를 읽고 적용한 뒤 공개 화면 상태를 확인합니다.',
         ],
         effect:
-          '운영자 내부 순위는 프리즈 이후에도 최신 채점 결과를 반영합니다. 공개 순위가 멈춰 있어도 제출·채점은 계속됩니다.',
+          '스코어보드 보기 권한이 있는 운영자의 내부 순위는 프리즈 이후에도 최신 결과를 반영합니다. 권한이 없는 운영자에게는 참가자와 같은 프리즈·순위 공개 정책이 적용됩니다. 순위가 멈춰 있어도 제출·채점은 계속됩니다.',
         table: {
           headers: ['모드', '공개 순위 동작'],
           rows: [

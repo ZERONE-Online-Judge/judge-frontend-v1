@@ -140,6 +140,7 @@ export type ScoreboardResponse = {
 };
 
 export type OperatorScoreboardResponse = {
+  release?: ScoreboardRelease | null;
   frozen_public_view: boolean;
   operator_live_view: boolean;
   problem_stats?: ScoreboardProblemStat[];

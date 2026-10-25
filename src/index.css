@@ -386,6 +386,13 @@
   }
 }
 
+.zoj-horizontal-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
 @media (hover: hover) {
   .zoj-surface-hover:hover {
     transform: translateY(-2px);

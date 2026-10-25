@@ -19,6 +19,7 @@ import { getOperatorContestDashboard } from '@/domains/contestAdministration/api
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import {
   hasContestPermission,
+  canViewOperatorScoreboard,
   operatorHomePermissions,
   type ContestPermissionCode,
 } from '@/domains/identityAccess/permissions';
@@ -213,7 +214,7 @@ function OperatorHomeContent({
                 to={`/operator/contests/${contestId}/board`}
               />
             ) : null}
-            {can('contest.scoreboard.view') ? (
+            {canViewOperatorScoreboard(session, contestId, contest?.status) ? (
               <OperatorQuickLink
                 icon={<ScoreboardIcon />}
                 label="스코어보드"

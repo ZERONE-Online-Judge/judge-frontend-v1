@@ -204,6 +204,7 @@ function source(relative) {
 const {
   hasContestPermission,
   hasContestAccess,
+  canViewOperatorScoreboard,
   isContestMaster,
   isServiceMaster,
   contestScopesFor,
@@ -299,7 +300,9 @@ test('operators share the participant URL without preview flags or credentials',
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+    await act(
+      async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
+    );
     const dialog = document.querySelector('dialog');
     assert.ok(dialog?.open);
     const input = dialog.querySelector('input');
@@ -346,7 +349,9 @@ test('a rejected clipboard permission keeps a selectable participant URL availab
     await act(async () =>
       container.querySelector('[aria-label="대회 링크 공유"]').click(),
     );
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+    await act(
+      async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
+    );
     const dialog = document.querySelector('dialog');
     await act(async () =>
       [...dialog.querySelectorAll('button')]
@@ -1041,6 +1046,24 @@ test('running operators read problem statements without review, test or edit pow
       );
     await render();
     assert.equal(tabs().includes('problem-review'), status === 'running');
+    assert.equal(
+      tabs().includes('scoreboard'),
+      ['running', 'ended', 'archived'].includes(status),
+    );
+    assert.equal(
+      canViewOperatorScoreboard(session, 'contest', status),
+      ['running', 'ended', 'archived'].includes(status),
+    );
+    assert.equal(
+      hasContestPermission(
+        session,
+        'contest',
+        'contest.scoreboard.view',
+        status,
+      ),
+      false,
+    );
+    assert.equal(canViewOperatorScoreboard(session, 'other', status), false);
     assert.ok(tabs().includes('notices') && tabs().includes('board'));
   }
 });

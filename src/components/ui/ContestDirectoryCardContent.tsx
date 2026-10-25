@@ -105,50 +105,58 @@ export default function ContestDirectoryCardContent({
           <span>{hasDate ? start.getFullYear() : '미정'}</span>
         </div>
         <div className="directory-card-info">
-          <h3>{title}</h3>
-          <span className="directory-organization">
+          <h3 title={title}>{title}</h3>
+          <span
+            className="directory-organization"
+            title={organization || 'ZOJ'}
+          >
             {organization || 'ZOJ'}
           </span>
         </div>
       </div>
-      {meta.scheduleTbd ? (
-        <p className="directory-schedule-tbd">대회 일정 미정</p>
-      ) : (
-        <ol className="directory-card-schedule" aria-label="대회 일정">
-          {[
-            { label: '시작', value: meta.startAt },
-            { label: '종료', value: meta.endAt },
-          ].map(({ label, value }) => {
-            const schedule = moment(value);
-            return (
-              <li key={label}>
-                <span className="directory-schedule-label">{label}</span>
-                <div className="directory-schedule-detail">
-                  <time
-                    className="directory-schedule-time"
-                    dateTime={schedule.dateTime}
-                  >
-                    {schedule.time}
-                  </time>
-                  <time dateTime={schedule.dateTime}>{schedule.date}</time>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-      {publicLabels.length ? (
+      <div className="directory-card-details">
+        {meta.scheduleTbd ? (
+          <p className="directory-schedule-tbd">대회 일정 미정</p>
+        ) : (
+          <ol className="directory-card-schedule" aria-label="대회 일정">
+            {[
+              { label: '시작', value: meta.startAt },
+              { label: '종료', value: meta.endAt },
+            ].map(({ label, value }) => {
+              const schedule = moment(value);
+              return (
+                <li key={label}>
+                  <span className="directory-schedule-label">{label}</span>
+                  <div className="directory-schedule-detail">
+                    <time
+                      className="directory-schedule-time"
+                      dateTime={schedule.dateTime}
+                    >
+                      {schedule.time}
+                    </time>
+                    <time dateTime={schedule.dateTime}>{schedule.date}</time>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
         <div className="directory-card-footer">
-          <dl className="directory-resources" aria-label="종료 후 자료 공개 범위">
-            {resourceGroups(publicLabels).map(([access, names]) => (
-              <div key={access}>
-                <dt>{access}</dt>
-                <dd>{names.join(' · ')}</dd>
-              </div>
-            ))}
-          </dl>
+          {publicLabels.length ? (
+            <dl
+              className="directory-resources"
+              aria-label="종료 후 자료 공개 범위"
+            >
+              {resourceGroups(publicLabels).map(([access, names]) => (
+                <div key={access}>
+                  <dt>{access}</dt>
+                  <dd>{names.join(' · ')}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

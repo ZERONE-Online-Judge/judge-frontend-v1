@@ -112,6 +112,21 @@ export default function ContestDirectoryCardContent({
           >
             {organization || 'ZOJ'}
           </span>
+          {publicLabels.length ? (
+            <div className="directory-card-footer">
+              <dl
+                className="directory-resources"
+                aria-label="종료 후 자료 공개 범위"
+              >
+                {resourceGroups(publicLabels).map(([access, names]) => (
+                  <div key={access}>
+                    <dt>{access}</dt>
+                    <dd title={names.join(' · ')}>{names.join(' · ')}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="directory-card-details">
@@ -141,21 +156,6 @@ export default function ContestDirectoryCardContent({
             })}
           </ol>
         )}
-        <div className="directory-card-footer">
-          {publicLabels.length ? (
-            <dl
-              className="directory-resources"
-              aria-label="종료 후 자료 공개 범위"
-            >
-              {resourceGroups(publicLabels).map(([access, names]) => (
-                <div key={access}>
-                  <dt>{access}</dt>
-                  <dd>{names.join(' · ')}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-        </div>
       </div>
     </div>
   );

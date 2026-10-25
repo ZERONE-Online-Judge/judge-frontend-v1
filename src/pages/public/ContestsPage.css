@@ -269,10 +269,10 @@
   display: grid;
   flex: 1;
   grid-template-columns: minmax(0, 1fr) 310px;
-  grid-template-rows: 28px 144px;
+  grid-template-rows: 28px 136px;
   align-items: center;
   min-width: 0;
-  gap: 20px 36px;
+  gap: 16px 36px;
   text-align: left;
   --directory-timeline-dot: #8b7bce;
   --directory-timeline-line: #e3dfef;
@@ -308,9 +308,8 @@
   min-width: 0;
 }
 .contest-directory .directory-card-details {
-  display: grid;
-  grid-template-rows: 88px 44px;
-  gap: 12px;
+  display: flex;
+  align-items: center;
   min-width: 0;
 }
 .contest-directory .directory-card-date {
@@ -392,11 +391,11 @@
 .contest-directory .directory-organization {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
   color: #697386;
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.5;
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
@@ -405,10 +404,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  margin: 0 0 8px;
-  font-size: 25px;
+  margin: 0 0 6px;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
   letter-spacing: -0.035em;
   overflow-wrap: anywhere;
   word-break: keep-all;
@@ -492,15 +491,15 @@
   text-align: center;
 }
 .contest-directory .directory-card-footer {
-  padding-left: 12px;
+  margin-top: 10px;
 }
 .contest-directory .directory-resources {
   display: grid;
   min-width: 0;
-  gap: 5px;
+  gap: 3px;
   margin: 0;
   font-size: 11px;
-  line-height: 1.7;
+  line-height: 1.5;
   color: #697386;
 }
 .contest-directory .directory-resources > div {
@@ -513,7 +512,9 @@
 }
 .contest-directory .directory-resources dd {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .contest-directory .directory-card-action {
   position: relative;
@@ -683,7 +684,7 @@
 @media (max-width: 760px) {
   .contest-directory .directory-card-content {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 28px 144px 144px;
+    grid-template-rows: 28px 136px 88px;
     gap: 16px;
   }
   .contest-directory .directory-card-schedule {
@@ -754,18 +755,11 @@
     padding: 18px;
   }
   .contest-directory .directory-card-content {
-    grid-template-rows: 52px 112px 154px;
+    grid-template-rows: 52px 136px 80px;
     gap: 12px;
-  }
-  .contest-directory .directory-card-details {
-    grid-template-rows: 80px 64px;
-    gap: 10px;
   }
   .contest-directory .directory-card-topline {
     align-items: flex-start;
-  }
-  .contest-directory .directory-card-footer {
-    padding-left: 4px;
   }
   .contest-directory .directory-card-date {
     width: 60px;

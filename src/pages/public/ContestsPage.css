@@ -269,9 +269,10 @@
   display: grid;
   flex: 1;
   grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-rows: 28px 144px;
   align-items: center;
   min-width: 0;
-  gap: 22px 36px;
+  gap: 20px 36px;
   text-align: left;
   --directory-timeline-dot: #8b7bce;
   --directory-timeline-line: #e3dfef;
@@ -304,6 +305,12 @@
   min-width: 0;
 }
 .contest-directory .directory-card-info {
+  min-width: 0;
+}
+.contest-directory .directory-card-details {
+  display: grid;
+  grid-template-rows: 88px 44px;
+  gap: 12px;
   min-width: 0;
 }
 .contest-directory .directory-card-date {
@@ -383,7 +390,10 @@
   color: #84623c;
 }
 .contest-directory .directory-organization {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   color: #697386;
   font-size: 14px;
   line-height: 1.7;
@@ -391,6 +401,10 @@
   word-break: keep-all;
 }
 .contest-directory .directory-card-info h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   margin: 0 0 8px;
   font-size: 25px;
   font-weight: 700;
@@ -478,9 +492,7 @@
   text-align: center;
 }
 .contest-directory .directory-card-footer {
-  grid-column: 1 / -1;
-  border-top: 1px solid #f0f1f6;
-  padding-top: 14px;
+  padding-left: 12px;
 }
 .contest-directory .directory-resources {
   display: grid;
@@ -671,7 +683,8 @@
 @media (max-width: 760px) {
   .contest-directory .directory-card-content {
     grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
+    grid-template-rows: 28px 144px 144px;
+    gap: 16px;
   }
   .contest-directory .directory-card-schedule {
     padding: 4px 0 4px 4px;
@@ -741,7 +754,18 @@
     padding: 18px;
   }
   .contest-directory .directory-card-content {
-    gap: 18px;
+    grid-template-rows: 52px 112px 154px;
+    gap: 12px;
+  }
+  .contest-directory .directory-card-details {
+    grid-template-rows: 80px 64px;
+    gap: 10px;
+  }
+  .contest-directory .directory-card-topline {
+    align-items: flex-start;
+  }
+  .contest-directory .directory-card-footer {
+    padding-left: 4px;
   }
   .contest-directory .directory-card-date {
     width: 60px;
@@ -756,6 +780,9 @@
   }
   .contest-directory .directory-card-trailing {
     gap: 10px;
+  }
+  .contest-directory .directory-countdown {
+    font-size: 10px;
   }
   .contest-directory .directory-card-action {
     padding: 7px 0 7px 7px;
@@ -781,6 +808,7 @@
   .contest-directory .directory-card-schedule > li {
     gap: 10px;
     padding-left: 18px;
+    padding-block: 6px;
   }
   .contest-directory .directory-schedule-detail {
     gap: 8px;

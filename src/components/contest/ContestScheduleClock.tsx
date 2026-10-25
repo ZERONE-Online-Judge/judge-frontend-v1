@@ -228,7 +228,11 @@ export default function ContestScheduleClock({
               label="종료"
               value={contest.end_at}
               kind="end"
-              compact={state.hasFreeze && !state.afterFreeze}
+              compact={
+                state.phase !== 'before' &&
+                state.hasFreeze &&
+                !state.afterFreeze
+              }
             />
           </dl>
           {state.phase === 'running' ? (

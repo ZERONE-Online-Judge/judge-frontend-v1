@@ -138,6 +138,10 @@
   min-width: 0;
   height: 280px;
 }
+.contest-schedule-clock[data-phase='before']
+  .contest-clock-timeline[data-has-freeze='true'] {
+  height: 320px;
+}
 .contest-clock-current {
   position: absolute;
   top: 0;

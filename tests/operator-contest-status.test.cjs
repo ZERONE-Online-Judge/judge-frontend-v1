@@ -201,7 +201,7 @@ afterEach(async () => {
 });
 after(() => dom.window.close());
 test('operator clock crosses countdown, notice, freeze and end with settings permissions intact', async () => {
-  let now = start - 1000;
+  let now = start - 60_000;
   Date.now = () => now;
   const ticks = new Map();
   window.setInterval = (callback) => {
@@ -232,6 +232,21 @@ test('operator clock crosses countdown, notice, freeze and end with settings per
   };
   await render();
   assert.match(container.textContent, /대회 시작 전/);
+  assert.deepEqual(
+    [...container.querySelectorAll('.contest-clock-moment')].map((moment) => [
+      moment.dataset.kind,
+      moment.dataset.compact,
+    ]),
+    [
+      ['start', 'false'],
+      ['freeze', 'false'],
+      ['end', 'false'],
+    ],
+  );
+  const timeline = container.querySelector('.contest-clock-timeline');
+  assert.equal(timeline.style.getPropertyValue('--clock-freeze'), '145px');
+  assert.equal(container.querySelector('[role="progressbar"]'), null);
+  await tick(start - 1000);
   assert.equal(
     container.querySelector('[role="timer"]').getAttribute('aria-label'),
     '대회 시작까지 1초',
@@ -351,6 +366,21 @@ test('participant clock shares the timeline and omits operator controls and disa
 const { contestTimerState: timerState } = source(
   'domains/contestAdministration/contestTimer.ts',
 );
+test('pre-start milestones have equal spacing regardless of the freeze time', () => {
+  for (const freeze_at of [
+    new Date(start + 1000).toISOString(),
+    contest.freeze_at,
+    new Date(end - 1000).toISOString(),
+  ]) {
+    const result = timerState({ ...contest, freeze_at }, start - 60_000);
+    assert.equal(result.phase, 'before');
+    assert.equal(
+      result.anchors.freeze,
+      (result.anchors.start + result.anchors.end) / 2,
+    );
+    assert.equal(result.current, result.anchors.start);
+  }
+});
 test('shared timer has exact 10-second, 2-second and presentation 60-second boundaries', () => {
   for (const presentation of [false, true]) {
     assert.equal(

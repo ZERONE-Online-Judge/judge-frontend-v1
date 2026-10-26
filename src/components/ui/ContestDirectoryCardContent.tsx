@@ -69,7 +69,9 @@ export default function ContestDirectoryCardContent({
     ? '일정 준비 중'
     : { running: '진행 중', upcoming: '시작 예정', ended: '종료' }[meta.phase];
   return (
-    <div className={`directory-card-content is-${meta.phase}`}>
+    <div
+      className={`directory-card-content is-${meta.phase} ${publicLabels.length ? 'has-resources' : ''}`}
+    >
       <div className="directory-card-topline">
         <div className="directory-card-labels">
           <span className={`directory-status is-${meta.phase}`}>
@@ -112,21 +114,6 @@ export default function ContestDirectoryCardContent({
           >
             {organization || 'ZOJ'}
           </span>
-          {publicLabels.length ? (
-            <div className="directory-card-footer">
-              <dl
-                className="directory-resources"
-                aria-label="종료 후 자료 공개 범위"
-              >
-                {resourceGroups(publicLabels).map(([access, names]) => (
-                  <div key={access}>
-                    <dt>{access}</dt>
-                    <dd title={names.join(' · ')}>{names.join(' · ')}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : null}
         </div>
       </div>
       <div className="directory-card-details">
@@ -157,6 +144,21 @@ export default function ContestDirectoryCardContent({
           </ol>
         )}
       </div>
+      {publicLabels.length ? (
+        <div className="directory-card-footer">
+          <dl
+            className="directory-resources"
+            aria-label="종료 후 자료 공개 범위"
+          >
+            {resourceGroups(publicLabels).map(([access, names]) => (
+              <div key={access}>
+                <dt>{access}</dt>
+                <dd title={names.join(' · ')}>{names.join(' · ')}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
     </div>
   );
 }

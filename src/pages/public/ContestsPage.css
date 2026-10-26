@@ -285,6 +285,10 @@
   --directory-timeline-dot: #a1a8b8;
   --directory-timeline-line: #e5e8ef;
 }
+.contest-directory .directory-card-content.has-resources {
+  grid-template-rows: 28px 104px 32px;
+  row-gap: 8px;
+}
 .contest-directory .directory-card-topline {
   display: flex;
   grid-column: 1 / -1;
@@ -491,26 +495,32 @@
   text-align: center;
 }
 .contest-directory .directory-card-footer {
-  margin-top: 10px;
+  grid-column: 1 / -1;
+  align-self: stretch;
+  min-width: 0;
+  border-top: 1px solid var(--zoj-border);
+  padding-top: 12px;
 }
 .contest-directory .directory-resources {
-  display: grid;
+  display: flex;
   min-width: 0;
-  gap: 3px;
+  gap: 24px;
   margin: 0;
   font-size: 11px;
   line-height: 1.5;
   color: #697386;
 }
 .contest-directory .directory-resources > div {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 8px;
+  display: flex;
+  min-width: 0;
+  gap: 12px;
 }
 .contest-directory .directory-resources dt {
+  flex-shrink: 0;
   color: #697386;
 }
 .contest-directory .directory-resources dd {
+  min-width: 0;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -687,6 +697,28 @@
     grid-template-rows: 28px 136px 88px;
     gap: 16px;
   }
+  .contest-directory .directory-card-content.has-resources {
+    grid-template-rows: 28px 104px 80px 48px;
+    row-gap: 8px;
+  }
+  .contest-directory .has-resources .directory-card-schedule {
+    padding-block: 0;
+  }
+  .contest-directory .has-resources .directory-card-schedule > li {
+    padding-block: 8px;
+  }
+  .contest-directory .directory-card-footer {
+    padding-top: 10px;
+  }
+  .contest-directory .directory-resources {
+    display: grid;
+    gap: 3px;
+  }
+  .contest-directory .directory-resources > div {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
+  }
   .contest-directory .directory-card-schedule {
     padding: 4px 0 4px 4px;
   }
@@ -757,6 +789,13 @@
   .contest-directory .directory-card-content {
     grid-template-rows: 52px 136px 80px;
     gap: 12px;
+  }
+  .contest-directory .directory-card-content.has-resources {
+    grid-template-rows: 52px 104px 64px 48px;
+    row-gap: 8px;
+  }
+  .contest-directory .has-resources .directory-card-schedule > li {
+    padding-block: 4px;
   }
   .contest-directory .directory-card-topline {
     align-items: flex-start;

@@ -11,8 +11,8 @@ export default function EditorPackageImportHint() {
           Polygon Linux 패키지(ZIP)는 Editor에서 가져올 수 있습니다.
         </p>
         <p className="mt-1 text-xs leading-5 text-slate-600">
-          같은 계정으로 가져온 뒤, 이 화면의 ‘Editor에서 가져오기’로 대회에
-          등록하세요.
+          가져온 문제는 Editor의 공통 대회 등록·업데이트 창에서 대회에
+          적용하세요.
         </p>
       </div>
       <a

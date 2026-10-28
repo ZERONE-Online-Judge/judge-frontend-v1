@@ -10,6 +10,7 @@ import {
 } from '@/domains/problemManagement/archive';
 import { formatApiError } from '@/shared/api/errors';
 import EditorImportPanel from './EditorImportPanel';
+import EditorPackageImportHint from '@/components/operator/EditorPackageImportHint';
 
 function sizeLabel(bytes: number) {
   return bytes >= 1024 * 1024
@@ -124,6 +125,7 @@ export default function ProblemArchivePanel({
             </button>
           </div>
         </div>
+        <EditorPackageImportHint />
         {!divisions.length ? (
           <p className="text-xs text-slate-600">
             참가 유형을 먼저 추가해 주세요.
@@ -170,6 +172,10 @@ export default function ProblemArchivePanel({
           }
         >
           <div className="grid min-w-0 gap-5">
+            <p className="text-sm leading-6 text-slate-600">
+              이 창은 ZOJ에서 내보낸 문제 ZIP을 받습니다.
+            </p>
+            <EditorPackageImportHint />
             <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-800">
               ZOJ 문제 ZIP 파일
               <input

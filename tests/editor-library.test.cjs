@@ -192,6 +192,13 @@ test('import requires a verified package and prevents an existing problem code',
   await act(async () => button('Editor에서 가져오기').click());
   await flush();
   assert.match(host.textContent, /owner@example.com/);
+  const packageLink = host.querySelector(
+    'a[href="https://editor.zoj.kr/problems?action=import"]',
+  );
+  assert.ok(packageLink, 'Linux ZIP should open the Editor import dialog');
+  assert.equal(packageLink.target, '_blank');
+  assert.ok(packageLink.relList.contains('noopener'));
+  assert.match(host.textContent, /Polygon Linux/);
   assert.equal(button('이 대회에 문제 가져오기').disabled, true);
   await act(async () =>
     [...host.querySelectorAll('button')]

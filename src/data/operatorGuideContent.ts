@@ -612,6 +612,27 @@ export const operatorGuideCategories: GuideCategory[] = [
         note: '번역은 직접 작성한 자료입니다. 언어 선택이 자동 번역이나 언어별 채점 변경을 의미하지 않으며, 풀이에 사용하는 프로그래밍 언어 선택과는 별개입니다.',
       },
       {
+        id: 'polygon-linux-package',
+        title: 'Polygon Linux 패키지를 대회에 등록하기',
+        summary:
+          'Polygon Linux ZIP은 Editor에서 가져온 뒤 ZOJ 대회로 연결합니다.',
+        steps: [
+          '문제 관리의 ‘Editor에서 Linux ZIP 가져오기’를 누르면 새 탭에서 패키지 가져오기 창이 열립니다. 같은 ZOJ 계정으로 로그인하세요.',
+          'Editor에서 problem.xml과 생성된 테스트가 포함된 Polygon Linux ZIP을 선택하고 문제 이름·식별자를 입력합니다.',
+          '가져오기 결과와 ZOJ 채점기 호환성을 확인하고 필요한 언어 설정을 적용합니다. 수정한 자료는 공유 리비전으로 커밋합니다.',
+          'ZOJ 문제 관리로 돌아와 ‘Editor에서 가져오기’를 엽니다. 문제를 선택하고 검증 패키지를 준비한 뒤 참가 유형과 문제 번호를 정해 등록합니다.',
+        ],
+        effect:
+          'Editor에서 변환한 공유 리비전의 검증된 패키지를 대회 문제로 등록합니다. Linux ZIP을 Editor에 가져오기만 해서는 대회에 자동 등록되지 않습니다.',
+        note: 'ZOJ ZIP 불러오기는 ZOJ에서 내보낸 ZIP용입니다. Polygon Linux ZIP은 Editor를 이용하세요. 본인에게 Editor의 ZOJ 전송 권한과 해당 대회의 문제 등록 권한이 필요합니다.',
+        references: [
+          {
+            label: 'Editor에서 Linux ZIP 가져오기',
+            url: 'https://editor.zoj.kr/problems?action=import',
+          },
+        ],
+      },
+      {
         id: 'problem-archive',
         title: '문제를 ZIP으로 내보내고 다시 가져오기',
         summary:
@@ -619,7 +640,7 @@ export const operatorGuideCategories: GuideCategory[] = [
         steps: [
           '문제 목록에서 내보낼 문제를 선택하고 편집 중인 내용을 먼저 저장합니다.',
           '문제 관리 상단의 ‘선택한 문제 내보내기’로 .zoj.zip 파일을 내려받습니다.',
-          '같은 대회 또는 다른 대회에서 ‘문제 ZIP 가져오기’를 누르고 파일을 선택합니다.',
+          '같은 대회 또는 다른 대회에서 ‘ZOJ ZIP 불러오기’를 누르고 파일을 선택합니다.',
           '예제·파일·테스트케이스 버전 요약을 확인하고 참가 유형과 중복되지 않는 문제 번호를 지정합니다.',
           '‘새 문제로 등록’을 누른 뒤 목록에서 문제를 확인합니다. 필요하면 테스트케이스 탭에서 검증 코드를 다시 실행합니다.',
         ],

@@ -17,6 +17,7 @@ import {
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { formatApiError, isChangeNoticeCancelled } from '@/shared/api/errors';
 import EditorUpdateModal from '@/components/operator/EditorUpdateModal';
+import EditorPackageImportHint from '@/components/operator/EditorPackageImportHint';
 
 export default function EditorImportPanel({
   contestId,
@@ -194,6 +195,7 @@ export default function EditorImportPanel({
             </>
           }
         >
+          <EditorPackageImportHint />
           {library.isPending && (
             <p role="status" className="text-sm text-slate-500">
               내 Editor 문제를 확인하고 있습니다.

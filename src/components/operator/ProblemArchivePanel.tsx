@@ -9,7 +9,7 @@ import {
   inspectProblemArchive,
 } from '@/domains/problemManagement/archive';
 import { formatApiError } from '@/shared/api/errors';
-import EditorImportPanel from './EditorImportPanel';
+import EditorTransferLink from './EditorTransferLink';
 import EditorPackageImportHint from '@/components/operator/EditorPackageImportHint';
 
 function sizeLabel(bytes: number) {
@@ -24,7 +24,6 @@ export default function ProblemArchivePanel({
   divisions,
   problems,
   activeDivisionId,
-  unsaved,
   disabled,
   onCreate,
   onImported,
@@ -34,7 +33,6 @@ export default function ProblemArchivePanel({
   divisions: Division[];
   problems: Problem[];
   activeDivisionId: string;
-  unsaved: boolean;
   disabled: boolean;
   onCreate: () => void;
   onImported: (problem: Problem) => void;
@@ -90,14 +88,9 @@ export default function ProblemArchivePanel({
             문제 추가하기
           </h2>
           <div className="flex flex-wrap gap-2">
-            <EditorImportPanel
+            <EditorTransferLink
               contestId={contestId}
-              token={token}
-              divisions={divisions}
-              problems={problems}
               activeDivisionId={activeDivisionId}
-              disabled={disabled || busy || unsaved}
-              onImported={onImported}
             />
             <button
               type="button"

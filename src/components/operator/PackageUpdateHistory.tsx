@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/shared/api/client';
-import { downloadPackageBackup } from '@/domains/problemManagement/editorLibrary';
+import { downloadPackageBackup } from '@/domains/problemManagement/packageBackups';
 import { formatApiError } from '@/shared/api/errors';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 

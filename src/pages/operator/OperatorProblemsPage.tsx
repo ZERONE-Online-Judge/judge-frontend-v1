@@ -1665,7 +1665,6 @@ function OperatorProblemsContent({
         divisions={divisions}
         problems={problems}
         activeDivisionId={activeDivisionId}
-        unsaved={hasUnsavedProblem}
         disabled={problemWritePending}
         onCreate={startCreateMode}
         onImported={(problem) => {

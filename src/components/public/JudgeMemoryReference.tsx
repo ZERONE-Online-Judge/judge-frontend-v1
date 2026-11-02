@@ -71,6 +71,10 @@ export default function JudgeMemoryReference() {
           512MiB 대비 사용량이에요. 선택하면 저장된 측정값이 바뀌며 새 채점은
           발생하지 않아요.
         </p>
+        <p className="judge-section-footnote">
+          Python 3.13을 포함한 과거 환경의 측정 자료예요. 현재 지원 언어와
+          버전은 <a href="#judge-languages">지원 언어 표</a>에서 확인하세요.
+        </p>
         <div className="judge-speed-example">
           <span className="judge-small-label">크기를 가늠하는 첫 계산</span>
           <p>

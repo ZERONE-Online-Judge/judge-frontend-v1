@@ -10,6 +10,37 @@
 .judge-topic-links a:hover {
   color: var(--xp-purple);
 }
+.judge-language-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.judge-language-table th,
+.judge-language-table td {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--zoj-border);
+}
+.judge-language-table thead {
+  background: #f7f8fb;
+}
+.judge-language-table thead th {
+  font-size: 12px;
+  color: var(--xp-muted);
+}
+.judge-language-table tbody th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+.judge-language-table td {
+  color: var(--xp-muted);
+}
+.judge-experience .judge-section-footnote a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .judge-experience .judge-small-label {
   color: var(--xp-muted);
   font-size: 11px;

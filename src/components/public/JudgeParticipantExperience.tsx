@@ -1,6 +1,7 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import JudgeSubmissionJourney from '@/components/public/JudgeSubmissionJourney';
 import JudgeMemoryReference from '@/components/public/JudgeMemoryReference';
+import JudgeLanguageReference from '@/components/public/JudgeLanguageReference';
 import { useState } from 'react';
 import { ExperienceReveal } from '@/components/common/PublicExperience';
 import ContestScoreboardProblemCell from '@/components/contest/scoreboard/ContestScoreboardProblemCell';
@@ -403,6 +404,9 @@ export default function JudgeParticipantExperience() {
         className="experience-container judge-topic-links"
         aria-label="채점 알아보기"
       >
+        <a href="#judge-languages">
+          지원 언어 <InterfaceIcon name="arrowUpRight" />
+        </a>
         <a href="#judge-journey">
           채점 흐름 <InterfaceIcon name="arrowUpRight" />
         </a>
@@ -419,6 +423,7 @@ export default function JudgeParticipantExperience() {
           점수 계산 <InterfaceIcon name="arrowUpRight" />
         </a>
       </nav>
+      <JudgeLanguageReference />
       <JudgeSubmissionJourney />
       <JudgeTimeReference />
       <JudgeMemoryReference />

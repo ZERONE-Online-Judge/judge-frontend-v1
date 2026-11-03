@@ -18,10 +18,11 @@ dom.window.HTMLDialogElement.prototype.close = function () {
   this.open = false;
 };
 const desktopListeners = new Set();
+const mediaMatches = new Map();
 window.matchMedia = (query) => ({
-  matches: false,
+  matches: mediaMatches.get(query) ?? false,
   addEventListener: (_type, fn) => {
-    if (query === '(min-width: 1200px)') desktopListeners.add(fn);
+    if (query === '(min-width: 768px)') desktopListeners.add(fn);
   },
   removeEventListener: (_type, fn) => desktopListeners.delete(fn),
 });
@@ -241,6 +242,9 @@ beforeEach(() => {
   document.body.innerHTML = '';
   window.localStorage.clear();
   window.sessionStorage.clear();
+  mediaMatches.clear();
+  mediaMatches.set('(prefers-reduced-motion: reduce)', true);
+  mediaMatches.set('(hover: hover) and (pointer: fine)', true);
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -1104,7 +1108,10 @@ test('drawer keeps permitted links and active page, closes on navigation and sta
   await act(async () => dialog.querySelector('a[href$="/settings"]').click());
   assert.equal(document.querySelector('dialog'), null);
   assert.equal(trigger.getAttribute('aria-expanded'), 'false');
-  assert.match(trigger.textContent, /설정/);
+  assert.match(
+    container.querySelector('.operator-mobile-bar__location').textContent,
+    /설정/,
+  );
   assert.equal(
     container
       .querySelector('nav a[href$="/settings"]')
@@ -1144,7 +1151,7 @@ test('drawer restores focus and scrolling on Escape, backdrop and close button',
   }
 });
 
-test('desktop resize dismisses drawer without changing saved sidebar collapse', async () => {
+test('rail-width resize dismisses drawer without changing saved sidebar collapse', async () => {
   session = forRoles('settings_manager');
   window.localStorage.setItem('zoj.operator.sidebarCollapsed', 'true');
   await render();
@@ -1196,11 +1203,15 @@ test('participant preview is a permission-gated menu tab in desktop and drawer n
   );
 });
 
-test('compact menu trigger is explicit and contest context is inside the drawer without share controls', async () => {
+test('compact menu trigger names the current page and keeps contest context inside the drawer', async () => {
   session = forRoles('settings_manager');
   await render();
-  assert.match(menuTrigger().textContent, /운영 메뉴 열기/);
-  assert.match(menuTrigger().textContent, /현재 화면 · 운영 홈/);
+  assert.equal(menuTrigger().getAttribute('aria-label'), '운영자 메뉴 열기');
+  assert.match(
+    container.querySelector('.operator-mobile-bar__location').textContent,
+    /운영 홈/,
+  );
+  assert.doesNotMatch(container.textContent, /현재 화면 ·/);
   assert.equal(container.querySelector('[aria-label="대회 링크 공유"]'), null);
   assert.ok(
     container.querySelector('.operator-desktop-context .operator-context'),
@@ -1219,4 +1230,188 @@ test('compact menu trigger is explicit and contest context is inside the drawer 
   assert.equal(dialog.querySelector('[aria-label="대회 링크 공유"]'), null);
   await act(async () => dialog.querySelector('[href="/contests"]').click());
   assert.equal(document.querySelector('dialog'), null);
+});
+
+function pointerEvent(target, type, pointerType = 'mouse') {
+  const event = new dom.window.MouseEvent(type, {
+    bubbles: true,
+    relatedTarget: document.body,
+  });
+  Object.defineProperty(event, 'pointerType', { value: pointerType });
+  target.dispatchEvent(event);
+}
+
+test('operator rail starts compact and preserves an explicitly pinned menu', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  assert.equal(navigation.dataset.collapsed, 'true');
+  assert.equal(navigation.dataset.expanded, 'false');
+  const pin = container.querySelector('[aria-label="운영 메뉴 고정"]');
+  assert.ok(pin);
+  assert.equal(pin.getAttribute('aria-pressed'), 'false');
+  await act(async () => pin.click());
+  assert.equal(navigation.dataset.expanded, 'true');
+  assert.equal(navigation.dataset.collapsed, 'false');
+  assert.equal(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'false',
+  );
+  await act(async () => root.render(null));
+  await render();
+  assert.equal(
+    container.querySelector('.operator-navigation').dataset.collapsed,
+    'false',
+  );
+  const collapse = container.querySelector('[aria-label="운영 메뉴 접기"]');
+  assert.equal(collapse.getAttribute('aria-pressed'), 'true');
+  await act(async () => collapse.click());
+  assert.equal(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'true',
+  );
+});
+
+test('unpinned rail hover expands for a mouse and retracts without changing the saved preference', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  const rail = navigation.querySelector('.operator-rail');
+  await act(async () => pointerEvent(rail, 'pointerover', 'touch'));
+  assert.equal(navigation.dataset.expanded, 'false');
+  await act(async () => pointerEvent(rail, 'pointerover'));
+  assert.equal(navigation.dataset.expanded, 'true');
+  assert.equal(document.querySelector('dialog'), null);
+  await act(async () => pointerEvent(rail, 'pointerout'));
+  assert.equal(navigation.dataset.expanded, 'false');
+  assert.notEqual(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'false',
+  );
+});
+
+test('touch-only rail can be pinned and collapsed without hover or a focus trap', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(hover: hover) and (pointer: fine)', false);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  const rail = navigation.querySelector('.operator-rail');
+  // Touch browsers can synthesize mouse events. Neither kind is hover here.
+  for (const pointerType of ['touch', 'pen', 'mouse']) {
+    await act(async () => pointerEvent(rail, 'pointerover', pointerType));
+    assert.equal(navigation.dataset.expanded, 'false', pointerType);
+  }
+  const pin = container.querySelector('[aria-label="운영 메뉴 고정"]');
+  await act(async () => {
+    pointerEvent(pin, 'pointerdown', 'touch');
+    pin.focus();
+    pin.click();
+  });
+  assert.equal(navigation.dataset.expanded, 'true');
+  assert.equal(navigation.dataset.collapsed, 'false');
+  assert.equal(document.activeElement, pin);
+  const collapse = container.querySelector('[aria-label="운영 메뉴 접기"]');
+  await act(async () => {
+    pointerEvent(collapse, 'pointerdown', 'touch');
+    collapse.focus();
+    collapse.click();
+  });
+  assert.equal(document.activeElement, collapse);
+  assert.equal(navigation.dataset.collapsed, 'true');
+  assert.equal(navigation.dataset.expanded, 'false');
+  assert.equal(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'true',
+  );
+});
+
+test('touching an expanded hover rail clears its transient mouse state', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  const rail = navigation.querySelector('.operator-rail');
+  await act(async () => pointerEvent(rail, 'pointerover'));
+  assert.equal(navigation.dataset.expanded, 'true');
+  const pin = container.querySelector('[aria-label="운영 메뉴 고정"]');
+  await act(async () => {
+    pointerEvent(pin, 'pointerdown', 'touch');
+    pin.focus();
+  });
+  assert.equal(navigation.dataset.expanded, 'false');
+  assert.equal(navigation.dataset.collapsed, 'true');
+});
+
+test('keyboard navigation still expands a rail after touch interaction', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(hover: hover) and (pointer: fine)', false);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  const pin = container.querySelector('[aria-label="운영 메뉴 고정"]');
+  await act(async () => {
+    pointerEvent(pin, 'pointerdown', 'touch');
+    pin.focus();
+  });
+  assert.equal(navigation.dataset.expanded, 'false');
+  await act(async () => {
+    pin.dispatchEvent(
+      new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true }),
+    );
+    navigation.querySelector('a[href$="/settings"]').focus();
+  });
+  assert.equal(navigation.dataset.expanded, 'true');
+  assert.equal(navigation.dataset.collapsed, 'true');
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  await act(async () => outside.focus());
+  assert.equal(navigation.dataset.expanded, 'false');
+});
+
+test('keyboard focus keeps the unpinned rail open until focus leaves', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(min-width: 768px)', true);
+  await render();
+  const navigation = container.querySelector('.operator-navigation');
+  const first = navigation.querySelector('a');
+  await act(async () => first.focus());
+  assert.equal(navigation.dataset.expanded, 'true');
+  await act(async () =>
+    pointerEvent(navigation.querySelector('.operator-rail'), 'pointerout'),
+  );
+  assert.equal(navigation.dataset.expanded, 'true');
+  const next = navigation.querySelector('a[href$="/settings"]');
+  await act(async () => next.focus());
+  assert.equal(navigation.dataset.expanded, 'true');
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  await act(async () => outside.focus());
+  assert.equal(navigation.dataset.expanded, 'false');
+  assert.notEqual(
+    window.localStorage.getItem('zoj.operator.sidebarCollapsed'),
+    'false',
+  );
+});
+
+test('normal-motion drawer closes after its exit animation and restores focus', async () => {
+  session = forRoles('settings_manager');
+  mediaMatches.set('(prefers-reduced-motion: reduce)', false);
+  await render();
+  const dialog = await openMenu();
+  await act(async () =>
+    dialog.querySelector('[aria-label="운영자 메뉴 닫기"]').click(),
+  );
+  assert.equal(menuTrigger().getAttribute('aria-expanded'), 'false');
+  assert.ok(document.querySelector('dialog'));
+  assert.ok(dialog.querySelector('.operator-menu-drawer.is-closing'));
+  assert.equal(document.body.style.overflow, 'hidden');
+  await act(
+    async () => new Promise((resolve) => global.setTimeout(resolve, 230)),
+  );
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(document.body.style.overflow, '');
+  assert.equal(document.activeElement, menuTrigger());
 });

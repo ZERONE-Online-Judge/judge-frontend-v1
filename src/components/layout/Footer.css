@@ -1,19 +1,22 @@
 .zoj-footer {
-  background: #191e30;
-  color: #b0b4c4;
+  --footer-surface: #191e30;
+  --footer-text: #c6cbda;
+  --footer-muted: #a1a9bf;
+  background: var(--footer-surface);
+  color: var(--footer-text);
   border-top: 1px solid #ffffff08;
 }
 .zoj-footer-container {
   width: calc(100% - 96px);
   max-width: 1200px;
   margin: 0 auto;
-  padding: 64px 0 26px;
+  padding: 36px 0 22px;
 }
 .zoj-footer-main {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 64px;
-  padding-bottom: 48px;
+  padding-bottom: 28px;
 }
 .zoj-footer-logo {
   display: inline-flex;
@@ -22,17 +25,17 @@
   color: #fff;
 }
 .zoj-footer-logo img {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   padding: 6px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #eeebff;
 }
 .zoj-footer-logo > span {
   display: grid;
   gap: 4px;
-  font-size: 25px;
+  font-size: 23px;
   font-weight: 750;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -44,8 +47,8 @@
   letter-spacing: 0.025em;
 }
 .zoj-footer-brand > p {
-  margin: 24px 0 16px;
-  font-size: 22px;
+  margin: 16px 0 12px;
+  font-size: 16px;
   font-weight: 550;
   line-height: 1.65;
   letter-spacing: -0.04em;
@@ -59,7 +62,7 @@
   align-items: center;
   gap: 18px;
   font-size: 12px;
-  color: #a1a9bf;
+  color: var(--footer-muted);
 }
 .zoj-footer-navigation {
   display: grid;
@@ -70,17 +73,22 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 18px;
+  gap: 4px;
 }
 .zoj-footer-navigation h2 {
   font-size: 12px;
   color: #f1f2f7;
   font-weight: 650;
-  margin: 4px 0 8px;
+  margin: 2px 0 10px;
 }
 .zoj-footer-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding-block: 3px;
   font-size: 13px;
   line-height: 1.6;
+  color: var(--footer-text);
 }
 .zoj-footer a {
   transition: color 0.2s;
@@ -106,7 +114,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  min-height: 60px;
+  min-height: 48px;
   cursor: pointer;
   list-style: none;
   font-size: 12px;
@@ -165,9 +173,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  padding-top: 24px;
+  padding-top: 16px;
   font-size: 11px;
-  color: #969eb5;
+  color: var(--footer-muted);
 }
 .zoj-footer-bottom p {
   margin: 0;
@@ -202,29 +210,30 @@
 @media (max-width: 600px) {
   .zoj-footer-container {
     width: calc(100% - 40px);
-    padding: 40px 0 22px;
+    padding: 32px 0 20px;
   }
   .zoj-footer-main {
     grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
-    padding-bottom: 28px;
+    gap: 24px;
+    padding-bottom: 24px;
   }
   .zoj-footer-brand > p {
-    font-size: 20px;
-    margin: 18px 0 10px;
+    font-size: 16px;
+    margin: 14px 0 10px;
   }
   .zoj-footer-navigation {
     gap: 24px;
   }
   .zoj-footer-navigation nav {
-    gap: 8px;
+    gap: 2px;
   }
   .zoj-footer-navigation h2 {
     margin-bottom: 6px;
   }
   .zoj-footer-navigation a {
-    font-size: 12px;
-    padding: 5px 0;
+    min-height: 36px;
+    font-size: 13px;
+    padding: 6px 0;
   }
   .zoj-footer-team > div {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -234,7 +243,7 @@
     flex-wrap: wrap;
     gap: 8px;
     padding-top: 16px;
-    font-size: 10px;
+    font-size: 11px;
   }
   .zoj-footer-bottom > div {
     gap: 20px;

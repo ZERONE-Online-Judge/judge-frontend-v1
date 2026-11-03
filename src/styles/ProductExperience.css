@@ -1,0 +1,289 @@
+/* Product-wide reading rhythm. Semantic verdicts and presentation screens
+   retain their own colors, timing and layout. */
+.zoj-product {
+  background: #f8f9fb;
+  color: var(--zoj-ink);
+  --product-hairline: #e4e7ec;
+  --product-quiet: #667085;
+}
+.zoj-product .site-header {
+  background: #ffffffed;
+  border-bottom-color: var(--product-hairline);
+  backdrop-filter: blur(16px);
+}
+.zoj-product .site-header-inner {
+  min-height: 68px;
+  padding-block: 10px;
+}
+.zoj-product .site-desktop-nav a {
+  min-height: 38px;
+  font-size: 13px;
+}
+.zoj-product .site-desktop-nav a.is-active {
+  background: #f0effb;
+  color: #4f46c9;
+}
+.zoj-product .zoj-page-heading h1 {
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.zoj-product .zoj-page-heading > p {
+  color: var(--product-quiet);
+}
+.zoj-product .zoj-page-heading > span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.zoj-product .operator-page-heading {
+  border-bottom-color: var(--product-hairline);
+  padding-bottom: 24px;
+}
+.zoj-product .zoj-management-panel,
+.zoj-product .operator-panel,
+.zoj-product .operator-settings-card,
+.zoj-product .operator-settings-section {
+  background: white;
+  border-color: var(--product-hairline);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px #10182803;
+}
+.zoj-product .zoj-management-panel {
+  padding: 24px;
+  gap: 24px;
+}
+.zoj-product .zoj-management-panel__heading h2 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.zoj-product .operator-navigation {
+  background: transparent;
+}
+.zoj-product .operator-menu__link {
+  min-height: 40px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.zoj-product .operator-context {
+  border-bottom-color: var(--product-hairline);
+}
+.zoj-product .operator-metric {
+  min-height: 120px;
+  padding: 22px;
+  border: 1px solid var(--product-hairline);
+  background: white;
+  border-radius: 12px;
+  align-items: start;
+}
+.zoj-product .operator-metric > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f6f7f9;
+}
+.zoj-product .operator-metric strong {
+  display: block;
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  margin-block: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.zoj-product .operator-metric p:first-child {
+  font-size: 12px;
+  font-weight: 500;
+}
+.zoj-product .operator-quick-link {
+  border-color: var(--product-hairline);
+  min-height: 50px;
+  padding: 14px;
+}
+.zoj-product .operator-quick-link:hover {
+  background: #f8f8fc;
+  border-color: #c7c3e4;
+}
+.zoj-product :is(.operator-action, .experience-button) {
+  border-radius: 8px;
+  transition:
+    background 160ms,
+    border-color 160ms,
+    box-shadow 160ms;
+}
+.zoj-product :is(input, textarea):not([type='checkbox']):not([type='radio']) {
+  caret-color: var(--zoj-accent);
+}
+.zoj-product :is(button, a, input, textarea, select):focus-visible {
+  outline-offset: 3px;
+}
+.zoj-product .contest-directory {
+  background: #fff;
+}
+.zoj-product .contest-directory .directory-content {
+  padding-top: 40px;
+  padding-bottom: 64px;
+}
+.zoj-product .directory-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.zoj-product .directory-intro h1 {
+  margin: 10px 0 12px;
+  color: #1d2433;
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+}
+.zoj-product .directory-intro > div > p:last-child {
+  margin: 0;
+  color: var(--product-quiet);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.zoj-product .directory-total {
+  color: var(--product-quiet);
+  font-size: 12px;
+  white-space: nowrap;
+  padding-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.zoj-product .experience-eyebrow {
+  color: #6d67a2;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+.zoj-product .contest-directory .directory-toolbar {
+  margin-bottom: 20px;
+}
+.zoj-product .contest-directory .directory-scope {
+  padding: 4px;
+  border-radius: 9px;
+  background: #f5f5fc;
+}
+.zoj-product .contest-directory .directory-scope button {
+  min-height: 36px;
+  padding: 8px 20px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.zoj-product .contest-directory .directory-scope button[aria-pressed='true'] {
+  box-shadow: 0 1px 3px #1018280c;
+}
+.zoj-product .contest-directory .directory-search {
+  min-height: 44px;
+  background: white;
+  border-color: var(--product-hairline);
+  border-radius: 9px;
+}
+.zoj-product .contest-directory .directory-phases {
+  margin-bottom: 30px;
+  border-bottom-color: var(--product-hairline);
+}
+.zoj-product .contest-directory .directory-phases button {
+  padding: 14px 16px;
+  font-size: 13px;
+}
+.zoj-product .directory-guide-inner {
+  border-top: 1px solid var(--product-hairline);
+  padding-top: 32px;
+}
+.zoj-product .experience-soft-section {
+  background: #f4f5f8;
+}
+.zoj-product .contest-public-hero {
+  background: #202333;
+  border-color: #2a2e40;
+  box-shadow: 0 8px 32px #11182708;
+}
+.zoj-product .contest-public-overview {
+  --cp-purple: #6d5bdb;
+  --cp-muted: #667085;
+}
+.zoj-product .home-shortcuts > a {
+  border-color: var(--product-hairline);
+  border-radius: 12px;
+  box-shadow: none;
+}
+@media (max-width: 767px) {
+  .zoj-product .site-header-inner {
+    min-height: 60px;
+  }
+  .zoj-product .contest-directory .directory-content {
+    padding-top: 30px;
+    padding-bottom: 40px;
+  }
+  .zoj-product .directory-intro {
+    align-items: start;
+    margin-bottom: 24px;
+  }
+  .zoj-product .directory-intro > div > p:last-child {
+    font-size: 13px;
+    max-width: 240px;
+  }
+  .zoj-product .directory-total {
+    display: none;
+  }
+  .zoj-product .operator-metric {
+    padding: 16px;
+    min-height: 112px;
+  }
+  .zoj-product .operator-metric strong {
+    font-size: 26px;
+  }
+  .zoj-product .zoj-management-panel {
+    padding: 18px;
+    gap: 20px;
+  }
+}
+/* Search uses one focus ring around the complete field, including its icon. */
+.zoj-product .directory-search:focus-within {
+  outline: 2px solid var(--zoj-focus);
+  outline-offset: 2px;
+}
+.zoj-product .directory-search input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Preserve the established card silhouette: the calendar, title and schedule
+   share the available body space; resource-free cards have no empty footer row. */
+.zoj-product .contest-directory .directory-resources {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 24px;
+  color: #64748b;
+}
+.zoj-product .contest-directory .directory-resources > div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+}
+.zoj-product .contest-directory .directory-resources dt {
+  color: #64748b;
+  font-weight: 500;
+}
+.zoj-product .contest-directory .directory-resources dd {
+  color: #596579;
+}
+@media (max-width: 760px) {
+  .zoj-product .contest-directory .directory-resources {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    gap: 4px;
+  }
+  .zoj-product .contest-directory .directory-resources > div {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoj-product :is(.operator-action, .experience-button) {
+    transition: none;
+  }
+}

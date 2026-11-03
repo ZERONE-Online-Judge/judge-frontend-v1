@@ -66,7 +66,9 @@ export function PageHeading({
 
   return (
     <header
-      className={['grid min-w-0 gap-2', className].filter(Boolean).join(' ')}
+      className={['zoj-page-heading grid min-w-0 gap-2', className]
+        .filter(Boolean)
+        .join(' ')}
     >
       {eyebrow ? (
         <span className={eyebrowClasses[variant]}>{eyebrow}</span>

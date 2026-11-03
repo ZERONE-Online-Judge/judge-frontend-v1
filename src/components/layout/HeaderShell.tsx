@@ -82,17 +82,6 @@ export default function HeaderShell({
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <Link
-          aria-label="Zerone Online Judge 홈"
-          className="site-header-brand"
-          to="/"
-        >
-          <SiteBrand />
-        </Link>
-        <nav aria-label={ariaLabel} className="site-desktop-nav">
-          <ul>{links()}</ul>
-        </nav>
-        <div className="site-header-actions">{actions}</div>
         <button
           type="button"
           className="site-menu-toggle"
@@ -115,6 +104,17 @@ export default function HeaderShell({
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+        <Link
+          aria-label="Zerone Online Judge 홈"
+          className="site-header-brand"
+          to="/"
+        >
+          <SiteBrand />
+        </Link>
+        <nav aria-label={ariaLabel} className="site-desktop-nav">
+          <ul>{links()}</ul>
+        </nav>
+        <div className="site-header-actions">{actions}</div>
       </div>
       {menuOpen && (
         <Modal aria-label="메뉴" onClose={closeMenu} drawer>
@@ -130,14 +130,6 @@ export default function HeaderShell({
             }}
           >
             <header className="site-menu-drawer__header">
-              <Link
-                to="/"
-                aria-label="Zerone Online Judge 홈"
-                className="site-header-brand"
-                onClick={() => setMenu(null)}
-              >
-                <SiteBrand />
-              </Link>
               <button
                 type="button"
                 className="site-menu-drawer__close"
@@ -158,6 +150,14 @@ export default function HeaderShell({
                   <path d="m6 6 12 12M18 6 6 18" />
                 </svg>
               </button>
+              <Link
+                to="/"
+                aria-label="Zerone Online Judge 홈"
+                className="site-header-brand"
+                onClick={() => setMenu(null)}
+              >
+                <SiteBrand />
+              </Link>
             </header>
             <nav id={menuId} aria-label={ariaLabel} className="site-mobile-nav">
               <ul>{links()}</ul>

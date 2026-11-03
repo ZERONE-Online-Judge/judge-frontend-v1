@@ -4,7 +4,7 @@ import {
   hasParticipantPreviewAccess,
   participantPreviewPath,
 } from '@/domains/identityAccess/participantPreview';
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -145,9 +145,9 @@ const SIDEBAR_COLLAPSED_KEY = 'zoj.operator.sidebarCollapsed';
 
 function storedSidebarCollapsed() {
   try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) !== 'false';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -265,17 +265,41 @@ export function OperatorAccessGate({
 export function OperatorTabs({ contestId }: OperatorTabsProps) {
   const { pathname, key: locationKey } = useLocation();
   const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const [closingAt, setClosingAt] = useState<string | null>(null);
+  const [railHovered, setRailHovered] = useState(false);
+  const [railFocused, setRailFocused] = useState(false);
+  const pointerFocused = useRef(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     storedSidebarCollapsed,
   );
   const menuId = useId();
   const menuOpen = openedAt === locationKey;
+  const menuClosing = closingAt === locationKey;
+  const railExpanded = !sidebarCollapsed || railHovered || railFocused;
+
+  function closeMenu() {
+    if (!menuOpen) return;
+    const reduceMotion = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    setClosingAt(reduceMotion ? null : locationKey);
+    setOpenedAt(null);
+  }
+
+  useEffect(() => {
+    if (!closingAt) return;
+    const timeout = window.setTimeout(() => setClosingAt(null), 180);
+    return () => window.clearTimeout(timeout);
+  }, [closingAt]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
-    const media = window.matchMedia('(min-width: 1200px)');
+    const media = window.matchMedia('(min-width: 768px)');
     const closeOnDesktop = (event: MediaQueryListEvent) => {
-      if (event.matches) setOpenedAt(null);
+      if (event.matches) {
+        setOpenedAt(null);
+        setClosingAt(null);
+      }
     };
     media.addEventListener('change', closeOnDesktop);
     return () => media.removeEventListener('change', closeOnDesktop);
@@ -385,7 +409,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
         end={'end' in tab ? tab.end : undefined}
         key={tab.label}
         to={to}
-        onClick={() => setOpenedAt(null)}
+        onClick={closeMenu}
       >
         <Icon />
         <span className="operator-menu__label">{tab.label}</span>
@@ -405,7 +429,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
             className="operator-menu__link operator-menu__preview"
             aria-label="참가자 화면 미리보기"
             title="참가자 화면 미리보기 · 새 탭에서 열기"
-            onClick={() => setOpenedAt(null)}
+            onClick={closeMenu}
           >
             <InterfaceIcon name="search" />
             <span className="operator-menu__label">참가자 화면 미리보기</span>
@@ -424,27 +448,16 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
     return (
       <div className="operator-context">
         <div className="operator-context__toolbar">
-          <Link
-            to="/contests"
-            className="operator-context__back"
-            aria-label="대회 목록"
-            title="대회 목록"
-            onClick={() => setOpenedAt(null)}
-          >
-            <InterfaceIcon name="arrowLeft" />
-            <span>대회 목록</span>
-          </Link>
           {!inDrawer ? (
             <button
               type="button"
               className="operator-sidebar-toggle"
               aria-label={
-                sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
+                sidebarCollapsed ? '운영 메뉴 고정' : '운영 메뉴 접기'
               }
-              title={
-                sidebarCollapsed ? '사이드 메뉴 펼치기' : '사이드 메뉴 접기'
-              }
-              aria-expanded={!sidebarCollapsed}
+              title={sidebarCollapsed ? '운영 메뉴 고정' : '운영 메뉴 접기'}
+              aria-expanded={railExpanded}
+              aria-pressed={!sidebarCollapsed}
               aria-controls={`${menuId}-desktop`}
               onClick={() => {
                 const next = !sidebarCollapsed;
@@ -462,19 +475,33 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
               <InterfaceIcon name="menu" />
             </button>
           ) : null}
+          <Link
+            to="/contests"
+            className="operator-context__back"
+            aria-label="대회 목록"
+            title="대회 목록"
+            onClick={closeMenu}
+          >
+            <InterfaceIcon name="arrowLeft" />
+            <span>대회 목록</span>
+          </Link>
         </div>
-        <strong
-          className="operator-context__title"
-          title={dashboardQuery.data?.contest?.title}
-        >
-          {dashboardQuery.data?.contest?.title ?? '대회 운영'}
-        </strong>
-        {staffSession ? (
-          <p className="operator-context__identity">
-            {staffSession.staff.display_name}
-            <span>{roleTitle}</span>
-          </p>
-        ) : null}
+        <div className="operator-context__details">
+          <div>
+            <strong
+              className="operator-context__title"
+              title={dashboardQuery.data?.contest?.title}
+            >
+              {dashboardQuery.data?.contest?.title ?? '대회 운영'}
+            </strong>
+            {staffSession ? (
+              <p className="operator-context__identity">
+                {staffSession.staff.display_name}
+                <span>{roleTitle}</span>
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
     );
   }
@@ -483,41 +510,80 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
       className="operator-navigation"
       data-open={menuOpen}
       data-collapsed={sidebarCollapsed}
+      data-expanded={railExpanded}
     >
-      <div className="operator-desktop-context">{contestContext()}</div>
-      <button
-        type="button"
-        className="operator-menu-trigger"
-        aria-expanded={menuOpen}
-        aria-label="운영자 메뉴 열기"
-        aria-controls={menuOpen ? menuId : undefined}
-        aria-haspopup="dialog"
-        onClick={() => setOpenedAt(locationKey)}
+      <div className="operator-mobile-bar">
+        <button
+          type="button"
+          className="operator-menu-trigger"
+          aria-expanded={menuOpen}
+          aria-label="운영자 메뉴 열기"
+          aria-controls={menuOpen ? menuId : undefined}
+          aria-haspopup="dialog"
+          title="운영 메뉴"
+          onClick={() => {
+            setClosingAt(null);
+            setOpenedAt(locationKey);
+          }}
+        >
+          <span className="operator-menu-trigger__icon" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
+        <span className="operator-mobile-bar__location">
+          <span>대회 운영</span>
+          <InterfaceIcon name="arrowRight" />
+          <strong>{activeTab?.label ?? '운영 메뉴'}</strong>
+        </span>
+      </div>
+      <div
+        className="operator-rail"
+        onPointerEnter={(event) => {
+          if (
+            event.pointerType === 'mouse' &&
+            window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
+          )
+            setRailHovered(true);
+        }}
+        onPointerLeave={() => setRailHovered(false)}
+        onPointerDownCapture={(event) => {
+          pointerFocused.current = true;
+          setRailFocused(false);
+          if (event.pointerType !== 'mouse') setRailHovered(false);
+        }}
+        onKeyDownCapture={() => {
+          pointerFocused.current = false;
+          setRailFocused(true);
+        }}
+        onFocus={() => {
+          if (!pointerFocused.current) setRailFocused(true);
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            pointerFocused.current = false;
+            setRailFocused(false);
+          }
+        }}
       >
-        <span className="operator-menu-trigger__icon">
-          <InterfaceIcon name="menu" />
-        </span>
-        <span className="operator-menu-trigger__copy">
-          <strong>운영 메뉴 열기</strong>
-          <span>현재 화면 · {activeTab?.label ?? '대회 운영'}</span>
-        </span>
-        <InterfaceIcon
-          name="arrowRight"
-          className="operator-menu-trigger__cue"
-        />
-      </button>
-      <div className="operator-menu-collapse" id={`${menuId}-desktop`}>
-        <div className="operator-menu-collapse__inner">
-          <nav aria-label="운영자 메뉴" className="operator-menu">
-            {menuLinks()}
-          </nav>
+        <div className="operator-desktop-context">{contestContext()}</div>
+        <div className="operator-menu-collapse" id={`${menuId}-desktop`}>
+          <div className="operator-menu-collapse__inner">
+            <nav aria-label="운영자 메뉴" className="operator-menu">
+              {menuLinks()}
+            </nav>
+          </div>
         </div>
       </div>
-      {menuOpen ? (
+      {menuOpen || menuClosing ? (
         <ModalDialog
-          className="operator-menu-drawer"
+          className={[
+            'operator-menu-drawer',
+            menuClosing ? 'is-closing' : '',
+          ].join(' ')}
           title="운영자 메뉴"
-          onClose={() => setOpenedAt(null)}
+          onClose={closeMenu}
           closeLabel="운영자 메뉴 닫기"
           drawer
         >

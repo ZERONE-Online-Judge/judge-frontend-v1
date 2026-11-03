@@ -1,5 +1,4 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
-import PublicHero from '@/components/common/PublicHero';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -190,64 +189,22 @@ export default function ContestsPage() {
 
   return (
     <div className="public-experience contest-directory">
-      <PublicHero className="directory-hero">
-        <div className="experience-hero-grid">
-          <div className="experience-hero-copy">
-            <p className="experience-eyebrow">CONTESTS</p>
-            <h1>대회 목록</h1>
-            <p className="experience-lead">
-              진행 중인 대회, 예정된 대회와 종료된 대회를 조회합니다.
-            </p>
-            <a className="experience-text-link" href="#contest-directory">
-              대회 둘러보기 <ExperienceArrow />
-            </a>
-          </div>
-          <div className="directory-art" aria-hidden="true">
-            <div className="directory-art-orbit" />
-            <div className="directory-art-ticket">
-              <div>
-                <span>ZOJ CONTEST</span>
-                <span>
-                  <InterfaceIcon name="arrowUpRight" />
-                </span>
-              </div>
-              <p>
-                READY.
-                <br />
-                SET.
-                <br />
-                <strong>CODE.</strong>
-              </p>
-              <div className="directory-art-ticket-bottom">
-                <span>CONTESTS</span>
-                <i />
-              </div>
-            </div>
-            <div className="directory-art-code">&lt;/&gt;</div>
-            <div className="directory-art-label">
-              <span>
-                <InterfaceIcon name="asterisk" />
-              </span>{' '}
-              대회 일정
-            </div>
-          </div>
-        </div>
-      </PublicHero>
       <section
         className="experience-container experience-section directory-content"
         id="contest-directory"
       >
-        <div className="experience-section-heading">
+        <header className="directory-intro">
           <div>
-            <p className="experience-eyebrow">대회 검색</p>
-            <h2>대회 목록</h2>
+            <p className="experience-eyebrow">CONTESTS</p>
+            <h1>대회 목록</h1>
+            <p>진행 중인 대회와 다가오는 일정을 한눈에 확인하세요.</p>
           </div>
-          <p>
-            참가하거나 운영하는 대회는
-            <br />
-            ‘내 대회’에서 모아볼 수 있습니다.
-          </p>
-        </div>
+          <span className="directory-total">
+            {waiting && !contests.length
+              ? '불러오는 중'
+              : `전체 ${contests.length}개 대회`}
+          </span>
+        </header>
         <div className="directory-toolbar">
           <div className="directory-scope" role="group" aria-label="대회 범위">
             {[

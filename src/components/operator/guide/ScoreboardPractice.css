@@ -1,7 +1,18 @@
 .scoreboard-practice {
+  --zoj-scoreboard-base-width: 34rem;
+  --zoj-scoreboard-problem-width: 4rem;
   min-width: 0;
   display: grid;
   gap: 18px;
+}
+.scoreboard-practice .zoj-scoreboard-table :is(th, td) {
+  white-space: nowrap;
+}
+.scoreboard-practice .zoj-scoreboard-table .zoj-score-rank {
+  min-width: 72px;
+}
+.scoreboard-practice .zoj-scoreboard-table .zoj-score-team {
+  min-width: 160px;
 }
 .scoreboard-practice__intro {
   display: flex;

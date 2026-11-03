@@ -1,5 +1,5 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import PageLayout from '@/components/common/PageLayout';
 import {
@@ -8,6 +8,7 @@ import {
 } from '@/components/operator/OperatorShell';
 import { GuideIcon } from '@/components/operator/guide/GuideIcon';
 import JudgeServerReference from '@/components/operator/guide/JudgeServerReference';
+import ScoreboardPractice from '@/components/operator/guide/ScoreboardPractice';
 import {
   operatorGuideCategories,
   searchOperatorGuide,
@@ -152,6 +153,15 @@ function GuideContent({
         </div>
         <div className="og-popular">
           <span>많이 찾는 안내</span>
+          <button
+            type="button"
+            onClick={() => goTo('scoreboard', 'scoreboard-practice')}
+          >
+            스코어보드 체험{' '}
+            <span>
+              <InterfaceIcon name="arrowUpRight" />
+            </span>
+          </button>
           {[
             '프리즈',
             '로그아웃',
@@ -328,7 +338,11 @@ function GuideContent({
                       }
                       copied={copied === article.id}
                       onCopy={() => copyLink(article.id)}
-                    />
+                    >
+                      {article.id === 'scoreboard-practice' ? (
+                        <ScoreboardPractice />
+                      ) : null}
+                    </GuideArticleCard>
                   ))}
                 </div>
                 <div className="og-checklist">
@@ -407,12 +421,14 @@ function GuideArticleCard({
   initiallyOpen,
   copied,
   onCopy,
+  children,
 }: {
   article: GuideArticle;
   index: number;
   initiallyOpen: boolean;
   copied: boolean;
   onCopy: () => void;
+  children?: ReactNode;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
   return (
@@ -442,6 +458,7 @@ function GuideArticleCard({
         hidden={!open}
         className="og-article-body"
       >
+        {children}
         <div className="og-instructions">
           <h4>{article.stepsTitle ?? '이렇게 설정하세요'}</h4>
           <ol>

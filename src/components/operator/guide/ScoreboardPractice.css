@@ -1,0 +1,221 @@
+.scoreboard-practice {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.scoreboard-practice__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.scoreboard-practice__eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #6553ac;
+  font-size: 11px;
+  font-weight: 700;
+}
+.scoreboard-practice__intro p,
+.scoreboard-practice__coach p {
+  margin: 0;
+  color: #5f6c82;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.scoreboard-practice__reset {
+  flex: none;
+  min-height: 38px;
+  border: 1px solid #dfe3ed;
+  border-radius: 7px;
+  padding: 8px 12px;
+  background: #fff;
+  color: #536078;
+  font-size: 12px;
+  font-weight: 600;
+}
+.scoreboard-practice__reset:hover {
+  background: #f8f9fc;
+}
+.scoreboard-practice__modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.scoreboard-practice__modes button {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 70px;
+  border: 1px solid #e0e4ed;
+  border-radius: 9px;
+  padding: 12px 14px;
+  background: #fff;
+  text-align: left;
+  color: #556078;
+  font: inherit;
+}
+.scoreboard-practice__modes button strong {
+  font-size: 12px;
+}
+.scoreboard-practice__modes button span {
+  color: #6b778b;
+  font-size: 11px;
+}
+.scoreboard-practice__modes button[aria-pressed='true'] {
+  border-color: #ada2d6;
+  background: #f7f5fc;
+  color: #57428b;
+}
+.scoreboard-practice__modes button:hover {
+  border-color: #ada2d6;
+}
+.scoreboard-practice__coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 84px;
+  padding: 15px 17px;
+  border-left: 3px solid #a79aca;
+  background: #f8f7fc;
+}
+.scoreboard-practice__coach strong {
+  font-size: 13px;
+  color: #3b3550;
+}
+.scoreboard-practice__coach p {
+  margin-top: 3px;
+}
+.scoreboard-practice__coach-mark {
+  flex: none;
+  color: #8372b4;
+  font-size: 20px;
+  line-height: 1.3;
+}
+.scoreboard-practice__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+  color: #738095;
+  font-size: 11px;
+}
+.scoreboard-practice__options label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  color: #4c5970;
+  font-size: 12px;
+  cursor: pointer;
+}
+.scoreboard-practice__options input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #7160a7;
+}
+.scoreboard-practice > .scoreboard-release {
+  margin-bottom: 0;
+}
+.scoreboard-practice__board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.scoreboard-practice__board-header strong {
+  color: #334155;
+  font-size: 12px;
+}
+.scoreboard-practice__board-state {
+  color: #82719f;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.scoreboard-practice__footnote {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  color: #6c778b;
+  font-size: 11px;
+}
+.scoreboard-practice__footnote p {
+  margin: 0;
+}
+.scoreboard-practice__legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.scoreboard-practice__legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.scoreboard-practice__legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.scoreboard-practice__legend [data-tone='accepted'] {
+  background: #65c6a0;
+}
+.scoreboard-practice__legend [data-tone='wrong'] {
+  background: #e99caa;
+}
+.scoreboard-practice__legend [data-tone='pending'] {
+  background: #e8c66c;
+}
+@media (max-width: 640px) {
+  .scoreboard-practice {
+    gap: 14px;
+  }
+  .scoreboard-practice__intro {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .scoreboard-practice__intro p {
+    font-size: 11px;
+  }
+  .scoreboard-practice__reset {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+  .scoreboard-practice__modes {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .scoreboard-practice__modes button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 46px;
+    padding: 10px 12px;
+  }
+  .scoreboard-practice__modes button strong {
+    flex: none;
+  }
+  .scoreboard-practice__modes button span {
+    text-align: right;
+    font-size: 10px;
+  }
+  .scoreboard-practice__coach {
+    padding: 12px;
+    gap: 8px;
+  }
+  .scoreboard-practice__options {
+    gap: 0;
+  }
+  .scoreboard-practice__options > span {
+    flex-basis: 100%;
+    margin-left: 25px;
+  }
+}

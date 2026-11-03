@@ -12,13 +12,20 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
 global.window = dom.window;
 global.document = dom.window.document;
 global.IS_REACT_ACT_ENVIRONMENT = true;
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.open = true;
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.open = false;
+};
 const React = require('react');
 const { act } = React;
 const { createRoot } = require('react-dom/client');
 const { MemoryRouter, Routes, Route } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 const h = React.createElement;
-let session;
+let session, networkRequests;
+const originalFetch = global.fetch;
 const mocks = {
   '@/utils/Icons': { SvgIcon: () => null },
   '@/domains/identityAccess/sessionStore': {
@@ -79,6 +86,11 @@ const { operatorGuideCategories, searchOperatorGuide } = source(
 const Page = source('pages/operator/OperatorGuidePage.tsx').default;
 let host, root, client;
 beforeEach(() => {
+  networkRequests = [];
+  global.fetch = window.fetch = async (...args) => {
+    networkRequests.push(args);
+    throw new Error('The guide must not send requests to a live service');
+  };
   window.matchMedia = () => ({
     matches: true,
     addEventListener() {},
@@ -109,6 +121,8 @@ afterEach(async () => {
   await act(async () => root.unmount());
   client.clear();
   host.remove();
+  global.fetch = originalFetch;
+  delete window.fetch;
 });
 after(() => dom.window.close());
 async function render(query = '') {
@@ -133,8 +147,8 @@ async function render(query = '') {
     );
   });
 }
-function button(text) {
-  return [...host.querySelectorAll('button')].find(
+function button(text, scope = host) {
+  return [...scope.querySelectorAll('button')].find(
     (el) => el.textContent.trim() === text,
   );
 }
@@ -238,7 +252,7 @@ test('search result navigation opens its exact category and article', async () =
   );
   assert.equal(host.querySelector('#operator-guide-search').value, '');
 });
-test('every guide category shows instructions without practice widgets', async () => {
+test('only the scoreboard guide includes an interactive practice with fictional data', async () => {
   await render();
   for (const category of operatorGuideCategories) {
     const link = [
@@ -251,21 +265,206 @@ test('every guide category shows instructions without practice widgets', async (
       content.querySelectorAll('.og-article').length,
       category.articles.length,
     );
-    assert.equal(
-      content.querySelector(
-        'form, textarea, dialog, [class*="og-practice"], [aria-label="검수 채점 결과"]',
-      ),
-      null,
-    );
-    assert.doesNotMatch(
-      content.textContent,
-      /연습용 예제|처음부터 다시하기|데이터에만 적용/,
-    );
+    assert.equal(content.querySelector('form, textarea, dialog'), null);
+    if (category.id === 'scoreboard') {
+      assert.equal(content.querySelectorAll('.scoreboard-practice').length, 1);
+      assert.match(content.textContent, /가상 7팀 · 5문제/);
+      assert.match(content.textContent, /실제 대회의 설정이나 순위는 바뀌지/);
+    } else {
+      assert.equal(
+        content.querySelector(
+          '.scoreboard-practice, [class*="og-practice"], [aria-label="검수 채점 결과"]',
+        ),
+        null,
+      );
+      assert.doesNotMatch(
+        content.textContent,
+        /연습용 예제|처음부터 다시하기|데이터에만 적용/,
+      );
+    }
   }
   assert.doesNotMatch(
     host.querySelector('.operator-guide-summary').textContent,
     /조작을 연습|화면 요소로 연습/,
   );
+});
+
+test('a review-only operator opens the actual practice table and release controls through the guide shortcut', async () => {
+  await render();
+  assert.equal(host.querySelector('.scoreboard-practice'), null);
+  await click(button('스코어보드 체험'));
+  const article = host.querySelector('#guide-scoreboard-practice');
+  assert.equal(
+    article.querySelector('h3 button').getAttribute('aria-expanded'),
+    'true',
+  );
+  const practice = article.querySelector('.scoreboard-practice');
+  assert.ok(practice.querySelector('.zoj-scoreboard-table'));
+  assert.ok(practice.querySelector('.scoreboard-release'));
+  assert.equal(practice.querySelectorAll('[data-scoreboard-row]').length, 7);
+  assert.equal(host.querySelector('a[href$="/scoreboard"]'), null);
+  await click(button('개별 순위 공개 시작', practice));
+  assert.ok(button('5위 공개', practice));
+  assert.deepEqual(networkRequests, []);
+});
+
+test('manual practice keeps announced final ranks stable and confirms undo before restoring the prior reveal', async () => {
+  await render('?section=scoreboard&article=scoreboard-practice');
+  const practice = host.querySelector('.scoreboard-practice');
+  const lightning = () =>
+    practice.querySelector('[data-scoreboard-row="guide-team-lightning"]');
+  assert.equal(
+    lightning().querySelector('td').getAttribute('aria-label'),
+    null,
+  );
+  assert.equal(lightning().querySelector('td').textContent, '2위');
+  assert.equal(
+    practice.querySelector('[data-scoreboard-rank-section="frozen"]'),
+    null,
+  );
+  await click(button('개별 순위 공개 시작', practice));
+  await click(button('5위 공개', practice));
+  assert.equal(
+    lightning().querySelector('td').getAttribute('aria-label'),
+    '확정 5위',
+  );
+  assert.ok(practice.querySelector('[data-scoreboard-rank-section="final"]'));
+  assert.ok(practice.querySelector('[data-scoreboard-rank-section="frozen"]'));
+  await click(button('4위 공개', practice));
+  assert.equal(
+    lightning().querySelector('td').getAttribute('aria-label'),
+    '확정 5위',
+  );
+  assert.match(
+    practice.querySelector('.scoreboard-practice__coach').textContent,
+    /4위를 공개해도 5위는 그대로/,
+  );
+  assert.equal(
+    practice.querySelectorAll('.zoj-score-team [role="img"]').length,
+    0,
+  );
+  await click(button('되돌리기', practice));
+  assert.match(document.querySelector('dialog').textContent, /4위 공개를 취소/);
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /체험용 가상 순위표에만 적용됩니다\. 실제 대회는 바뀌지 않습니다/,
+  );
+  assert.equal(button('4위 공개 완료', practice).disabled, true);
+  await click(button('취소', document.querySelector('dialog')));
+  assert.equal(button('4위 공개 완료', practice).disabled, true);
+  await click(button('되돌리기', practice));
+  await click(button('되돌리기', document.querySelector('dialog')));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.ok(button('4위 공개', practice));
+  assert.equal(button('5위 공개 완료', practice).disabled, true);
+  assert.equal(
+    lightning().querySelector('td').getAttribute('aria-label'),
+    '확정 5위',
+  );
+  await click(button('체험 초기화', practice));
+  assert.ok(button('개별 순위 공개 시작', practice));
+  assert.equal(
+    lightning().querySelector('td').getAttribute('aria-label'),
+    null,
+  );
+  assert.equal(lightning().querySelector('td').textContent, '2위');
+  assert.equal(
+    practice.querySelector('[data-scoreboard-rank-section="final"]'),
+    null,
+  );
+  assert.equal(button('되돌리기', practice).disabled, true);
+  assert.deepEqual(networkRequests, []);
+});
+
+test('the count option hides pending counts while preserving the current manual reveal', async () => {
+  await render('?section=scoreboard&article=scoreboard-practice');
+  const practice = host.querySelector('.scoreboard-practice');
+  await click(button('개별 순위 공개 시작', practice));
+  await click(button('5위 공개', practice));
+  const pendingCounts = () =>
+    practice.querySelectorAll('[aria-label^="미공개 제출"]');
+  assert.ok(pendingCounts().length > 0);
+  const checkbox = practice.querySelector('input[type="checkbox"]');
+  assert.equal(checkbox.checked, true);
+  const table = practice.querySelector('table');
+  const publicTotals = () =>
+    [...table.querySelectorAll('[data-scoreboard-row]')].map((row) =>
+      [...row.querySelectorAll('td')]
+        .filter((_, index) => [0, 2, 3, 9].includes(index))
+        .map((cell) => cell.textContent),
+    );
+  const before = publicTotals();
+  await click(checkbox);
+  assert.equal(checkbox.checked, false);
+  assert.equal(pendingCounts().length, 0);
+  assert.ok(
+    practice
+      .querySelector('[data-scoreboard-row="guide-team-duck"]')
+      .textContent.includes('-2'),
+  );
+  assert.equal(button('5위 공개 완료', practice).disabled, true);
+  assert.deepEqual(publicTotals(), before);
+  await click(checkbox);
+  assert.ok(pendingCounts().length > 0);
+  assert.deepEqual(publicTotals(), before);
+  assert.deepEqual(networkRequests, []);
+});
+
+test('resolver and immediate practice use the real release controls without contacting release APIs', async () => {
+  await render('?section=scoreboard&article=scoreboard-practice');
+  const practice = host.querySelector('.scoreboard-practice');
+  const mode = (label) =>
+    [...practice.querySelectorAll('[aria-label="체험 공개 방식"] button')].find(
+      (item) => item.querySelector('strong').textContent === label,
+    );
+  await click(mode('리졸버'));
+  assert.equal(mode('리졸버').getAttribute('aria-pressed'), 'true');
+  assert.ok(button('결과 순차 공개 시작', practice));
+  await click(button('결과 순차 공개 시작', practice));
+  const progress = () =>
+    practice.querySelector('progress[aria-label="팀·문제 공개 진행률"]');
+  assert.equal(progress().value, 0);
+  const frozen = practice.querySelector('table').textContent;
+  await click(button('다음 문제 공개', practice));
+  assert.equal(progress().value, 1);
+  assert.ok(practice.querySelector('.scoreboard-release__event'));
+  assert.notEqual(practice.querySelector('table').textContent, frozen);
+  await click(button('되돌리기', practice));
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /직전에 공개한 팀·문제의 제출 전체/,
+  );
+  await click(button('되돌리기', document.querySelector('dialog')));
+  assert.equal(progress().value, 0);
+  assert.equal(practice.querySelector('table').textContent, frozen);
+  await click(mode('종료 즉시 전체 공개'));
+  assert.equal(
+    practice.querySelector('.scoreboard-practice__board-state').textContent,
+    '최종 순위',
+  );
+  assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
+  assert.equal(button('개별 순위 공개 시작', practice), undefined);
+  await click(button('되돌리기', practice));
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /자동 전체 공개를 되돌리고/,
+  );
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /체험용 가상 순위표에만 적용됩니다\. 실제 대회는 바뀌지 않습니다/,
+  );
+  await click(button('되돌리기', document.querySelector('dialog')));
+  assert.equal(practice.querySelector('[aria-label="1위 금메달"]'), null);
+  assert.ok(button('다시 전체 공개', practice));
+  await click(button('다시 전체 공개', practice));
+  assert.match(document.querySelector('dialog').textContent, /최신 성적/);
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /체험용 가상 순위표에만 적용됩니다\. 실제 대회는 바뀌지 않습니다/,
+  );
+  await click(button('공개', document.querySelector('dialog')));
+  assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
+  assert.deepEqual(networkRequests, []);
 });
 
 test('real execution examples show recorded source, input and measurements without executing code', async () => {

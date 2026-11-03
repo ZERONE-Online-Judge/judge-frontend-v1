@@ -16,6 +16,7 @@ export default function ScoreboardReleaseView({
   pendingAction,
   error,
   publish,
+  practice = false,
 }: {
   release?: ScoreboardRelease;
   strategy?: ScoreboardReleaseMode;
@@ -24,10 +25,15 @@ export default function ScoreboardReleaseView({
   pendingAction?: string;
   error?: unknown;
   publish: (action: ScoreboardReleaseAction) => void;
+  practice?: boolean;
 }) {
   const { confirm: confirmAction, dialog: confirmationDialog } =
     useConfirmation();
   const busy = pending || !release;
+  const confirmationMessage = (message: string) =>
+    practice
+      ? `이 조작은 체험용 가상 순위표에만 적용됩니다. 실제 대회는 바뀌지 않습니다.\n\n${message}`
+      : message;
   const resolver = release?.resolver;
   const isResolver = (release?.strategy ?? strategy) === 'resolver';
   const immediate = strategy === 'immediate';
@@ -218,7 +224,9 @@ export default function ScoreboardReleaseView({
                 onClick={async () => {
                   if (
                     await confirmAction(
-                      '프리즈를 해제하고 최신 성적을 참가자 스코어보드와 프레젠테이션에 모두 공개할까요?',
+                      confirmationMessage(
+                        '프리즈를 해제하고 최신 성적을 참가자 스코어보드와 프레젠테이션에 모두 공개할까요?',
+                      ),
                       {
                         title: '다시 전체 공개',
                         confirmLabel: '공개',
@@ -270,7 +278,9 @@ export default function ScoreboardReleaseView({
                   onClick={async () => {
                     if (
                       await confirmAction(
-                        `${divisionName}의 남은 ${isResolver ? '결과와 순위를' : '순위를'} 모두 공개할까요? 되돌리기를 누르면 현재 공개 상태로 돌아옵니다.`,
+                        confirmationMessage(
+                          `${divisionName}의 남은 ${isResolver ? '결과와 순위를' : '순위를'} 모두 공개할까요? 되돌리기를 누르면 현재 공개 상태로 돌아옵니다.`,
+                        ),
                         {
                           title: '순위 공개 확인',
                           confirmLabel: '공개',
@@ -296,7 +306,9 @@ export default function ScoreboardReleaseView({
             if (
               undo &&
               (await confirmAction(
-                `${undoDescription} 참가자 스코어보드와 프레젠테이션에 함께 반영됩니다.`,
+                confirmationMessage(
+                  `${undoDescription} 참가자 스코어보드와 프레젠테이션에 함께 반영됩니다.`,
+                ),
                 {
                   title: `${divisionName} · 공개 되돌리기`,
                   confirmLabel: '되돌리기',

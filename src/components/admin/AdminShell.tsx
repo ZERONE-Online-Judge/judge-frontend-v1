@@ -25,10 +25,28 @@ const adminGroups = [
     items: [
       { label: '채점 관리', path: '/admin/judge', icon: JudgeIcon },
       { label: '운영 통계', path: '/admin/analytics', icon: AnalyticsIcon },
+      { label: '메일 발송량', path: '/admin/mail', icon: MailIcon },
       { label: '운영 로그', path: '/admin/audit-logs', icon: ContestIcon },
     ],
   },
 ];
+
+function MailIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 6 9 7 9-7" />
+    </svg>
+  );
+}
 
 function UsersIcon() {
   return (

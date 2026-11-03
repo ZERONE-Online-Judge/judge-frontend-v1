@@ -132,7 +132,7 @@ function AdminHomeContent({ token }: { token: string }) {
           label="대기 메일"
           value={dashboard?.mail_queue_pending ?? '—'}
           accent="slate"
-          description="발송을 기다리는 메일"
+          description={<Link to="/admin/mail">발송량·한도 확인 →</Link>}
         />
       </div>
       <AdminPanel title="자주 하는 작업">

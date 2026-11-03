@@ -123,6 +123,35 @@ export type AccessLog = {
   created_at: string;
 };
 
+export type MailUsageStatus = 'ok' | 'error' | 'not_configured' | 'unsupported';
+
+export type MailUsageQuota = {
+  sent: number;
+  received: number;
+  used: number;
+  limit: number | null;
+  resets_at: string | null;
+};
+
+export type AdminMailUsage = {
+  provider: string;
+  generated_at: string;
+  quota: {
+    status: MailUsageStatus;
+    daily: MailUsageQuota | null;
+    monthly: MailUsageQuota | null;
+    message: string | null;
+  };
+  weekly: {
+    status: MailUsageStatus;
+    sent: number | null;
+    start_at: string | null;
+    end_at: string | null;
+    message: string | null;
+  };
+  metrics_delay_minutes: number;
+};
+
 export type AccessLogStats = {
   window_hours: number;
   total_count: number;

@@ -4,6 +4,7 @@ import type {
   AdminJudgeAgentLog,
   AdminJudgeDashboard,
   AdminJudgeSubmissionEntry,
+  AdminMailUsage,
   JudgeStatus,
   OperationalAuditLog,
   MailDeliveryLog,
@@ -58,6 +59,10 @@ export function getAdminDashboard(token: string) {
 
 export function getAdminJudgeDashboard(token: string) {
   return apiRequest<AdminJudgeDashboard>('/admin/judge/dashboard', token);
+}
+
+export function getAdminMailUsage(token: string) {
+  return apiRequest<AdminMailUsage>('/admin/mail-usage', token);
 }
 
 export function listAdminJudgeNodeLogs(

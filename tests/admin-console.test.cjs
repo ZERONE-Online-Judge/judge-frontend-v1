@@ -359,7 +359,7 @@ function sectionTab(label) {
 test('all admin sections have independent navigation and dashboard has no notice editor', async () => {
   await render(Home, '/admin');
   const nav = host.querySelector('[aria-label="관리자 메뉴"]');
-  assert.equal(nav.querySelectorAll('a').length, 8);
+  assert.equal(nav.querySelectorAll('a').length, 9);
   assert.equal(
     nav.querySelector('a[aria-current="page"]').getAttribute('href'),
     '/admin',

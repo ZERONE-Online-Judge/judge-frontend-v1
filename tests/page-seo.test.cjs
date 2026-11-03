@@ -229,6 +229,9 @@ test('private and unknown routes become noindex immediately and never retain pub
   await act(async () => navigate('/admin/contests'));
   assert.equal(document.title, '대회 관리 | ZOJ');
   assert.equal(meta('robots'), 'noindex,nofollow');
+  await act(async () => navigate('/admin/mail'));
+  assert.equal(document.title, '메일 발송량 | ZOJ');
+  assert.equal(meta('robots'), 'noindex,nofollow');
   await act(async () =>
     navigate('/operator/contests/private/guide?section=settings'),
   );

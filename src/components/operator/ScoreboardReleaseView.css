@@ -1,0 +1,443 @@
+.scoreboard-release {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  border: 1px solid #dfe3ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #263248;
+  min-width: 0;
+}
+.scoreboard-release__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.scoreboard-release__header h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.025em;
+}
+.scoreboard-release__division {
+  flex: none;
+  padding-right: 12px;
+  border-right: 1px solid #e3e6ee;
+  color: #737d8e;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0;
+}
+.scoreboard-release__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  border-radius: 5px;
+  background: #f3f0fa;
+  padding: 4px 8px;
+  color: #6c577f;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.scoreboard-release__status > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.scoreboard-release[data-state='complete'] .scoreboard-release__status {
+  background: #eef8f3;
+  color: #3d7557;
+}
+.scoreboard-release__description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #66758b;
+  overflow-wrap: anywhere;
+}
+.scoreboard-release__guide {
+  margin-top: -8px;
+  color: #727b8b;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.scoreboard-release__guide summary {
+  cursor: pointer;
+  width: fit-content;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #d2d4df;
+}
+.scoreboard-release__guide p {
+  margin: 8px 0 0;
+  max-width: 90ch;
+}
+.scoreboard-release__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #edf0f5;
+  padding-top: 16px;
+}
+.scoreboard-release__primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.scoreboard-release__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid #dedfe9;
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 14px;
+  color: #7a7290;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.scoreboard-release__button:hover:not(:disabled) {
+  background: #f8f6fc;
+  border-color: #c6bcdb;
+}
+.scoreboard-release__button--primary {
+  background: #6553ac;
+  border-color: #6553ac;
+  color: #fff;
+}
+.scoreboard-release__button--primary:hover:not(:disabled) {
+  background: #574493;
+  border-color: #574493;
+}
+.scoreboard-release__undo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: none;
+  min-height: 40px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #6b697a;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.scoreboard-release__undo:hover:not(:disabled) {
+  background: #f3f3f7;
+  color: #656174;
+}
+.scoreboard-release :is(button):disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.scoreboard-release :is(button, summary):focus-visible {
+  outline: 2px solid #a69acb;
+  outline-offset: 3px;
+}
+.scoreboard-release__complete-summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 12px;
+  color: #768094;
+  line-height: 1.8;
+}
+.scoreboard-release__complete-summary strong {
+  font-weight: 650;
+  color: #5a6679;
+}
+.scoreboard-release__problem-total {
+  padding-left: 12px;
+  margin-left: 5px;
+  border-left: 1px solid #e1e5ec;
+  color: #737d8e;
+  font-size: 11px;
+}
+.scoreboard-release__progress {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.scoreboard-release__progress-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.scoreboard-release__progress-labels > p {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+.scoreboard-release__progress-labels strong {
+  font-size: 21px;
+  color: #536078;
+  line-height: 1.3;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.scoreboard-release__progress-labels strong > span {
+  font-weight: 450;
+  color: #7e889b;
+  font-size: 17px;
+}
+.scoreboard-release__progress-labels p > span,
+.scoreboard-release__progress-labels > span {
+  font-size: 11px;
+  color: #717d91;
+}
+.scoreboard-release__progress progress {
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #edeaf4;
+  accent-color: #9a88bf;
+}
+.scoreboard-release__progress progress::-webkit-progress-bar {
+  background: #edeaf4;
+  border-radius: 4px;
+}
+.scoreboard-release__progress progress::-webkit-progress-value {
+  background: #9a88bf;
+  border-radius: 4px;
+  transition: width 0.25s;
+}
+.scoreboard-release__progress progress::-moz-progress-bar {
+  background: #9a88bf;
+  border-radius: 4px;
+}
+.scoreboard-release__event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8f9fc;
+  border-radius: 7px;
+  padding: 12px 14px;
+  color: #738096;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.scoreboard-release__event p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+.scoreboard-release__event strong {
+  font-weight: 650;
+  color: #677289;
+  overflow-wrap: anywhere;
+}
+.scoreboard-release__verdict {
+  margin-left: 4px;
+  font-size: 11px;
+  color: #786889;
+}
+.scoreboard-release__rank {
+  flex: none;
+  color: #735b93;
+  font-size: 11px;
+  font-weight: 600;
+}
+.scoreboard-release__ranks {
+  display: grid;
+  gap: 10px;
+}
+.scoreboard-release__ranks > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.scoreboard-release__ranks button {
+  min-height: 38px;
+  border: 1px solid #e3dfed;
+  border-radius: 6px;
+  background: #f8f6fb;
+  padding: 8px 12px;
+  color: #817394;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.scoreboard-release__ranks button:hover:not(:disabled) {
+  background: #f0ebf8;
+  border-color: #c8b9db;
+}
+.scoreboard-release__ranks button[data-revealed='true'] {
+  color: #7a9b88;
+  background: #f5faf7;
+  border-color: #e7efe9;
+  opacity: 0.7;
+}
+.scoreboard-release__error {
+  color: #b68181;
+  background: #fff8f8;
+  border: 1px solid #f2e4e4;
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .scoreboard-release {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+  .scoreboard-release__header {
+    gap: 10px;
+  }
+  .scoreboard-release__header h3 {
+    gap: 8px;
+    font-size: 14px;
+  }
+  .scoreboard-release__division {
+    padding-right: 8px;
+    font-size: 11px;
+  }
+  .scoreboard-release__status {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  .scoreboard-release__footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 14px;
+  }
+  .scoreboard-release__primary-actions {
+    width: 100%;
+  }
+  .scoreboard-release__button {
+    flex: 1;
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+  .scoreboard-release__undo {
+    margin-left: auto;
+    min-height: 32px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+  .scoreboard-release__progress-labels {
+    align-items: baseline;
+    gap: 10px;
+  }
+  .scoreboard-release__progress-labels > span {
+    font-size: 10px;
+  }
+  .scoreboard-release__progress-labels > p {
+    gap: 7px;
+  }
+  .scoreboard-release__progress-labels strong {
+    font-size: 20px;
+  }
+  .scoreboard-release__progress-labels p > span {
+    font-size: 10px;
+  }
+  .scoreboard-release__event {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .scoreboard-release__rank {
+    margin-left: auto;
+  }
+  .scoreboard-release__complete-summary {
+    font-size: 11px;
+  }
+  .scoreboard-release[data-state='complete'] .scoreboard-release__footer {
+    flex-wrap: nowrap;
+  }
+  .scoreboard-release[data-state='complete']
+    .scoreboard-release__primary-actions {
+    width: auto;
+  }
+  .scoreboard-release__problem-total {
+    border: 0;
+    margin: 0;
+    padding-left: 0;
+    width: 100%;
+    font-size: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scoreboard-release * {
+    transition: none !important;
+  }
+}
+
+.scoreboard-release__header h3 {
+  flex: 1;
+  flex-wrap: wrap;
+}
+.scoreboard-release__division {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.scoreboard-release__header .scoreboard-release__status {
+  align-self: flex-start;
+}
+.scoreboard-release__team-progress {
+  font-size: 11px;
+  color: #717d91;
+  line-height: 1.6;
+  margin: 0;
+}
+.scoreboard-release__team-progress strong {
+  font-weight: 650;
+  color: #526178;
+}
+.scoreboard-release__guide summary::after {
+  content: '⌄';
+  display: inline-block;
+  margin-left: 6px;
+  text-decoration: none;
+}
+.scoreboard-release__guide[open] summary::after {
+  transform: rotate(180deg);
+}
+@media (max-width: 640px) {
+  .scoreboard-release[data-state='complete'] .scoreboard-release__footer {
+    flex-wrap: wrap;
+  }
+  .scoreboard-release[data-state='complete']
+    .scoreboard-release__primary-actions {
+    flex: 1;
+  }
+}

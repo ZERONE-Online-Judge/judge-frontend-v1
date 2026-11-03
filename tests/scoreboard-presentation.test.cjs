@@ -308,7 +308,7 @@ test('operator rank release refreshes a separate presentation client and leaves 
     '/operator/contests/contest/scoreboard',
   );
   await flush();
-  assert.match(operator.textContent, /A 유형 · 종료 후 순위 공개/);
+  assert.match(operator.textContent, /A 유형.*순위별 공개/);
   const displayTitle = display.querySelector('h1');
   const readsBeforeRelease = presentationReads;
   await act(async () => button(operator, '2위 공개').click());
@@ -463,7 +463,9 @@ test('presentation launch selects multiple divisions, remembers them and rejects
     );
     await act(async () => button(dialog, '선택한 유형으로 열기').click());
     assert.deepEqual(
-      new URL(opened[0], 'https://zoj.kr').searchParams.getAll('divisionId'),
+      new window.URL(opened[0], 'https://zoj.kr').searchParams.getAll(
+        'divisionId',
+      ),
       ['a', 'b'],
     );
     await act(async () => button(operator, '프레젠테이션 팝업').click());
@@ -665,17 +667,17 @@ test('undo confirms the selected rank then restores a separate presentation with
     '/operator/contests/contest/scoreboard',
   );
   await flush();
-  assert.equal(button(operator, '되돌리기 (Undo)').disabled, true);
+  assert.equal(button(operator, '되돌리기').disabled, true);
   await act(async () => button(operator, '2위 공개').click());
   await dispatchUpdate();
   assert.equal(display.querySelector('svg[aria-label="2위 은메달"]'), null);
-  await act(async () => button(operator, '되돌리기 (Undo)').click());
+  await act(async () => button(operator, '되돌리기').click());
   assert.match(document.querySelector('dialog').textContent, /2위 공개를 취소/);
   await act(async () =>
     button(document.querySelector('dialog'), '취소').click(),
   );
   assert.equal(updateCalls.length, 1);
-  await act(async () => button(operator, '되돌리기 (Undo)').click());
+  await act(async () => button(operator, '되돌리기').click());
   await act(async () =>
     button(document.querySelector('dialog'), '되돌리기').click(),
   );
@@ -688,7 +690,7 @@ test('undo confirms the selected rank then restores a separate presentation with
   assert.doesNotMatch(display.textContent, /a-team-2/);
   assert.equal(display.querySelector('svg[role="img"]'), null);
   assert.equal(button(operator, '2위 공개').disabled, false);
-  assert.equal(button(operator, '되돌리기 (Undo)').disabled, true);
+  assert.equal(button(operator, '되돌리기').disabled, true);
   assert.equal(releases.b.revealed_count, 0);
   assert.equal(display.querySelectorAll('button, select, input').length, 0);
 });
@@ -704,7 +706,7 @@ test('failed undo keeps the published scoreboard and refreshes the operator stat
   await flush();
   const readsBefore = releaseReads;
   rejectUpdate = true;
-  await act(async () => button(operator, '되돌리기 (Undo)').click());
+  await act(async () => button(operator, '되돌리기').click());
   await act(async () =>
     button(document.querySelector('dialog'), '되돌리기').click(),
   );
@@ -723,7 +725,7 @@ test('undo does not silently cancel a newer reveal while its confirmation is ope
   await flush();
   await act(async () => button(operator, '2위 공개').click());
   await flush();
-  await act(async () => button(operator, '되돌리기 (Undo)').click());
+  await act(async () => button(operator, '되돌리기').click());
   releases.a.revision = 2;
   releases.a.undo = { action: 'all' };
   await act(async () =>

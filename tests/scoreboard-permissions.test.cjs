@@ -134,13 +134,15 @@ const mocks = {
           release = { ...release, resolver: { ...release.resolver, step: 1 } };
           throw new Error('another operator advanced');
         }
+        const step = body.action === 'next' ? release.resolver.step + 1 : 0;
+        const remaining = Math.max(0, release.resolver.total_steps - step);
         release = {
           ...release,
-          mode: body.action === 'next' ? 'all' : 'partial',
+          mode: body.action === 'next' && remaining === 0 ? 'all' : 'partial',
           resolver: {
             ...release.resolver,
-            step: body.action === 'next' ? 1 : 0,
-            pending_count: body.action === 'next' ? 0 : 1,
+            step,
+            pending_count: remaining,
             last_event:
               body.action === 'next'
                 ? {
@@ -175,6 +177,7 @@ function source(relative) {
   loaded.paths = Module._nodeModulePaths(path.dirname(filename));
   const native = loaded.require.bind(loaded);
   loaded.require = (id) => {
+    if (id.endsWith('.css')) return {};
     if (mocks[id]) return mocks[id];
     if (!id.startsWith('@/')) return native(id);
     return source(
@@ -444,7 +447,7 @@ test('immediate release can undo automatic publication and explicitly resume it'
   assert.equal(button('이 유형 전체 공개'), undefined);
   assert.ok(reads.release > 0);
   assert.deepEqual(changes, []);
-  await click(button('되돌리기 (Undo)'));
+  await click(button('되돌리기'));
   assert.match(
     document.querySelector('dialog').textContent,
     /다시 전체 공개할 때까지 유지/,
@@ -457,7 +460,7 @@ test('immediate release can undo automatic publication and explicitly resume it'
   await flush();
   assert.deepEqual(changes[0].body, { action: 'undo', expected_revision: 0 });
   assert.match(container.textContent, /프리즈 표 유지 중/);
-  assert.equal(button('되돌리기 (Undo)').disabled, true);
+  assert.equal(button('되돌리기').disabled, true);
   await click(button('다시 전체 공개'));
   await act(async () =>
     [...document.querySelectorAll('dialog button')]
@@ -467,18 +470,18 @@ test('immediate release can undo automatic publication and explicitly resume it'
   await flush();
   assert.deepEqual(changes[1].body, { action: 'all', expected_revision: 1 });
   assert.match(container.textContent, /전체 성적 공개 중/);
-  assert.equal(button('되돌리기 (Undo)').disabled, false);
+  assert.equal(button('되돌리기').disabled, false);
 });
 
-test('resolver starts then advances with the expected step and displays the revealed outcome', async () => {
+test('resolver shows progress and the last outcome until all results are public', async () => {
   manage();
   contest.status = 'ended';
   contest.scoreboard_release_mode = 'resolver';
   release.strategy = 'resolver';
   release.resolver = {
     step: 0,
-    total_steps: 1,
-    pending_count: 1,
+    total_steps: 2,
+    pending_count: 2,
     last_event: null,
   };
   await render();
@@ -489,9 +492,15 @@ test('resolver starts then advances with the expected step and displays the reve
     changes.map((change) => change.body),
     [{ action: 'start' }, { action: 'next', expected_step: 0 }],
   );
-  assert.match(container.textContent, /A번 맞았습니다/);
+  assert.match(container.textContent, /A번맞았습니다/);
   assert.match(container.textContent, /2위 → 1위/);
   assert.equal(container.querySelector('progress').value, 1);
+  assert.equal(container.querySelector('progress').max, 2);
+  await click(button('다음 문제 공개'));
+  assert.deepEqual(changes[2].body, { action: 'next', expected_step: 1 });
+  assert.doesNotMatch(container.textContent, /A번 맞았습니다|2위 → 1위/);
+  assert.equal(container.querySelector('progress'), null);
+  assert.match(container.textContent, /결과 공개 완료/);
   assert.equal(button('다음 문제 공개'), undefined);
 });
 

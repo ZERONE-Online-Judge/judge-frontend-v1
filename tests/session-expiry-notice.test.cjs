@@ -156,3 +156,24 @@ test('expiry does not accept an external URL as the login return destination', a
   await act(async () => button('다시 로그인').click());
   assert.equal(new URLSearchParams(location.search).has('moveTo'), false);
 });
+
+test('Editor logout reauthentication keeps the nested return destination on the login page', async () => {
+  const target =
+    '/editor/return?next=%2Fproblems%2Fdemo%2Foverview%3Ftab%3Dtests%23A';
+  await render('/login?' + new URLSearchParams({ moveTo: target }));
+  await expire();
+  await act(async () => button('다시 로그인').click());
+  assert.equal(new URLSearchParams(location.search).get('moveTo'), target);
+});
+
+for (const target of ['//external.example', '/login?moveTo=/editor/return']) {
+  test(
+    'reauthentication rejects an unsafe nested login return: ' + target,
+    async () => {
+      await render('/login?' + new URLSearchParams({ moveTo: target }));
+      await expire();
+      await act(async () => button('다시 로그인').click());
+      assert.equal(new URLSearchParams(location.search).has('moveTo'), false);
+    },
+  );
+}

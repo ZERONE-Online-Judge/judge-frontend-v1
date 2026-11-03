@@ -123,6 +123,8 @@ export function fallbackMetadata(path: string): PageMetadata {
 
 const PRIVATE_PAGES: Record<string, string> = {
   '/login': '로그인',
+  '/editor/return': '에디터로 돌아가기',
+  '/editor/account': '에디터 계정 보안',
   '/admin': '관리자 콘솔',
   '/admin/contests': '대회 관리',
   '/admin/judge': '채점 관리',

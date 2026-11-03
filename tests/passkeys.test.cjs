@@ -24,6 +24,7 @@ let state,
   items,
   recent,
   handler,
+  refreshing,
   otpRequests;
 const params = new URLSearchParams('next=/contests');
 const navigate = (...args) => navigation.push(args[0]);
@@ -78,6 +79,9 @@ const api = {
       : null,
 };
 const mocks = {
+  '@/domains/identityAccess/useRefreshGeneralSession': {
+    useRefreshGeneralSession: () => refreshing,
+  },
   'react-router-dom': {
     Link: ({ to, children, ...rest }) =>
       h('a', { href: to, ...rest }, children),
@@ -205,6 +209,7 @@ function reset() {
   items = [];
   recent = true;
   handler = null;
+  refreshing = false;
   state = {
     generalSession: null,
     setGeneralSession: (v) => {
@@ -890,5 +895,47 @@ test('saved email prefills a signed-out login form without starting authenticati
   assert.deepEqual(otpRequests, []);
   assert.equal(state.generalSession, null);
   assert.deepEqual(savedLoginEmails(), ['saved@example.com']);
+  await v.close();
+});
+
+test('Editor login waits for stored-session validation after logging out in Editor', async () => {
+  const v = await mount();
+  const target = '/editor/return?next=%2Fproblems%2Fdemo%2Foverview';
+  params.delete('next');
+  params.set('moveTo', target);
+  state.generalSession = session;
+  refreshing = true;
+  await v.render();
+  assert.deepEqual(
+    navigation,
+    [],
+    'Unvalidated stale storage must not redirect back to Editor',
+  );
+  state.generalSession = null;
+  refreshing = false;
+  await v.render();
+  options = { password_available: true, passkey_available: false };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  await submit(v);
+  assert.equal(state.generalSession, session);
+  assert.ok(navigation.includes(target));
+  assert.equal(navigation.includes('/'), false);
+  await v.close();
+});
+
+test('an already valid stored login returns to Editor only after validation finishes', async () => {
+  const v = await mount();
+  const target = '/editor/return?next=%2Fproblems';
+  params.delete('next');
+  params.set('moveTo', target);
+  state.generalSession = session;
+  refreshing = true;
+  await v.render();
+  assert.deepEqual(navigation, []);
+  refreshing = false;
+  await v.render();
+  assert.deepEqual(navigation, [target]);
   await v.close();
 });

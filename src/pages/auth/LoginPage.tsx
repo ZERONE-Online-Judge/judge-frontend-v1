@@ -48,6 +48,7 @@ import {
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import RememberedEmailField from '@/components/auth/RememberedEmailField';
 import { useRememberedEmails } from '@/domains/identityAccess/rememberedEmails';
+import { useRefreshGeneralSession } from '@/domains/identityAccess/useRefreshGeneralSession';
 
 const OTP_VALID_SECONDS = 5 * 60;
 
@@ -201,6 +202,7 @@ export default function LoginPage() {
     (state) => state.setParticipantSession,
   );
   const generalSession = useSessionStore((state) => state.generalSession);
+  const isRefreshingSession = useRefreshGeneralSession();
   const [otpRequested, setOtpRequested] = useState(false);
   const [requestedOtpEmail, setRequestedOtpEmail] = useState('');
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -264,6 +266,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (
       !generalSession ||
+      isRefreshingSession ||
       isSubmitting ||
       pendingSessionReplacement ||
       (enrollmentSession &&
@@ -276,6 +279,7 @@ export default function LoginPage() {
     });
   }, [
     generalSession,
+    isRefreshingSession,
     enrollmentSession,
     isSubmitting,
     navigate,

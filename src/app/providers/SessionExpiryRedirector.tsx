@@ -4,11 +4,24 @@ import {
   SESSION_EXPIRED_EVENT,
   type SessionExpiredEventDetail,
 } from '@/domains/identityAccess/sessionStorage';
-import { safeLoginRedirectTarget } from '@/shared/lib/loginRedirect';
+import {
+  readLoginRedirectTarget,
+  safeLoginRedirectTarget,
+} from '@/shared/lib/loginRedirect';
 import SessionExpiredNotice from '@/components/auth/SessionExpiredNotice';
 
 function loginRedirectPath(currentPath: string) {
-  const target = safeLoginRedirectTarget(currentPath);
+  let target = safeLoginRedirectTarget(currentPath);
+  // Editor logout can invalidate a token still cached on the ZOJ origin.
+  // Re-authentication must keep the destination already carried by /login.
+  if (!target && /^\/login\/?(?:[?#]|$)/i.test(currentPath)) {
+    try {
+      const login = new URL(currentPath, 'https://zoj.invalid');
+      target = readLoginRedirectTarget(login.searchParams);
+    } catch {
+      // An invalid destination must never turn into a redirect loop.
+    }
+  }
   const search = new URLSearchParams({ reason: 'session' });
   if (target) search.set('moveTo', target);
   return `/login?${search.toString()}`;

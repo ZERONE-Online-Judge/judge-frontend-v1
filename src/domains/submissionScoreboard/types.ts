@@ -118,6 +118,8 @@ export type ScoreboardProblemStat = {
 export type ScoreboardRow = {
   is_finalized?: boolean;
   is_revealed?: boolean;
+  /** Manual release: whether rank is the published final rank or a frozen rank. */
+  rank_is_final?: boolean;
   rank: number;
   team_id?: string;
   team_name: string;

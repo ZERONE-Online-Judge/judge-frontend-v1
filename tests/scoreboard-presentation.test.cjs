@@ -619,6 +619,90 @@ test('resolver presentation retains team names and moves existing rows as result
   assert.equal(updateCalls.length, 0);
 });
 
+test('manual presentation keeps a published fifth place fixed and labels the remaining frozen ranking', async () => {
+  const makeRow = (teamId, rank, final) => ({
+    team_id: teamId,
+    team_name: teamId,
+    rank,
+    rank_is_final: final,
+    is_revealed: true,
+    is_finalized: true,
+    solved: final ? 4 : 1,
+    penalty: final ? 300 : 30,
+    submission_count: 5,
+    problem_scores: [],
+  });
+  const fifth = makeRow('Final fifth', 5, true);
+  const frozen = makeRow('Frozen first', 1, false);
+  customBoards.a = {
+    division: divisions[0],
+    problems: [],
+    frozen: true,
+    release: {
+      strategy: 'manual',
+      mode: 'partial',
+      ranks: [],
+      revealed_count: 1,
+      total_count: 5,
+    },
+    rows: [fifth, frozen],
+  };
+  const display = await renderPage(
+    Presentation,
+    '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+  );
+  assert.deepEqual(
+    [...display.querySelectorAll('[data-scoreboard-rank-section]')].map(
+      (item) => item.textContent,
+    ),
+    ['확정 순위', '미공개 · 프리즈 순위'],
+  );
+  const fifthElement = display.querySelector(
+    '[data-scoreboard-row="Final fifth"]',
+  );
+  assert.equal(fifthElement.firstElementChild.textContent, '5');
+  assert.equal(
+    fifthElement.firstElementChild.getAttribute('aria-label'),
+    '확정 5위',
+  );
+  assert.equal(
+    display
+      .querySelector('[data-scoreboard-row="Frozen first"]')
+      .firstElementChild.getAttribute('aria-label'),
+    '프리즈 1위',
+  );
+  assert.doesNotMatch(display.textContent, /결과 공개 완료/);
+  assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
+
+  customBoards.a.rows = [makeRow('Third place', 3, true), fifth, frozen];
+  await dispatchUpdate();
+  assert.equal(
+    display.querySelector('[data-scoreboard-row="Final fifth"]'),
+    fifthElement,
+  );
+  assert.equal(fifthElement.firstElementChild.textContent, '5');
+
+  customBoards.a.rows = [frozen];
+  await dispatchUpdate();
+  assert.equal(
+    display.querySelector('[data-scoreboard-rank-section="final"]'),
+    null,
+  );
+  assert.match(display.textContent, /미공개 · 프리즈 순위/);
+
+  // Cached payloads that predate the metadata retain their ordinary table.
+  const legacyRow = { ...frozen };
+  delete legacyRow.rank_is_final;
+  customBoards.a.rows = [legacyRow];
+  await dispatchUpdate();
+  assert.equal(display.querySelector('[data-scoreboard-rank-section]'), null);
+  assert.equal(
+    display.querySelector('[data-scoreboard-row]').firstElementChild
+      .textContent,
+    '1',
+  );
+});
+
 test('selected division reports fully public even while another division is frozen', async () => {
   releases.a.mode = 'all';
   releases.a.ranks.forEach((item) => {

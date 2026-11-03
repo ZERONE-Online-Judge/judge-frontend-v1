@@ -245,3 +245,134 @@ test('fully released ranks award gold, silver and bronze and preserve tied ranks
     { team: 'silver-b', label: '2위 은메달' },
   ]);
 });
+
+test('manual release separates fixed final ranks from frozen ranks without moving the published fifth team', async () => {
+  window.matchMedia = () => ({ matches: true });
+  const fifth = { ...row('fifth', 5), rank_is_final: true };
+  const firstFrozen = { ...row('first', 1), rank_is_final: false };
+  const secondFrozen = { ...row('second', 2), rank_is_final: false };
+  const release = { strategy: 'manual', mode: 'partial' };
+  const element = await mount([fifth, firstFrozen, secondFrozen], release);
+  const fifthElement = element.querySelector('[data-scoreboard-row="fifth"]');
+  const firstElement = element.querySelector('[data-scoreboard-row="first"]');
+  assert.deepEqual(
+    [...element.querySelectorAll('[data-scoreboard-rank-section]')].map(
+      (heading) => heading.textContent,
+    ),
+    ['확정 순위', '미공개 · 프리즈 순위'],
+  );
+  assert.equal(fifthElement.firstElementChild.textContent, '5위');
+  assert.equal(
+    fifthElement.firstElementChild.getAttribute('aria-label'),
+    '확정 5위',
+  );
+  assert.equal(
+    element
+      .querySelector('[data-scoreboard-row="second"]')
+      .firstElementChild.getAttribute('aria-label'),
+    '프리즈 2위',
+  );
+  assert.deepEqual(medalsIn(element), []);
+
+  await act(async () =>
+    root.render(
+      React.createElement(Table, {
+        rows: [
+          { ...firstFrozen, rank: 3, rank_is_final: true },
+          fifth,
+          secondFrozen,
+        ],
+        release,
+      }),
+    ),
+  );
+  assert.equal(
+    element.querySelector('[data-scoreboard-row="fifth"]'),
+    fifthElement,
+  );
+  assert.equal(fifthElement.firstElementChild.textContent, '5위');
+  assert.equal(
+    element.querySelector('[data-scoreboard-row="first"]'),
+    firstElement,
+  );
+  assert.equal(
+    firstElement.firstElementChild.getAttribute('aria-label'),
+    '확정 3위',
+  );
+  assert.deepEqual(
+    [...element.querySelectorAll('[data-scoreboard-row]')].map(
+      (item) => item.dataset.scoreboardRow,
+    ),
+    ['first', 'fifth', 'second'],
+  );
+
+  // Undo returns the same row to the frozen group and restores its frozen rank.
+  await act(async () =>
+    root.render(
+      React.createElement(Table, {
+        rows: [fifth, firstFrozen, secondFrozen],
+        release,
+      }),
+    ),
+  );
+  assert.equal(
+    element.querySelector('[data-scoreboard-row="fifth"]'),
+    fifthElement,
+  );
+  assert.equal(fifthElement.firstElementChild.textContent, '5위');
+  assert.equal(
+    element.querySelector('[data-scoreboard-row="first"]'),
+    firstElement,
+  );
+  assert.equal(
+    firstElement.firstElementChild.getAttribute('aria-label'),
+    '프리즈 1위',
+  );
+});
+
+test('manual release with no confirmed ranks renders only the frozen section', async () => {
+  const element = await mount(
+    [{ ...row('waiting', 1), rank_is_final: false, is_finalized: true }],
+    { strategy: 'manual', mode: 'partial' },
+  );
+  assert.equal(
+    element.querySelector('[data-scoreboard-rank-section="final"]'),
+    null,
+  );
+  assert.equal(
+    element.querySelector('[data-scoreboard-rank-section="frozen"]')
+      .textContent,
+    '미공개 · 프리즈 순위',
+  );
+  assert.match(
+    element.querySelector('[data-scoreboard-row="waiting"]').textContent,
+    /프리즈1위/,
+  );
+});
+
+test('resolver and older manual payloads keep their existing unsplit ranking', async () => {
+  const element = await mount([{ ...row('leader', 1), is_finalized: true }], {
+    strategy: 'resolver',
+    mode: 'partial',
+  });
+  assert.equal(element.querySelector('[data-scoreboard-rank-section]'), null);
+  assert.equal(
+    element.querySelector('[data-scoreboard-row]').firstElementChild
+      .textContent,
+    '1위',
+  );
+  await act(async () =>
+    root.render(
+      React.createElement(Table, {
+        rows: [row('leader', 1)],
+        release: { strategy: 'manual', mode: 'partial' },
+      }),
+    ),
+  );
+  assert.equal(element.querySelector('[data-scoreboard-rank-section]'), null);
+  assert.equal(
+    element.querySelector('[data-scoreboard-row]').firstElementChild
+      .textContent,
+    '1위',
+  );
+});

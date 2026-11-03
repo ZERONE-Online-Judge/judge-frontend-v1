@@ -15,6 +15,7 @@ import { getOperatorPresentationScoreboard } from '@/domains/submissionScoreboar
 import { subscribeScoreboardUpdates } from '@/domains/submissionScoreboard/presentationSync';
 import { queuedPresentationRefresh } from '@/domains/submissionScoreboard/presentationRefresh';
 import useScoreboardRowMotion from '@/domains/submissionScoreboard/useScoreboardRowMotion';
+import { scoreboardRankSections } from '@/domains/submissionScoreboard/scoreboardRankSections';
 import type {
   OperatorPresentationScoreboardSection,
   ScoreboardProblemScore,
@@ -136,6 +137,7 @@ function PresentationDivisionBoard({
   const problemCodes = useMemo(() => sortedProblemCodes(section), [section]);
   const gridMinWidth = Math.max(560, 380 + problemCodes.length * 48);
   const bodyRef = useScoreboardRowMotion(section.rows, 450);
+  const rankSections = scoreboardRankSections(section.rows);
   const lastEvent = section.release?.resolver?.last_event;
 
   return (
@@ -199,63 +201,104 @@ function PresentationDivisionBoard({
             </tr>
           </thead>
           <tbody ref={bodyRef}>
-            {section.rows.map((row) => {
-              if (row.is_revealed === false)
+            {rankSections.flatMap((rankSection) => [
+              ...(rankSection.label
+                ? [
+                    <tr key={`rank-section-${rankSection.key}`}>
+                      <th
+                        colSpan={4 + problemCodes.length}
+                        className="border-y border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-semibold text-white/75"
+                        data-scoreboard-rank-section={rankSection.key}
+                      >
+                        {rankSection.label}
+                      </th>
+                    </tr>,
+                  ]
+                : []),
+              ...rankSection.rows.map((row) => {
+                if (row.is_revealed === false)
+                  return (
+                    <tr
+                      key={row.team_id}
+                      data-scoreboard-row={row.team_id}
+                      className="border-b border-white/10 bg-white/[0.03]"
+                    >
+                      <td
+                        className="px-3 py-4 text-lg font-black text-violet-300"
+                        aria-label={
+                          row.rank_is_final === false
+                            ? `프리즈 ${row.rank}위`
+                            : undefined
+                        }
+                      >
+                        {row.rank_is_final === false ? (
+                          <span className="mb-1 block text-[0.6rem] font-medium text-white/60">
+                            프리즈
+                          </span>
+                        ) : null}
+                        {row.rank}
+                      </td>
+                      <td
+                        colSpan={3 + problemCodes.length}
+                        className="px-3 py-4 text-sm font-bold text-white/35"
+                      >
+                        공개 대기
+                      </td>
+                    </tr>
+                  );
+                const scores = problemScoreByCode(row);
+
                 return (
                   <tr
-                    key={row.team_id}
-                    data-scoreboard-row={row.team_id}
-                    className="border-b border-white/10 bg-white/[0.03]"
+                    className={`border-b border-white/5 last:border-b-0 ${lastEvent?.team_id === row.team_id ? 'bg-violet-500/25' : row.is_revealed ? 'bg-violet-500/15' : 'odd:bg-white/[0.035]'}`}
+                    key={`${section.division.division_id}-${row.team_id ?? row.team_name}`}
+                    data-scoreboard-row={row.team_id ?? row.team_name}
                   >
-                    <td className="px-3 py-4 text-lg font-black text-violet-300">
+                    <td
+                      className="px-3 py-2.5 text-[clamp(0.9rem,1.3vw,1.15rem)] font-black text-violet-300"
+                      aria-label={
+                        row.rank_is_final === undefined
+                          ? undefined
+                          : `${row.rank_is_final ? '확정' : '프리즈'} ${row.rank}위`
+                      }
+                    >
+                      {row.rank_is_final === false ? (
+                        <span className="mb-1 block text-[0.6rem] font-medium text-white/60">
+                          프리즈
+                        </span>
+                      ) : null}
                       {row.rank}
                     </td>
-                    <td
-                      colSpan={3 + problemCodes.length}
-                      className="px-3 py-4 text-sm font-bold text-white/35"
-                    >
-                      공개 대기
+                    <td className="max-w-64 px-3 py-2.5">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[clamp(0.8rem,1vw,0.92rem)] font-semibold text-white">
+                          {row.team_name}
+                        </span>
+                        <ScoreboardMedal release={section.release} row={row} />
+                      </span>
+                      {row.rank_is_final === undefined &&
+                      row.is_finalized &&
+                      section.release?.mode !== 'all' ? (
+                        <span className="mt-0.5 block text-[0.6rem] font-medium text-emerald-300">
+                          결과 공개 완료
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
+                      {row.solved}
+                    </td>
+                    {problemCodes.map((code) => (
+                      <td className="px-1 py-1.5 text-center" key={code}>
+                        <PresentationScoreCell score={scores.get(code)} />
+                      </td>
+                    ))}
+                    <td className="px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
+                      {penaltyLabel(row.penalty)}
                     </td>
                   </tr>
                 );
-              const scores = problemScoreByCode(row);
-
-              return (
-                <tr
-                  className={`border-b border-white/5 last:border-b-0 ${lastEvent?.team_id === row.team_id ? 'bg-violet-500/25' : row.is_revealed ? 'bg-violet-500/15' : 'odd:bg-white/[0.035]'}`}
-                  key={`${section.division.division_id}-${row.team_id ?? row.team_name}`}
-                  data-scoreboard-row={row.team_id ?? row.team_name}
-                >
-                  <td className="px-3 py-2.5 text-[clamp(0.9rem,1.3vw,1.15rem)] font-black text-violet-300">
-                    {row.rank}
-                  </td>
-                  <td className="max-w-64 px-3 py-2.5">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-[clamp(0.8rem,1vw,0.92rem)] font-semibold text-white">
-                        {row.team_name}
-                      </span>
-                      <ScoreboardMedal release={section.release} row={row} />
-                    </span>
-                    {row.is_finalized && section.release?.mode !== 'all' ? (
-                      <span className="mt-0.5 block text-[0.6rem] font-medium text-emerald-300">
-                        결과 공개 완료
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                    {row.solved}
-                  </td>
-                  {problemCodes.map((code) => (
-                    <td className="px-1 py-1.5 text-center" key={code}>
-                      <PresentationScoreCell score={scores.get(code)} />
-                    </td>
-                  ))}
-                  <td className="px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                    {penaltyLabel(row.penalty)}
-                  </td>
-                </tr>
-              );
-            })}
+              }),
+            ])}
           </tbody>
         </table>
       </div>

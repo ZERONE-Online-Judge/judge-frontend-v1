@@ -104,7 +104,7 @@ export default function ScoreboardReleaseView({
           <p className="scoreboard-release__description">
             {isResolver
               ? '현재 가장 아래 팀부터, 한 팀의 한 문제씩 공개합니다.'
-              : '공개할 최종 순위를 선택하면 해당 팀의 성적을 반영합니다.'}
+              : '선택한 팀의 최종 순위를 확정해 공개합니다.'}
           </p>
           <details className="scoreboard-release__guide">
             <summary>시작 전 확인사항</summary>
@@ -119,8 +119,8 @@ export default function ScoreboardReleaseView({
               </p>
             ) : (
               <p>
-                공동 순위의 팀은 함께 공개됩니다. 공개 전 팀은 프리즈 기록을
-                유지합니다.
+                공동 순위의 팀은 함께 공개됩니다. 발표한 순위는 고정되며, 미공개
+                팀은 별도의 프리즈 순위 영역에 표시됩니다.
               </p>
             )}
           </details>
@@ -176,7 +176,7 @@ export default function ScoreboardReleaseView({
             공개 완료
           </p>
           <p className="scoreboard-release__description">
-            공개할 순위를 선택하세요. 공동 순위는 함께 공개됩니다.
+            최종 순위를 선택하세요. 공개한 순위는 이후에도 유지됩니다.
           </p>
           <div>
             {[...(release?.ranks ?? [])].reverse().map((item) => (

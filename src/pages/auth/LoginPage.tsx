@@ -46,6 +46,8 @@ import {
   passkeyError,
 } from '@/domains/identityAccess/passkeys';
 import { PasswordInput } from '@/components/auth/PasswordInput';
+import RememberedEmailField from '@/components/auth/RememberedEmailField';
+import { useRememberedEmails } from '@/domains/identityAccess/rememberedEmails';
 
 const OTP_VALID_SECONDS = 5 * 60;
 
@@ -223,7 +225,10 @@ export default function LoginPage() {
         ? 'ready'
         : 'idle',
   );
-  const [email, setEmail] = useState(changedEmail);
+  const rememberedEmails = useRememberedEmails();
+  const [email, setEmail] = useState(
+    () => changedEmail || rememberedEmails.prefill,
+  );
   const presentationLogin = isPresentationEmail(email);
   const editorOnboarding = /^\/editor\/(?:return|account)(?:\?|$)/.test(
     readLoginRedirectTarget(searchParams) ?? '',
@@ -279,6 +284,7 @@ export default function LoginPage() {
   ]);
 
   async function completeLogin(session: GeneralSession, offerPasskey = false) {
+    rememberedEmails.remember(session.account.email);
     let offer = false;
     if (offerPasskey && supportsPasskeys()) {
       try {
@@ -769,41 +775,27 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="login-field">
-            <label htmlFor="login-email">{loginPageText.emailLabel}</label>
-            <input
-              id="login-email"
-              autoComplete="email"
-              aria-invalid={Boolean(emailError)}
-              aria-describedby={emailError ? 'login-email-error' : undefined}
-              disabled={isSubmitting}
-              readOnly={loginMethod !== 'email' && !presentationLogin}
-              placeholder={loginPageText.emailPlaceholder}
-              type="email"
-              value={email}
-              onChange={(event) => {
-                const nextEmail = event.target.value;
-                setEmail(nextEmail);
-                if (emailError) setEmailError('');
-                if (
-                  otpRequested &&
-                  requestedOtpEmail &&
-                  nextEmail.trim() !== requestedOtpEmail
-                ) {
-                  resetOtpAfterEmailChange();
-                }
-              }}
-            />
-            {emailError && (
-              <p
-                id="login-email-error"
-                role="alert"
-                className="login-field-error"
-              >
-                {emailError}
-              </p>
-            )}
-          </div>
+          <RememberedEmailField
+            id="login-email"
+            label={loginPageText.emailLabel}
+            disabled={isSubmitting}
+            readOnly={loginMethod !== 'email' && !presentationLogin}
+            placeholder={loginPageText.emailPlaceholder}
+            value={email}
+            error={emailError}
+            remembered={rememberedEmails}
+            onChange={(nextEmail) => {
+              setEmail(nextEmail);
+              if (emailError) setEmailError('');
+              if (
+                otpRequested &&
+                requestedOtpEmail &&
+                nextEmail.trim() !== requestedOtpEmail
+              ) {
+                resetOtpAfterEmailChange();
+              }
+            }}
+          />
 
           {loginMethod !== 'email' && !presentationLogin && (
             <button

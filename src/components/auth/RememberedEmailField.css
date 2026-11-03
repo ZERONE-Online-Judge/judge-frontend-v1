@@ -1,0 +1,192 @@
+.remembered-email-field {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.remembered-email-control {
+  position: relative;
+  min-width: 0;
+}
+
+.remembered-email-control input.remembered-email-input-with-toggle {
+  padding-right: 48px;
+}
+
+.remembered-email-toggle {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  display: grid;
+  width: 42px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--zoj-muted);
+  cursor: pointer;
+}
+
+.remembered-email-toggle svg,
+.remembered-email-remove svg {
+  width: 20px;
+  height: 20px;
+}
+
+.remembered-email-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.remembered-email-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.remembered-email-toggle:hover,
+.remembered-email-remove:hover {
+  background: var(--zoj-surface);
+  color: var(--zoj-accent);
+}
+
+.remembered-email-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.remembered-email-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: min(340px, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: 1px solid var(--zoj-border);
+  border-radius: var(--zoj-radius-control);
+  background: var(--zoj-surface-raised);
+  box-shadow: 0 10px 28px #1e1b4b14;
+}
+
+.remembered-email-dropdown-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 8px;
+  color: var(--zoj-muted);
+  font-size: 12px;
+}
+
+.remembered-email-dropdown-heading button {
+  min-height: 30px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--zoj-muted);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.remembered-email-dropdown-heading button:hover {
+  color: var(--zoj-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.remembered-email-option-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+  border-radius: 7px;
+}
+
+.remembered-email-option {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  padding: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--zoj-ink);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remembered-email-option:hover,
+.remembered-email-option[aria-selected='true'] {
+  background: color-mix(in srgb, var(--zoj-accent) 8%, transparent);
+  color: var(--zoj-accent);
+}
+
+.remembered-email-remove {
+  display: grid;
+  flex-shrink: 0;
+  width: 38px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--zoj-muted);
+  cursor: pointer;
+}
+
+.remembered-email-preference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px 12px;
+}
+
+.remembered-email-preference label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--zoj-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.remembered-email-preference input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--zoj-accent);
+  cursor: pointer;
+}
+
+.remembered-email-preference input:disabled {
+  cursor: default;
+}
+
+.remembered-email-device-note {
+  color: var(--zoj-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.remembered-email-field button:focus-visible,
+.remembered-email-preference input:focus-visible {
+  outline: 2px solid var(--zoj-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remembered-email-toggle svg {
+    transition: none;
+  }
+}

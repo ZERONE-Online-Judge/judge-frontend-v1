@@ -194,6 +194,7 @@ for (const value of Object.values(mocks))
 const Login = source('pages/auth/LoginPage.tsx').default;
 const Dialog = source('components/auth/PasskeyDialog.tsx').default;
 function reset() {
+  window.localStorage.clear();
   for (const key of [...params.keys()]) params.delete(key);
   params.set('next', '/contests');
   calls = [];
@@ -212,8 +213,14 @@ function reset() {
     setParticipantSession: () => {},
   };
 }
-async function mount(Component = Login, props = {}) {
+async function mount(Component = Login, props = {}, remembered = null) {
   reset();
+  if (remembered) {
+    window.localStorage.setItem(
+      'zoj.login-emails.v1',
+      JSON.stringify(remembered),
+    );
+  }
   const host = document.createElement('div');
   document.body.append(host);
   const root = createRoot(host);
@@ -409,6 +416,7 @@ after(() => dom.window.close());
 
 test('replacing an existing passkey session authenticates once then consumes the transfer proof', async () => {
   const v = await mount();
+  await act(async () => v.host.querySelector('input[type="checkbox"]').click());
   options = { password_available: false, passkey_available: true };
   await input(v, '#login-email', 'user@example.com');
   await submit(v);
@@ -423,6 +431,10 @@ test('replacing an existing passkey session authenticates once then consumes the
   await click(v, '패스키로 로그인');
   await submit(v);
   assert.equal(state.generalSession, null);
+  assert.deepEqual(
+    JSON.parse(window.localStorage.getItem('zoj.login-emails.v1')).emails,
+    [],
+  );
   assert.ok(v.host.textContent.includes('기존 로그인 연결을 끊을까요?'));
   await click(v, '이 브라우저에서 사용');
   assert.deepEqual(
@@ -433,6 +445,10 @@ test('replacing an existing passkey session authenticates once then consumes the
     ],
   );
   assert.equal(state.generalSession, session);
+  assert.deepEqual(
+    JSON.parse(window.localStorage.getItem('zoj.login-emails.v1')).emails,
+    ['user@example.com'],
+  );
   await v.close();
 });
 
@@ -782,5 +798,97 @@ test('Ordinary ZOJ sign-in does not enable new Editor account onboarding', async
   await input(v, '#login-email', 'user@example.com');
   await submit(v);
   assert.deepEqual(otpRequests, [['user@example.com']]);
+  await v.close();
+});
+
+function savedLoginEmails() {
+  return (
+    JSON.parse(window.localStorage.getItem('zoj.login-emails.v1') ?? 'null')
+      ?.emails ?? []
+  );
+}
+
+for (const method of ['otp', 'password', 'passkey']) {
+  test(`remembered email is saved only after successful ${method} login`, async () => {
+    const v = await mount();
+    options = {
+      password_available: method === 'password',
+      passkey_available: method === 'passkey',
+    };
+    await act(async () =>
+      v.host.querySelector('input[type="checkbox"]').click(),
+    );
+    await input(v, '#login-email', 'USER@example.com');
+    await submit(v);
+    assert.deepEqual(savedLoginEmails(), []);
+    if (method === 'password') await input(v, '#login-password', 'Password1!');
+    if (method === 'otp') await input(v, '#login-otp', '123456');
+    if (method === 'passkey') await click(v, '패스키로 로그인');
+    await submit(v);
+    assert.equal(state.generalSession, session);
+    assert.deepEqual(savedLoginEmails(), ['user@example.com']);
+    const stored = window.localStorage.getItem('zoj.login-emails.v1');
+    assert.doesNotMatch(
+      stored,
+      /Password1|123456|fixture-access|transfer_token/,
+    );
+    await v.close();
+  });
+}
+
+test('email saving remains opt-in and password failure cannot save an address', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: false };
+  assert.equal(v.host.querySelector('input[type="checkbox"]').checked, false);
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  handler = async () => {
+    throw new ApiError('invalid_credentials', 401);
+  };
+  await submit(v);
+  assert.deepEqual(savedLoginEmails(), []);
+  await act(async () => v.host.querySelector('input[type="checkbox"]').click());
+  await submit(v);
+  assert.deepEqual(savedLoginEmails(), []);
+  handler = null;
+  await act(async () => v.host.querySelector('input[type="checkbox"]').click());
+  await submit(v);
+  assert.equal(state.generalSession, session);
+  assert.deepEqual(savedLoginEmails(), []);
+  await v.close();
+});
+
+test('password additional verification waits for completed authentication before remembering', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: false };
+  await act(async () => v.host.querySelector('input[type="checkbox"]').click());
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  handler = async () => {
+    throw new ApiError('additional_verification_required');
+  };
+  await submit(v);
+  assert.deepEqual(savedLoginEmails(), []);
+  await click(v, '이메일로 인증');
+  await input(v, '#login-otp', '123456');
+  await submit(v);
+  assert.equal(state.generalSession, session);
+  assert.deepEqual(savedLoginEmails(), ['user@example.com']);
+  await v.close();
+});
+
+test('saved email prefills a signed-out login form without starting authentication', async () => {
+  const v = await mount(
+    Login,
+    {},
+    { enabled: true, emails: ['saved@example.com'] },
+  );
+  assert.equal(v.host.querySelector('#login-email').value, 'saved@example.com');
+  assert.deepEqual(calls, []);
+  assert.deepEqual(otpRequests, []);
+  assert.equal(state.generalSession, null);
+  assert.deepEqual(savedLoginEmails(), ['saved@example.com']);
   await v.close();
 });

@@ -2060,7 +2060,7 @@ function OperatorProblemsContent({
                           }}
                         />
                         <p className="text-xs font-medium text-slate-500">
-                          문제 번호 기준 사전순으로 자동 정렬됩니다.
+                          문제 번호 순서로 자동 정렬됩니다.
                         </p>
                       </>
                     ) : null}

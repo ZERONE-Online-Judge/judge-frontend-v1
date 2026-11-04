@@ -111,7 +111,7 @@ for (const reduced of [false, true])
       ]);
     }
   });
-test('scoreboard problem columns use the same lexical codes as problem lists', async () => {
+test('scoreboard problem columns use the same natural code order as problem lists', async () => {
   window.matchMedia = () => ({ matches: true });
   const team = {
     ...row('team', 1),
@@ -128,7 +128,7 @@ test('scoreboard problem columns use the same lexical codes as problem lists', a
     [...element.querySelectorAll('thead th')]
       .map((el) => el.textContent)
       .filter((code) => /^A\d+$/.test(code)),
-    ['A1', 'A10', 'A2'],
+    ['A1', 'A2', 'A10'],
   );
 });
 

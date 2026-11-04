@@ -281,7 +281,7 @@ async function dispatchUpdate(contestId = 'contest') {
   await flush();
 }
 
-test('presentation problem columns use lexical order despite conflicting display orders', async () => {
+test('presentation problem columns use natural code order despite conflicting display orders', async () => {
   customBoards.a = {
     division: divisions[0],
     release: { mode: 'all' },
@@ -301,7 +301,7 @@ test('presentation problem columns use lexical order despite conflicting display
     [...display.querySelectorAll('thead th')]
       .map((el) => el.textContent)
       .filter((code) => /^A\d+$/.test(code)),
-    ['A1', 'A10', 'A2'],
+    ['A1', 'A2', 'A10'],
   );
 });
 

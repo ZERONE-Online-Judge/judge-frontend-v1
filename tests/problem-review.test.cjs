@@ -314,7 +314,7 @@ test('legacy review scopes still include reading and allow review submissions', 
   assert.equal(creates.length, 1);
 });
 
-test('review problem index orders codes lexically across divisions and conflicting display orders', async () => {
+test('review problem index orders codes naturally across divisions and conflicting display orders', async () => {
   const original = problems.slice();
   try {
     problems.splice(
@@ -335,7 +335,7 @@ test('review problem index orders codes lexically across divisions and conflicti
         'aside[aria-label="문제 목록"] button > span:first-child',
       ),
     ].map((el) => el.textContent);
-    assert.deepEqual(labels, ['A1. A1', 'A10. A10', 'A2. A2']);
+    assert.deepEqual(labels, ['A1. A1', 'A2. A2', 'A10. A10']);
   } finally {
     problems.splice(0, problems.length, ...original);
   }

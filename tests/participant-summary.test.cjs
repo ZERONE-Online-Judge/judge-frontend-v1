@@ -177,7 +177,7 @@ function group(title) {
     (el) => el.querySelector('h2').textContent.startsWith(title),
   );
 }
-test('solved and unsolved overview links both follow lexical problem codes', async () => {
+test('solved and unsolved overview links both follow natural problem code order', async () => {
   problems = ['A2', 'A10', 'A1', 'B2', 'B10', 'B1'].map((code, index) => ({
     problem_id: code,
     problem_code: code,
@@ -188,8 +188,8 @@ test('solved and unsolved overview links both follow lexical problem codes', asy
   await render();
   const codes = (title) =>
     [...group(title).querySelectorAll('a')].map((el) => el.textContent);
-  assert.deepEqual(codes('푼 문제'), ['A1', 'A10', 'A2']);
-  assert.deepEqual(codes('아직 못 푼 문제'), ['B1', 'B10', 'B2']);
+  assert.deepEqual(codes('푼 문제'), ['A1', 'A2', 'A10']);
+  assert.deepEqual(codes('아직 못 푼 문제'), ['B1', 'B2', 'B10']);
 });
 
 test('rank uses the server frozen board while private team solve statuses keep updating', async () => {

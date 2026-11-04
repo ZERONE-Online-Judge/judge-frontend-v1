@@ -138,7 +138,7 @@ function trigger() {
   return host.querySelector('button[aria-label="문제 목록 열기"]');
 }
 
-test('problem sidebar uses lexical codes instead of display order or natural numeric order', async () => {
+test('problem sidebar uses natural code order instead of display order', async () => {
   const mixed = ['A2', 'A10', 'A1'].map((code, index) => ({
     problem_id: code,
     problem_code: code,
@@ -150,7 +150,7 @@ test('problem sidebar uses lexical codes instead of display order or natural num
     [...host.querySelectorAll('.zoj-problem-drawer__code')].map(
       (el) => el.textContent,
     ),
-    ['A1', 'A10', 'A2'],
+    ['A1', 'A2', 'A10'],
   );
   assert.deepEqual(
     mixed.map((problem) => problem.problem_code),

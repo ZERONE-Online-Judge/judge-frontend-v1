@@ -63,6 +63,10 @@ import ProblemEditorialPanel from '@/components/contest/problem/ProblemEditorial
 import ProblemStatementPanel from '@/components/contest/problem/ProblemStatementPanel';
 import ProblemLanguageEditor from '@/components/operator/ProblemLanguageEditor';
 import { hasProblemEditorial } from '@/domains/problemManagement/statementLanguages';
+import {
+  testcaseSupportAssets,
+  supportFileStatus,
+} from '@/domains/problemManagement/supportFiles';
 import type {
   PackageFileRole,
   JudgeBundleStatus,
@@ -922,15 +926,10 @@ function OperatorProblemsContent({
     }
     return grouped;
   }, [assetsQuery.data]);
-  const supportAssetByRole = useMemo(() => {
-    const grouped = new Map<string, ProblemAsset>();
-    for (const asset of assetsQuery.data ?? []) {
-      const role = supportRoleFromAsset(asset);
-      if (!role) continue;
-      grouped.set(role, asset);
-    }
-    return grouped;
-  }, [assetsQuery.data]);
+  const supportAssetByRole = useMemo(
+    () => testcaseSupportAssets(assetsQuery.data ?? []),
+    [assetsQuery.data],
+  );
   const supportFileRows = useMemo(() => {
     const statusByRole = new Map(
       (packageStatusQuery.data?.support_files ?? []).map((file) => [
@@ -949,7 +948,7 @@ function OperatorProblemsContent({
         latest_filename: null,
         status: 'missing',
       };
-      const current = statusByRole.get(role) ?? fallback;
+      const current = supportFileStatus(statusByRole.get(role) ?? fallback);
 
       return {
         ...current,
@@ -3516,26 +3515,6 @@ function supportRoleRequiredFilename(role: PackageFileRole) {
   if (role === 'validator') return 'validator.cpp';
   if (role === 'checker') return 'checker.cpp';
   return '';
-}
-
-function supportRoleFromAsset(asset: ProblemAsset): PackageFileRole | null {
-  const storageRole = asset.storage_key.match(
-    /\/(?:support|package-files)\/([^/]+)(?:\/|$)/,
-  )?.[1];
-  if (isPackageFileRole(storageRole)) return storageRole;
-
-  const filename = asset.original_filename.toLowerCase();
-  if (filename === 'testlib.h') return 'package-resource';
-  if (filename === 'validator.cpp') return 'validator';
-  if (filename === 'checker.cpp') return 'checker';
-
-  return null;
-}
-
-function isPackageFileRole(
-  value: string | undefined,
-): value is PackageFileRole {
-  return PACKAGE_FILE_ROLES.some((role) => role.value === value);
 }
 
 function TextInput({

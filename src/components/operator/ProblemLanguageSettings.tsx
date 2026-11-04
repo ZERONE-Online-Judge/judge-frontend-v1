@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useState } from 'react';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
@@ -45,7 +46,7 @@ export default function ProblemLanguageSettings({
             {formatApiError(problems.error, '문제를 불러오지 못했습니다.')}
           </p>
         ) : null}
-        {problems.data?.map((problem) => (
+        {sortProblemsByCode(problems.data ?? []).map((problem) => (
           <ProblemLanguages
             key={problem.problem_id + JSON.stringify(problem.allowed_languages)}
             problem={problem}

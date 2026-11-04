@@ -281,6 +281,30 @@ async function dispatchUpdate(contestId = 'contest') {
   await flush();
 }
 
+test('presentation problem columns use lexical order despite conflicting display orders', async () => {
+  customBoards.a = {
+    division: divisions[0],
+    release: { mode: 'all' },
+    frozen: false,
+    rows: [],
+    problems: ['A2', 'A10', 'A1'].map((code, index) => ({
+      problem_id: code,
+      problem_code: code,
+      display_order: index,
+    })),
+  };
+  const display = await renderPage(
+    Presentation,
+    '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+  );
+  assert.deepEqual(
+    [...display.querySelectorAll('thead th')]
+      .map((el) => el.textContent)
+      .filter((code) => /^A\d+$/.test(code)),
+    ['A1', 'A10', 'A2'],
+  );
+});
+
 test('ended presentation displays the selected division without any release controls', async () => {
   const display = await renderPage(
     Presentation,

@@ -111,6 +111,27 @@ for (const reduced of [false, true])
       ]);
     }
   });
+test('scoreboard problem columns use the same lexical codes as problem lists', async () => {
+  window.matchMedia = () => ({ matches: true });
+  const team = {
+    ...row('team', 1),
+    problem_scores: ['A2', 'A10', 'A1'].map((code) => ({
+      problem_id: code,
+      problem_code: code,
+      attempts: 0,
+      wrong_attempts: 0,
+      solved: false,
+    })),
+  };
+  const element = await mount([team]);
+  assert.deepEqual(
+    [...element.querySelectorAll('thead th')]
+      .map((el) => el.textContent)
+      .filter((code) => /^A\d+$/.test(code)),
+    ['A1', 'A10', 'A2'],
+  );
+});
+
 test('unrevealed submissions are visibly pending until a published result arrives', async () => {
   window.matchMedia = () => ({ matches: true });
   const waiting = {

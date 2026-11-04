@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import BoundedTextarea from '@/shared/ui/BoundedTextarea';
 import StorageFileContent from '@/components/operator/StorageFileContent';
 import type { TextPreview } from '@/shared/lib/largeText';
@@ -581,8 +582,7 @@ function validateProblemForm(form: ProblemForm) {
   return (
     positiveInteger(form.timeLimitMs, '시간 제한') ||
     positiveInteger(form.memoryLimitMb, '메모리 제한') ||
-    languageLimitError ||
-    (form.displayOrder ? positiveInteger(form.displayOrder, '정렬 순서') : '')
+    languageLimitError
   );
 }
 
@@ -599,15 +599,9 @@ function uniqueProblemCode(baseCode: string, existingCodes: Set<string>) {
 }
 
 function problemsInDivision(problems: Problem[], divisionId: string) {
-  return problems
-    .filter((problem) => problem.division_id === divisionId)
-    .sort(
-      (a, b) =>
-        (a.display_order ?? 0) - (b.display_order ?? 0) ||
-        a.problem_code.localeCompare(b.problem_code, 'ko-KR', {
-          numeric: true,
-        }),
-    );
+  return sortProblemsByCode(
+    problems.filter((problem) => problem.division_id === divisionId),
+  );
 }
 
 function nextProblemDisplayOrder(problems: Problem[], divisionId: string) {
@@ -618,45 +612,6 @@ function nextProblemDisplayOrder(problems: Problem[], divisionId: string) {
       ...divisionProblems.map((problem) => problem.display_order ?? 0),
     ) + 1
   );
-}
-
-function problemOrderOptions(
-  problems: Problem[],
-  divisionId: string,
-  currentDisplayOrder: string,
-) {
-  if (!divisionId) return [];
-
-  const divisionProblems = problemsInDivision(problems, divisionId);
-  const nextOrder = nextProblemDisplayOrder(problems, divisionId);
-  const currentOrder = Number(currentDisplayOrder);
-  const maxOrder = Math.max(
-    nextOrder,
-    Number.isInteger(currentOrder) ? currentOrder : 0,
-  );
-  const problemByOrder = new Map<number, Problem>();
-
-  divisionProblems.forEach((problem) => {
-    const order = problem.display_order ?? 0;
-    if (order > 0 && !problemByOrder.has(order)) {
-      problemByOrder.set(order, problem);
-    }
-  });
-
-  return Array.from({ length: maxOrder }, (_, index) => {
-    const order = index + 1;
-    const problem = problemByOrder.get(order);
-    const suffix = problem
-      ? `${problem.problem_code}. ${problem.title}`
-      : order === nextOrder
-        ? '마지막에 추가'
-        : '빈 순서';
-
-    return {
-      label: `${order}번 · ${suffix}`,
-      value: String(order),
-    };
-  });
 }
 
 function storageFileName(storageKey: string) {
@@ -780,14 +735,7 @@ function OperatorProblemsContent({
   });
 
   const problems = useMemo(
-    () =>
-      [...(problemsQuery.data ?? [])].sort(
-        (a, b) =>
-          (a.display_order ?? 0) - (b.display_order ?? 0) ||
-          a.problem_code.localeCompare(b.problem_code, 'ko-KR', {
-            numeric: true,
-          }),
-      ),
+    () => sortProblemsByCode(problemsQuery.data ?? []),
     [problemsQuery.data],
   );
   const divisions = dashboardQuery.data?.divisions ?? [];
@@ -803,10 +751,6 @@ function OperatorProblemsContent({
     `${problem.problem_code} ${problem.title}`
       .toLowerCase()
       .includes(problemSearch.trim().toLowerCase()),
-  );
-  const displayOrderOptions = useMemo(
-    () => problemOrderOptions(problems, form.divisionId, form.displayOrder),
-    [form.displayOrder, form.divisionId, problems],
   );
   const copyableProblems = activeDivisionId
     ? problems.filter((problem) => problem.division_id !== activeDivisionId)
@@ -2115,35 +2059,9 @@ function OperatorProblemsContent({
                             }));
                           }}
                         />
-                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                          정렬 순서
-                          <Select
-                            className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                            disabled={!form.divisionId}
-                            onChange={(event) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                displayOrder: event.target.value,
-                              }))
-                            }
-                            value={form.displayOrder}
-                          >
-                            {!form.divisionId ? (
-                              <option value="">
-                                유형을 먼저 선택해 주세요
-                              </option>
-                            ) : null}
-                            {displayOrderOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                          <span className="text-xs font-medium text-slate-500">
-                            문제 생성 시 선택한 유형의 마지막 순서가 자동으로
-                            채워집니다.
-                          </span>
-                        </label>
+                        <p className="text-xs font-medium text-slate-500">
+                          문제 번호 기준 사전순으로 자동 정렬됩니다.
+                        </p>
                       </>
                     ) : null}
                     {authoringTab === 'statement' ? (

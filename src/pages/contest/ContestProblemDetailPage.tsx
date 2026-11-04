@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -363,7 +364,7 @@ function ContestProblemDetailContent({
       );
     },
   });
-  const problems = problemsQuery.data ?? [];
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
 
   function routeForProblem(nextProblemId: string, divisionId: string) {
     const search = divisionId

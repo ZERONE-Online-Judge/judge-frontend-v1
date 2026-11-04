@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { pollDelay } from '@/shared/query/polling';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -182,7 +183,7 @@ function ContestScoreboardContent({
     refetchIntervalInBackground: false,
   });
   const rows = scoreboardQuery.data?.rows ?? [];
-  const problems = problemsQuery.data ?? [];
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const resolvedDivisionName =
     scoreboardQuery.data?.division.name ?? divisionName;
   const release = scoreboardQuery.data?.release;

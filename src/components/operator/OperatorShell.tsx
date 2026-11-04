@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import {
@@ -357,7 +358,7 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
   const basePath = `/operator/contests/${contestId}`;
   const questions = questionsQuery.data ?? [];
   const notices = noticesQuery.data ?? [];
-  const problems = problemsQuery.data ?? [];
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const participantCountLabel = countLabel(
     dashboardQuery.data?.participant_count ?? 0,
     '팀',

@@ -1,3 +1,7 @@
+import {
+  sortProblemsByCode,
+  compareProblemsByCode,
+} from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import ScoreboardFreezeDialog, {
   type FreezeChange,
@@ -158,7 +162,9 @@ function PenaltyBreakdownModal({
   problemById: Map<string, Problem>;
   row: ScoreboardRow;
 }) {
-  const solvedScores = row.problem_scores.filter((score) => score.solved);
+  const solvedScores = sortProblemsByCode(
+    row.problem_scores.filter((score) => score.solved),
+  );
   const unsolvedAttemptCount = row.problem_scores
     .filter((score) => !score.solved)
     .reduce((sum, score) => sum + score.attempts, 0);
@@ -295,7 +301,9 @@ function ProblemStatsBlock({
       .filter((stat) => !problemIds.has(stat.problem_id))
       .map((stat) => ({ problem: null, stat }));
 
-    return [...problemRows, ...orphanRows];
+    return [...problemRows, ...orphanRows].sort((a, b) =>
+      compareProblemsByCode(a.problem ?? a.stat, b.problem ?? b.stat),
+    );
   }, [problemStats, problems]);
 
   if (!rows.length) return null;
@@ -650,8 +658,10 @@ function OperatorScoreboardContent({
   const releaseMode = contest?.scoreboard_release_mode ?? 'manual';
   const releaseOption = scoreboardReleaseOption(releaseMode);
   const ended = Boolean(contest && isContestEnded(contest));
-  const problems = (canReadProblems ? (problemsQuery.data ?? []) : []).filter(
-    (problem) => (divisionId ? problem.division_id === divisionId : true),
+  const problems = sortProblemsByCode(
+    (canReadProblems ? (problemsQuery.data ?? []) : []).filter((problem) =>
+      divisionId ? problem.division_id === divisionId : true,
+    ),
   );
   const problemById = useMemo(
     () => new Map(problems.map((problem) => [problem.problem_id, problem])),

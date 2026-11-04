@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -160,7 +161,7 @@ function ContestProblemsContent({
     },
   });
 
-  const problems = problemsQuery.data ?? [];
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const problemDetailSearch =
     !shouldUseParticipantScope && selectedPublicDivisionId
       ? `?divisionId=${encodeURIComponent(selectedPublicDivisionId)}`

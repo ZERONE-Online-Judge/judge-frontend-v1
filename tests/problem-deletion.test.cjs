@@ -34,6 +34,9 @@ test('problem deletion only requests rejudging cancellation after explicit opt-i
     },
     '@/shared/lib/files': {},
     '@/shared/lib/largeText': {},
+    '@/domains/problemManagement/problemCodeOrder': source(
+      'domains/problemManagement/problemCodeOrder.ts',
+    ),
   });
   await api.deleteOperatorProblem('contest', 'problem', 'token');
   await api.deleteOperatorProblem('contest', 'problem', 'token', true);

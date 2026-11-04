@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -119,15 +120,7 @@ export default function ContestParticipantSummary({
       ? row.rank
       : null;
   const list = problemsAllowed && !problems.isError ? problems.data : undefined;
-  const ordered = list
-    ? [...list].sort(
-        (a, b) =>
-          (a.display_order ?? 0) - (b.display_order ?? 0) ||
-          a.problem_code.localeCompare(b.problem_code, 'ko-KR', {
-            numeric: true,
-          }),
-      )
-    : undefined;
+  const ordered = list ? sortProblemsByCode(list) : undefined;
   const emptyMessage = !started
     ? '대회 시작 후 표시됩니다.'
     : !problemsAllowed

@@ -177,6 +177,21 @@ function group(title) {
     (el) => el.querySelector('h2').textContent.startsWith(title),
   );
 }
+test('solved and unsolved overview links both follow lexical problem codes', async () => {
+  problems = ['A2', 'A10', 'A1', 'B2', 'B10', 'B1'].map((code, index) => ({
+    problem_id: code,
+    problem_code: code,
+    title: code,
+    display_order: index,
+    solve_status: index < 3 ? 'accepted' : 'wrong',
+  }));
+  await render();
+  const codes = (title) =>
+    [...group(title).querySelectorAll('a')].map((el) => el.textContent);
+  assert.deepEqual(codes('푼 문제'), ['A1', 'A10', 'A2']);
+  assert.deepEqual(codes('아직 못 푼 문제'), ['B1', 'B10', 'B2']);
+});
+
 test('rank uses the server frozen board while private team solve statuses keep updating', async () => {
   await render();
   assert.match(

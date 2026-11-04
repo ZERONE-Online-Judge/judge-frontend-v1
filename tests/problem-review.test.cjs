@@ -314,6 +314,33 @@ test('legacy review scopes still include reading and allow review submissions', 
   assert.equal(creates.length, 1);
 });
 
+test('review problem index orders codes lexically across divisions and conflicting display orders', async () => {
+  const original = problems.slice();
+  try {
+    problems.splice(
+      0,
+      problems.length,
+      ...['A2', 'A10', 'A1'].map((code, index) => ({
+        ...original[0],
+        problem_id: code,
+        problem_code: code,
+        title: code,
+        division_id: index === 0 ? 'a' : 'b',
+        display_order: index,
+      })),
+    );
+    await render();
+    const labels = [
+      ...container.querySelectorAll(
+        'aside[aria-label="문제 목록"] button > span:first-child',
+      ),
+    ].map((el) => el.textContent);
+    assert.deepEqual(labels, ['A1. A1', 'A10. A10', 'A2. A2']);
+  } finally {
+    problems.splice(0, problems.length, ...original);
+  }
+});
+
 test('review tab lists all divisions, filters and links to a problem while keeping editorial collapsed', async () => {
   await render();
   assert.ok(

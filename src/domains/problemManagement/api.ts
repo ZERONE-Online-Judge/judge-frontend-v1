@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { responsePreview } from '@/shared/lib/largeText';
 import type {
   MatchedTestcaseUploadProgress,
@@ -17,7 +18,9 @@ import { API_BASE_URL, apiRequest } from '@/shared/api/client';
 import { encodeStorageKey, sha256Hex } from '@/shared/lib/files';
 
 export function getContestProblems(contestId: string, token?: string) {
-  return apiRequest<Problem[]>(`/contests/${contestId}/problems`, token);
+  return apiRequest<Problem[]>(`/contests/${contestId}/problems`, token).then(
+    sortProblemsByCode,
+  );
 }
 
 export function getDivisionProblems(
@@ -28,7 +31,7 @@ export function getDivisionProblems(
   return apiRequest<Problem[]>(
     `/contests/${contestId}/divisions/${divisionId}/problems`,
     token,
-  );
+  ).then(sortProblemsByCode);
 }
 
 export function getContestProblem(
@@ -57,7 +60,7 @@ export function getOperatorProblems(contestId: string, token: string) {
   return apiRequest<Problem[]>(
     `/operator/contests/${contestId}/problems`,
     token,
-  );
+  ).then(sortProblemsByCode);
 }
 
 export function createOperatorProblem(

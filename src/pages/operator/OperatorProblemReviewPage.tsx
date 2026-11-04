@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import { useState } from 'react';
@@ -98,19 +99,7 @@ function ProblemReviewContent({
   const divisions = dashboard.data?.divisions ?? [];
   const divisionId = params.get('divisionId') ?? '';
   const normalizedSearch = search.trim().toLocaleLowerCase();
-  const divisionOrder = new Map(
-    divisions.map((division, index) => [
-      division.division_id,
-      division.display_order ?? index,
-    ]),
-  );
-  const problems = [...(problemsQuery.data ?? [])].sort(
-    (a, b) =>
-      (divisionOrder.get(a.division_id ?? '') ?? Number.MAX_SAFE_INTEGER) -
-        (divisionOrder.get(b.division_id ?? '') ?? Number.MAX_SAFE_INTEGER) ||
-      (a.display_order ?? 0) - (b.display_order ?? 0) ||
-      a.problem_code.localeCompare(b.problem_code, 'ko', { numeric: true }),
-  );
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const visibleProblems = problems.filter(
     (problem) =>
       (!divisionId || problem.division_id === divisionId) &&

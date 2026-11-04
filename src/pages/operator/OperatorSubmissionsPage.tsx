@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import ModalDialog from '@/shared/ui/ModalDialog';
@@ -267,7 +268,7 @@ function OperatorSubmissionsContent({
     if (!retryMutation.isPending) retryMutation.mutate(submissionId);
   };
   const divisions = dashboardQuery.data?.divisions ?? [];
-  const problems = filtersQuery.data?.problems ?? [];
+  const problems = sortProblemsByCode(filtersQuery.data?.problems ?? []);
   const filteredProblems = divisionId
     ? problems.filter((problem) => problem.division_id === divisionId)
     : problems;

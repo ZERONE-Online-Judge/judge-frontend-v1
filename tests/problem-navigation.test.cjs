@@ -138,6 +138,26 @@ function trigger() {
   return host.querySelector('button[aria-label="문제 목록 열기"]');
 }
 
+test('problem sidebar uses lexical codes instead of display order or natural numeric order', async () => {
+  const mixed = ['A2', 'A10', 'A1'].map((code, index) => ({
+    problem_id: code,
+    problem_code: code,
+    title: code,
+    display_order: index,
+  }));
+  await render({ problems: mixed, activeProblemId: 'A1' });
+  assert.deepEqual(
+    [...host.querySelectorAll('.zoj-problem-drawer__code')].map(
+      (el) => el.textContent,
+    ),
+    ['A1', 'A10', 'A2'],
+  );
+  assert.deepEqual(
+    mixed.map((problem) => problem.problem_code),
+    ['A2', 'A10', 'A1'],
+  );
+});
+
 test('problem list stays within its workspace without a page modal and restores focus on Escape', async () => {
   await render();
   assert.equal(document.querySelector('dialog'), null);

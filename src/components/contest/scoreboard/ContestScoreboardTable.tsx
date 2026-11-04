@@ -1,3 +1,4 @@
+import { compareProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import ContestScoreboardProblemCell from '@/components/contest/scoreboard/ContestScoreboardProblemCell';
 import ScoreboardMedal from '@/components/contest/scoreboard/ScoreboardMedal';
 import useScoreboardRowMotion from '@/domains/submissionScoreboard/useScoreboardRowMotion';
@@ -38,11 +39,7 @@ function scoreboardProblems(rows: ScoreboardRow[], problems: Problem[]) {
     });
   });
 
-  return Array.from(problemMap.values()).sort((a, b) =>
-    a.problem_code.localeCompare(b.problem_code, 'ko-KR', {
-      numeric: true,
-    }),
-  );
+  return Array.from(problemMap.values()).sort(compareProblemsByCode);
 }
 
 function totalPenalty(row: ScoreboardRow) {

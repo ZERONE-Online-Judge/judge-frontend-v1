@@ -1,3 +1,4 @@
+import { compareProblemCodes } from '@/domains/problemManagement/problemCodeOrder';
 import { ContestCountdown } from '@/components/contest/ContestScheduleClock';
 import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
 import './OperatorScoreboardPresentationPage.css';
@@ -69,9 +70,7 @@ function sortedProblemCodes(section: OperatorPresentationScoreboardSection) {
     row.problem_scores.forEach((score) => codes.add(score.problem_code));
   });
 
-  return Array.from(codes).sort((a, b) =>
-    a.localeCompare(b, 'ko-KR', { numeric: true }),
-  );
+  return Array.from(codes).sort(compareProblemCodes);
 }
 
 function problemScoreByCode(row: ScoreboardRow) {

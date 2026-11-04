@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import type { Ref } from 'react';
 import { Link } from 'react-router-dom';
@@ -76,7 +77,7 @@ export default function ProblemSidebar({
         ) : null}
         <nav aria-label="문제 목록">
           <ul>
-            {problems.map((problem) => {
+            {sortProblemsByCode(problems).map((problem) => {
               const active = problem.problem_id === activeProblemId;
               const query = new URLSearchParams(search);
               if (!active) query.delete('submissionId');

@@ -1,3 +1,4 @@
+import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import { pollDelay } from '@/shared/query/polling';
 import { useState } from 'react';
@@ -224,7 +225,7 @@ function ContestSubmissionsContent({
   });
   const submissions = submissionsQuery.data?.data ?? [];
   const page = submissionsQuery.data?.page;
-  const problems = problemsQuery.data ?? [];
+  const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const availableProblems = effectiveDivisionId
     ? problems.filter((problem) => problem.division_id === effectiveDivisionId)
     : problems;

@@ -20,7 +20,10 @@ import {
   getOperatorContestDashboard,
   updateContestSettings,
 } from '@/domains/contestAdministration/api';
-import type { OperatorDashboard } from '@/domains/contestAdministration/types';
+import type {
+  Contest,
+  OperatorDashboard,
+} from '@/domains/contestAdministration/types';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { hasContestPermission } from '@/domains/identityAccess/permissions';
 import {
@@ -106,6 +109,7 @@ function OperatorNoticesContent({
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey,
     queryFn: () => getOperatorContestDashboard(contestId, token),
+    refetchInterval: 15_000,
   });
   const noticesQuery = useQuery({
     queryKey: ['operator', 'notices', contestId, queryIdentity],
@@ -317,29 +321,7 @@ function OperatorNoticesContent({
               </form>
             ) : (
               <div className="grid gap-4">
-                {contest?.emergency_notice ? (
-                  <div className="grid gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-rose-600 uppercase">
-                        현재 표시 중
-                      </span>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-600">
-                        전광판 노출
-                      </span>
-                    </div>
-                    <p className="text-sm leading-6 font-medium whitespace-pre-wrap text-rose-700">
-                      <NoticeCountdownText
-                        text={contest.emergency_notice}
-                        template={contest.emergency_notice_template}
-                        contest={contest}
-                      />
-                    </p>
-                  </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-medium text-slate-500">
-                    현재 표시 중인 긴급공지 문구가 없습니다.
-                  </p>
-                )}
+                <CurrentEmergencyNotice contest={contest} />
                 <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 font-medium text-slate-500">
                   일반 공지를 긴급 공지로 저장하면 이 문구가 해당 공지 본문으로
                   자동 교체됩니다. 이후 문구 수정과 내리기는 이 관리 창에서 따로
@@ -423,30 +405,50 @@ function OperatorNoticesContent({
         <OperatorPanel
           actions={
             canManage ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className="operator-action operator-action--secondary"
-                  type="button"
-                  onClick={() => {
-                    setEditorMode('emergency');
-                    setEditorOpen(true);
-                  }}
-                >
-                  긴급공지 관리
-                </button>
-                <button
-                  className="operator-action operator-action--primary"
-                  type="button"
-                  onClick={() => {
-                    setForm(emptyNoticeForm);
-                    setFormError('');
-                    setEditorMode('notice');
-                    setEditorOpen(true);
-                  }}
-                >
-                  공지 작성
-                </button>
-              </div>
+              <button
+                className="operator-action operator-action--secondary"
+                disabled={!contest}
+                type="button"
+                onClick={() => {
+                  setEditorMode('emergency');
+                  setEditorOpen(true);
+                }}
+              >
+                긴급공지 관리
+              </button>
+            ) : null
+          }
+          title="현재 긴급공지"
+        >
+          {dashboardQuery.isPending ? (
+            <PageNotice
+              message="긴급공지를 불러오는 중입니다."
+              status="loading"
+            />
+          ) : contest ? (
+            <CurrentEmergencyNotice contest={contest} />
+          ) : (
+            <p className="text-sm text-slate-500">
+              긴급공지 정보를 확인할 수 없습니다.
+            </p>
+          )}
+        </OperatorPanel>
+
+        <OperatorPanel
+          actions={
+            canManage ? (
+              <button
+                className="operator-action operator-action--primary"
+                type="button"
+                onClick={() => {
+                  setForm(emptyNoticeForm);
+                  setFormError('');
+                  setEditorMode('notice');
+                  setEditorOpen(true);
+                }}
+              >
+                공지 작성
+              </button>
             ) : null
           }
           title={`공지 목록 · ${notices.length}건`}
@@ -552,6 +554,32 @@ function OperatorNoticesContent({
         </OperatorPanel>
       </div>
     </PageLayout>
+  );
+}
+
+function CurrentEmergencyNotice({ contest }: { contest?: Contest }) {
+  return contest?.emergency_notice ? (
+    <div className="grid min-w-0 gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-rose-600">
+          현재 표시 중
+        </span>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-600">
+          전광판 노출
+        </span>
+      </div>
+      <p className="min-w-0 text-sm leading-6 font-medium [overflow-wrap:anywhere] whitespace-pre-wrap text-rose-700">
+        <NoticeCountdownText
+          text={contest.emergency_notice}
+          template={contest.emergency_notice_template}
+          contest={contest}
+        />
+      </p>
+    </div>
+  ) : (
+    <p className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm font-medium text-slate-500">
+      현재 표시 중인 긴급공지 문구가 없습니다.
+    </p>
   );
 }
 

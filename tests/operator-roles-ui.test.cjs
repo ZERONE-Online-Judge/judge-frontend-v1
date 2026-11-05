@@ -563,12 +563,12 @@ test('master settings page keeps staff management on its separate tab without fe
   assert.equal(container.textContent.includes('assigned@example.test'), false);
 });
 
-test('contest settings defaults to manual release and saves the chosen resolver mode', async () => {
+test('legacy contest settings preserve manual release and save the chosen resolver mode', async () => {
   await render(SettingsPage, 'settings');
   const choices = container.querySelectorAll(
     'input[name="scoreboard_release_mode"]',
   );
-  assert.equal(choices.length, 3);
+  assert.equal(choices.length, 4);
   assert.equal([...choices].find((input) => input.checked).value, 'manual');
   await click(container.querySelector('input[value="resolver"]'));
   await click(button('변경사항 저장'));
@@ -580,6 +580,37 @@ test('contest settings defaults to manual release and saves the chosen resolver 
     /열람 범위가 비공개이면 참가자는 볼 수 없습니다/,
   );
 });
+
+test('new contests and an unselected release choice default to resolver', () => {
+  const { emptyContest } = source('domains/contestAdministration/logic.ts');
+  const { scoreboardReleaseOption } = source(
+    'domains/submissionScoreboard/releaseModes.ts',
+  );
+  assert.equal(emptyContest().scoreboard_release_mode, 'resolver');
+  assert.equal(scoreboardReleaseOption().value, 'resolver');
+});
+
+test('contest settings offer and save operator-triggered bulk release', async () => {
+  await render(SettingsPage, 'settings');
+  const input = container.querySelector('input[value="manual_all"]');
+  assert.ok(input);
+  assert.match(input.closest('label').textContent, /전체 공개 버튼/);
+  await click(input);
+  await click(button('변경사항 저장'));
+  assert.equal(settingsChanges[0].body.scoreboard_release_mode, 'manual_all');
+});
+
+for (const mode of ['manual', 'manual_all', 'immediate', 'resolver'])
+  test(`new defaults preserve the saved ${mode} mode in contest settings`, async () => {
+    contestOverrides = { scoreboard_release_mode: mode };
+    await render(SettingsPage, 'settings');
+    assert.equal(
+      container.querySelector('input[name="scoreboard_release_mode"]:checked')
+        .value,
+      mode,
+    );
+    assert.equal(settingsChanges.length, 0);
+  });
 
 test('submission settings persist frozen counts separately from release mode', async () => {
   await render(SettingsPage, 'settings');

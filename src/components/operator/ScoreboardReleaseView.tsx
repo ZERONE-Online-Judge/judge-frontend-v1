@@ -35,8 +35,11 @@ export default function ScoreboardReleaseView({
       ? `이 조작은 체험용 가상 순위표에만 적용됩니다. 실제 대회는 바뀌지 않습니다.\n\n${message}`
       : message;
   const resolver = release?.resolver;
-  const isResolver = (release?.strategy ?? strategy) === 'resolver';
-  const immediate = strategy === 'immediate';
+  const effectiveStrategy = release?.strategy ?? strategy;
+  const isResolver = effectiveStrategy === 'resolver';
+  const immediate = effectiveStrategy === 'immediate';
+  const manualAll = effectiveStrategy === 'manual_all';
+  const liveRelease = immediate || manualAll;
   const complete = release?.mode === 'all';
   const preparing = release?.mode === 'not_started';
   const active = release?.mode === 'partial';
@@ -53,14 +56,16 @@ export default function ScoreboardReleaseView({
             ? `${undo.rank}위 공개를 취소하고 해당 팀의 프리즈 기록으로 복원합니다. 공동 순위도 함께 되돌립니다.`
             : undo?.action === 'next'
               ? '직전에 공개한 팀·문제의 제출 전체를 되돌리고 점수와 순위를 복원합니다.'
-              : immediate
+              : liveRelease
                 ? '전체 공개를 되돌리고 프리즈 표를 표시합니다. 다시 전체 공개할 때까지 유지됩니다.'
                 : '전체 공개 직전의 공개 범위와 순위로 돌아갑니다.';
   const status = !release
     ? '불러오는 중'
-    : immediate
-      ? active
-        ? '프리즈 표 유지 중'
+    : liveRelease
+      ? !complete
+        ? manualAll
+          ? '공개 대기'
+          : '프리즈 표 유지 중'
         : '전체 성적 공개 중'
       : complete
         ? '공개 완료'
@@ -84,9 +89,11 @@ export default function ScoreboardReleaseView({
           <span>
             {immediate
               ? '종료 즉시 전체 공개'
-              : isResolver
-                ? '결과 순차 공개'
-                : '순위별 공개'}
+              : manualAll
+                ? '운영진 일괄 공개'
+                : isResolver
+                  ? '결과 순차 공개'
+                  : '순위별 공개'}
           </span>
         </h3>
         <span className="scoreboard-release__status" role="status">
@@ -99,11 +106,13 @@ export default function ScoreboardReleaseView({
         <p className="scoreboard-release__description">
           공개 상태를 확인하고 있습니다.
         </p>
-      ) : immediate ? (
+      ) : liveRelease ? (
         <p className="scoreboard-release__description">
-          {active
-            ? '전체 공개를 되돌렸습니다. 다시 공개할 때까지 참가자·발표 화면에 프리즈 표를 유지합니다.'
-            : '프리즈가 해제되었습니다. 남은 채점과 재채점 결과도 계속 반영됩니다.'}
+          {complete
+            ? '프리즈가 해제되었습니다. 남은 채점과 재채점 결과도 계속 반영됩니다.'
+            : manualAll
+              ? '운영자가 전체 공개 버튼을 누를 때까지 참가자·발표 화면에 프리즈 표를 유지합니다.'
+              : '전체 공개를 되돌렸습니다. 다시 공개할 때까지 참가자·발표 화면에 프리즈 표를 유지합니다.'}
         </p>
       ) : preparing ? (
         <>
@@ -173,7 +182,7 @@ export default function ScoreboardReleaseView({
         </div>
       ) : null}
 
-      {!isResolver && !immediate && active ? (
+      {!isResolver && !liveRelease && active ? (
         <div className="scoreboard-release__ranks">
           <p className="scoreboard-release__team-progress">
             <strong>
@@ -215,8 +224,8 @@ export default function ScoreboardReleaseView({
                 </span>
               ) : null}
             </p>
-          ) : immediate ? (
-            active ? (
+          ) : liveRelease ? (
+            manualAll || active ? (
               <button
                 className="scoreboard-release__button scoreboard-release__button--primary"
                 type="button"
@@ -225,10 +234,12 @@ export default function ScoreboardReleaseView({
                   if (
                     await confirmAction(
                       confirmationMessage(
-                        '프리즈를 해제하고 최신 성적을 참가자 스코어보드와 프레젠테이션에 모두 공개할까요?',
+                        manualAll
+                          ? `${divisionName}의 프리즈를 해제하고 전체 결과를 공개할까요? 공개 후 남은 채점과 재채점 결과도 계속 반영됩니다.`
+                          : '프리즈를 해제하고 최신 성적을 참가자 스코어보드와 프레젠테이션에 모두 공개할까요?',
                       ),
                       {
-                        title: '다시 전체 공개',
+                        title: manualAll ? '전체 공개 확인' : '다시 전체 공개',
                         confirmLabel: '공개',
                         tone: 'primary',
                       },
@@ -237,7 +248,11 @@ export default function ScoreboardReleaseView({
                     publish({ action: 'all' });
                 }}
               >
-                다시 전체 공개
+                {pending && pendingAction === 'all'
+                  ? '공개 중…'
+                  : manualAll
+                    ? '이 유형 전체 공개'
+                    : '다시 전체 공개'}
               </button>
             ) : null
           ) : (

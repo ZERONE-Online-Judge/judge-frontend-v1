@@ -17,8 +17,13 @@ import './ScoreboardPractice.css';
 
 const modes: { value: ScoreboardReleaseMode; label: string; detail: string }[] =
   [
-    { value: 'manual', label: '순위별 공개', detail: '선택한 최종 순위 확정' },
     { value: 'resolver', label: '리졸버', detail: '한 문제 공개 · 순위 이동' },
+    {
+      value: 'manual_all',
+      label: '운영진 일괄 공개',
+      detail: '종료 후 버튼으로 전체 공개',
+    },
+    { value: 'manual', label: '순위별 공개', detail: '선택한 최종 순위 확정' },
     {
       value: 'immediate',
       label: '종료 즉시 전체 공개',
@@ -30,6 +35,19 @@ function nextGuide(release: ScoreboardRelease): {
   title: string;
   detail: string;
 } {
+  if (release.strategy === 'manual_all') {
+    return release.mode === 'all'
+      ? {
+          title: '운영진이 전체 성적을 공개했습니다',
+          detail:
+            '공개 후에는 남은 채점과 재채점 결과도 계속 반영됩니다. 되돌리기로 공개 전 프리즈 순위표로 돌아갔다가 다시 전체 공개해 보세요.',
+        }
+      : {
+          title: '종료 후 원하는 시점에 전체 공개해 보세요',
+          detail:
+            '종료되어도 운영자가 전체 공개 버튼을 누를 때까지 프리즈 순위표를 유지합니다. 발표 시작이나 순위·문제별 조작 없이 한 번에 모두 공개합니다.',
+        };
+  }
   if (release.strategy === 'immediate') {
     return release.mode === 'all'
       ? {
@@ -101,9 +119,7 @@ function nextGuide(release: ScoreboardRelease): {
 }
 
 export default function ScoreboardPractice() {
-  const [practice, setPractice] = useState(() =>
-    createScoreboardPractice('manual'),
-  );
+  const [practice, setPractice] = useState(() => createScoreboardPractice());
   const [showCounts, setShowCounts] = useState(true);
   const [generation, setGeneration] = useState(0);
   const board = useMemo(

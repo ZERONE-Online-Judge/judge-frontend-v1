@@ -156,6 +156,11 @@ async function click(element) {
   assert.ok(element);
   await act(async () => element.click());
 }
+function practiceMode(label, scope) {
+  return [
+    ...scope.querySelectorAll('[aria-label="체험 공개 방식"] button'),
+  ].find((item) => item.querySelector('strong').textContent === label);
+}
 
 test('guide covers every shipped operator tab and links have unique article identities', () => {
   const expected = [
@@ -303,14 +308,23 @@ test('a review-only operator opens the actual practice table and release control
   assert.ok(practice.querySelector('.scoreboard-release'));
   assert.equal(practice.querySelectorAll('[data-scoreboard-row]').length, 7);
   assert.equal(host.querySelector('a[href$="/scoreboard"]'), null);
-  await click(button('개별 순위 공개 시작', practice));
-  assert.ok(button('5위 공개', practice));
+  assert.equal(
+    practiceMode('리졸버', practice).getAttribute('aria-pressed'),
+    'true',
+  );
+  assert.equal(
+    practice.querySelectorAll('[aria-label="체험 공개 방식"] button').length,
+    4,
+  );
+  await click(button('결과 순차 공개 시작', practice));
+  assert.ok(button('다음 문제 공개', practice));
   assert.deepEqual(networkRequests, []);
 });
 
 test('manual practice keeps announced final ranks stable and confirms undo before restoring the prior reveal', async () => {
   await render('?section=scoreboard&article=scoreboard-practice');
   const practice = host.querySelector('.scoreboard-practice');
+  await click(practiceMode('순위별 공개', practice));
   const lightning = () =>
     practice.querySelector('[data-scoreboard-row="guide-team-lightning"]');
   assert.equal(
@@ -379,6 +393,7 @@ test('manual practice keeps announced final ranks stable and confirms undo befor
 test('the count option hides pending counts while preserving the current manual reveal', async () => {
   await render('?section=scoreboard&article=scoreboard-practice');
   const practice = host.querySelector('.scoreboard-practice');
+  await click(practiceMode('순위별 공개', practice));
   await click(button('개별 순위 공개 시작', practice));
   await click(button('5위 공개', practice));
   const pendingCounts = () =>
@@ -465,6 +480,99 @@ test('resolver and immediate practice use the real release controls without cont
   await click(button('공개', document.querySelector('dialog')));
   assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
   assert.deepEqual(networkRequests, []);
+});
+
+test('operator bulk release waits for explicit confirmation and returns to frozen waiting after undo', async () => {
+  await render('?section=scoreboard&article=scoreboard-practice');
+  const practice = host.querySelector('.scoreboard-practice');
+  await click(practiceMode('운영진 일괄 공개', practice));
+  assert.equal(
+    practiceMode('운영진 일괄 공개', practice).getAttribute('aria-pressed'),
+    'true',
+  );
+  assert.match(
+    practice.querySelector('.scoreboard-practice__coach').textContent,
+    /운영자가 전체 공개 버튼을 누를 때까지/,
+  );
+  assert.equal(button('개별 순위 공개 시작', practice), undefined);
+  assert.equal(button('결과 순차 공개 시작', practice), undefined);
+  assert.equal(button('다음 문제 공개', practice), undefined);
+  assert.equal(practice.querySelector('.scoreboard-release__ranks'), null);
+  assert.equal(button('되돌리기', practice).disabled, true);
+  assert.match(
+    practice.querySelector('.scoreboard-release__status').textContent,
+    /공개 대기/,
+  );
+  const waiting = practice.querySelector('table').textContent;
+  assert.ok(practice.querySelector('[aria-label^="미공개 제출"]'));
+  await click(button('이 유형 전체 공개', practice));
+  assert.match(document.querySelector('dialog').textContent, /전체 공개 확인/);
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /실제 대회는 바뀌지 않습니다/,
+  );
+  assert.equal(practice.querySelector('table').textContent, waiting);
+  await click(button('취소', document.querySelector('dialog')));
+  assert.equal(practice.querySelector('table').textContent, waiting);
+  await click(button('이 유형 전체 공개', practice));
+  await click(button('공개', document.querySelector('dialog')));
+  assert.match(
+    practice.querySelector('.scoreboard-release__status').textContent,
+    /전체 성적 공개 중/,
+  );
+  assert.equal(
+    practice.querySelector('.scoreboard-practice__board-state').textContent,
+    '최종 순위',
+  );
+  assert.equal(practice.querySelector('[aria-label^="미공개 제출"]'), null);
+  assert.equal(practice.querySelector('[data-scoreboard-rank-section]'), null);
+  assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
+  assert.match(
+    practice.querySelector('.scoreboard-practice__coach').textContent,
+    /남은 채점과 재채점 결과도 계속 반영/,
+  );
+  await click(button('되돌리기', practice));
+  await click(button('되돌리기', document.querySelector('dialog')));
+  assert.equal(practice.querySelector('table').textContent, waiting);
+  assert.equal(practice.querySelector('[aria-label="1위 금메달"]'), null);
+  assert.match(
+    practice.querySelector('.scoreboard-release__status').textContent,
+    /공개 대기/,
+  );
+  assert.ok(button('이 유형 전체 공개', practice));
+  assert.equal(button('결과 순차 공개 시작', practice), undefined);
+  assert.equal(button('개별 순위 공개 시작', practice), undefined);
+  await click(button('이 유형 전체 공개', practice));
+  await click(button('공개', document.querySelector('dialog')));
+  assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
+  await click(practiceMode('종료 즉시 전체 공개', practice));
+  assert.ok(practice.querySelector('[aria-label="1위 금메달"]'));
+  await click(practiceMode('운영진 일괄 공개', practice));
+  assert.equal(practice.querySelector('table').textContent, waiting);
+  assert.deepEqual(networkRequests, []);
+});
+
+test('the guide distinguishes all four release modes, new defaults and live bulk results', () => {
+  const scoreboard = operatorGuideCategories.find(
+    (category) => category.id === 'scoreboard',
+  );
+  const modes = scoreboard.articles.find(
+    (article) => article.id === 'release-modes',
+  );
+  assert.equal(modes.table.rows.length, 4);
+  assert.match(modes.title, /네 가지/);
+  const text = JSON.stringify(modes);
+  assert.match(text, /새 대회는 리졸버가 기본이며 기존 대회의 설정은 유지/);
+  assert.match(text, /운영진 일괄 공개/);
+  assert.match(text, /종료 후에도 프리즈 순위표를 유지/);
+  assert.match(text, /남은 채점·재채점 결과를 계속 반영/);
+  const counts = operatorGuideCategories
+    .flatMap((category) => category.articles)
+    .find((article) => article.id === 'freeze-counts');
+  assert.match(
+    counts.steps.join(' '),
+    /리졸버·순위별 공개·운영진 일괄 공개·종료 즉시 전체 공개 모두/,
+  );
 });
 
 test('real execution examples show recorded source, input and measurements without executing code', async () => {

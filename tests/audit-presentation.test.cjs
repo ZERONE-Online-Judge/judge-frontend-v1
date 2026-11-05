@@ -187,6 +187,10 @@ test('setting values have readable labels', () => {
   assert.equal(valueLabel('private', 'problem_access_after_end'), '비공개');
   assert.equal(valueLabel('running', 'status'), '진행 중');
   assert.equal(valueLabel('resolver', 'scoreboard_release_mode'), '리졸버');
+  assert.equal(
+    valueLabel('manual_all', 'scoreboard_release_mode'),
+    '운영진 일괄 공개',
+  );
 });
 
 test('verification request labels cover initial, follow-up, analysis and cancellation', () => {

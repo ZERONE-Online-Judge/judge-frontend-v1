@@ -24,7 +24,11 @@ export type ContestVisibility = 'public' | 'private';
 export type ContestResourceAccess = 'private' | 'participants' | 'public';
 export type BoardCommentScope = 'all' | 'operators';
 export type ScoreboardFreezeMode = 'auto' | 'live' | 'frozen';
-export type ScoreboardReleaseMode = 'manual' | 'immediate' | 'resolver';
+export type ScoreboardReleaseMode =
+  | 'manual'
+  | 'manual_all'
+  | 'immediate'
+  | 'resolver';
 
 export type Contest = {
   contest_id: string;

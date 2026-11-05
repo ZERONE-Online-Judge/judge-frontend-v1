@@ -120,6 +120,16 @@ const mocks = {
     },
     updateScoreboardRelease: async (contestId, divisionId, token, body) => {
       changes.push({ kind: 'release', contestId, divisionId, token, body });
+      if (release.strategy === 'manual_all') {
+        release = {
+          ...release,
+          revision: release.revision + 1,
+          mode: body.action === 'undo' ? 'not_started' : 'all',
+          revealed_count: body.action === 'undo' ? 0 : release.total_count,
+          undo: body.action === 'undo' ? null : { action: 'all' },
+        };
+        return release;
+      }
       if (release.strategy === 'immediate') {
         release = {
           ...release,
@@ -471,6 +481,113 @@ test('immediate release can undo automatic publication and explicitly resume it'
   assert.deepEqual(changes[1].body, { action: 'all', expected_revision: 1 });
   assert.match(container.textContent, /전체 성적 공개 중/);
   assert.equal(button('되돌리기').disabled, false);
+});
+
+test('operator bulk release waits for an explicit confirmed click and undo restores the wait', async () => {
+  manage();
+  contest.status = 'ended';
+  contest.scoreboard_release_mode = 'manual_all';
+  release = { ...release, strategy: 'manual_all', revision: 0, undo: null };
+  await render();
+  assert.match(container.textContent, /운영진 일괄 공개/);
+  assert.match(container.textContent, /공개 대기/);
+  assert.match(container.textContent, /전체 공개 버튼을 누를 때까지/);
+  assert.equal(button('개별 순위 공개 시작'), undefined);
+  assert.equal(button('결과 순차 공개 시작'), undefined);
+  assert.equal(button('다음 문제 공개'), undefined);
+  assert.equal(button('1위 공개'), undefined);
+  assert.equal(button('되돌리기').disabled, true);
+  assert.deepEqual(changes, []);
+
+  await click(button('이 유형 전체 공개'));
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /남은 채점과 재채점/,
+  );
+  await act(async () =>
+    [...document.querySelectorAll('dialog button')]
+      .find((b) => b.textContent === '취소')
+      .click(),
+  );
+  await flush();
+  assert.deepEqual(changes, []);
+  assert.equal(release.mode, 'not_started');
+
+  async function confirm(label) {
+    await act(async () =>
+      [...document.querySelectorAll('dialog button')]
+        .find((b) => b.textContent === label)
+        .click(),
+    );
+    await flush();
+  }
+  await click(button('이 유형 전체 공개'));
+  await confirm('공개');
+  assert.deepEqual(changes[0].body, { action: 'all', expected_revision: 0 });
+  assert.equal(release.mode, 'all');
+  assert.match(container.textContent, /전체 성적 공개 중/);
+  assert.match(container.textContent, /결과 공개 완료/);
+  assert.match(container.textContent, /남은 채점과 재채점 결과/);
+  assert.equal(button('이 유형 전체 공개'), undefined);
+
+  await click(button('되돌리기'));
+  await confirm('되돌리기');
+  assert.deepEqual(changes[1].body, { action: 'undo', expected_revision: 1 });
+  assert.equal(release.mode, 'not_started');
+  assert.match(container.textContent, /공개 대기/);
+  assert.ok(button('이 유형 전체 공개'));
+  assert.equal(button('되돌리기').disabled, true);
+
+  await click(button('이 유형 전체 공개'));
+  await confirm('공개');
+  assert.deepEqual(changes[2].body, { action: 'all', expected_revision: 2 });
+  assert.equal(changes.length, 3);
+});
+
+test('bulk release has no publish controls or release requests before the contest ends', async () => {
+  manage();
+  contest.scoreboard_release_mode = 'manual_all';
+  release = { ...release, strategy: 'manual_all', revision: 0, undo: null };
+  await render();
+  assert.match(container.textContent, /종료 후에도 자동 공개되지 않습니다/);
+  assert.equal(button('이 유형 전체 공개'), undefined);
+  assert.equal(reads.release, 0);
+  assert.deepEqual(changes, []);
+});
+
+test('bulk release viewers see the policy without management controls or release requests', async () => {
+  contest.status = 'ended';
+  contest.scoreboard_release_mode = 'manual_all';
+  await render();
+  assert.match(container.textContent, /운영진 일괄 공개/);
+  assert.equal(button('이 유형 전체 공개'), undefined);
+  assert.equal(reads.release, 0);
+  assert.deepEqual(changes, []);
+});
+
+test('bulk release disables the single publish action while a request is pending', async () => {
+  const View = source('components/operator/ScoreboardReleaseView.tsx').default;
+  await act(async () =>
+    root.render(
+      h(View, {
+        release: {
+          ...release,
+          strategy: 'manual_all',
+          revision: 0,
+          undo: null,
+        },
+        strategy: 'manual_all',
+        divisionName: division.name,
+        pending: true,
+        pendingAction: 'all',
+        publish: (action) => changes.push(action),
+      }),
+    ),
+  );
+  assert.equal(button('공개 중…').disabled, true);
+  await click(button('공개 중…'));
+  assert.deepEqual(changes, []);
+  assert.equal(document.querySelector('dialog'), null);
 });
 
 test('resolver shows progress and the last outcome until all results are public', async () => {

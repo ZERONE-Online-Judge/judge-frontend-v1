@@ -141,6 +141,7 @@ test('manual freeze and live overrides stay separate from submission availabilit
   assert.match(frozen.scoreboard.label, /수동/);
   for (const [mode, label] of [
     ['manual', '순위별 공개'],
+    ['manual_all', '운영진 일괄 공개'],
     ['immediate', '종료 즉시 전체 공개'],
     ['resolver', '결과 순차 공개 (리졸버)'],
   ]) {

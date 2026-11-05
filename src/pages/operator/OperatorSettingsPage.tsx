@@ -640,7 +640,7 @@ function OperatorSettingsContent({
                     <p className="zoj-settings-card__description">
                       {contest?.scoreboard_release_locked
                         ? '이미 순위 공개를 시작한 유형이 있어 공개 방식을 변경할 수 없습니다.'
-                        : '순위별·결과 순차 공개는 발표 시작 시 성적을 고정하며, 이후에는 방식을 변경할 수 없습니다.'}
+                        : '새 대회의 기본값은 리졸버입니다. 순위별·결과 순차 공개는 발표 시작 시 성적을 고정합니다. 운영진 일괄 공개는 버튼을 누른 뒤 남은 채점과 재채점 결과도 계속 반영합니다.'}
                     </p>
                   </SettingsSection>
                   <SettingsSection

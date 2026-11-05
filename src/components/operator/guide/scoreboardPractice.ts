@@ -255,7 +255,7 @@ const FINAL_ROWS = scoreRows(emptySnapshot('all'), false);
 const FINAL_RANKS = Array.from(new Set(FINAL_ROWS.map((row) => row.rank)));
 
 export function createScoreboardPractice(
-  strategy: ScoreboardReleaseMode = 'manual',
+  strategy: ScoreboardReleaseMode = 'resolver',
 ): PracticeState {
   return {
     strategy,
@@ -329,6 +329,7 @@ export function getScoreboardPractice(
     ranks:
       current.mode === 'not_started' ||
       strategy === 'immediate' ||
+      strategy === 'manual_all' ||
       (strategy === 'resolver' && current.mode !== 'all')
         ? []
         : FINAL_RANKS.map((rank) => ({
@@ -336,7 +337,10 @@ export function getScoreboardPractice(
             team_count: FINAL_ROWS.filter((row) => row.rank === rank).length,
             revealed: revealedRanks.includes(rank),
           })),
-    total_count: current.mode === 'not_started' ? 0 : TEAMS.length,
+    total_count:
+      current.mode === 'not_started' && strategy !== 'manual_all'
+        ? 0
+        : TEAMS.length,
     revealed_count: revealedCount,
     undo: state.history.at(-1) ? { ...state.history.at(-1)!.action } : null,
     resolver:
@@ -405,7 +409,12 @@ export function applyScoreboardPractice(
       { action: 'all' },
     );
   }
-  if (strategy === 'immediate' || current.mode === 'all') return state;
+  if (
+    strategy === 'immediate' ||
+    strategy === 'manual_all' ||
+    current.mode === 'all'
+  )
+    return state;
   if (action.action === 'start') {
     if (current.mode !== 'not_started') return state;
     return changeState(

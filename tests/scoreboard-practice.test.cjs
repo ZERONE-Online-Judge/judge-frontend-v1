@@ -70,6 +70,7 @@ test('practice is a deterministic fictional division with five ordered problems'
     ],
   );
   assert.deepEqual(project(create(), true), project(create(), true));
+  assert.equal(create().strategy, 'resolver');
   assert.equal(project(create(), true).rows.length, 7);
   assert.ok(
     project(create(), true).rows.every((team) =>
@@ -173,7 +174,7 @@ test('manual tied ranks publish and undo both teams atomically', () => {
 });
 
 test('all and undo restore partial ranks and the frozen pre-start state exactly', () => {
-  const initial = create();
+  const initial = create('manual');
   const begun = apply(initial, { action: 'start' });
   const partial = apply(begun, { action: 'rank', rank: 5 });
   const all = apply(partial, { action: 'all' });
@@ -294,7 +295,7 @@ test('all modes finish with independently calculated final ranking and penalty',
     ['차분한 오리', 6, 2, 215, 8],
   ];
   let reference;
-  for (const strategy of ['manual', 'resolver', 'immediate']) {
+  for (const strategy of ['manual', 'resolver', 'manual_all', 'immediate']) {
     let state = create(strategy);
     if (strategy === 'manual') {
       state = apply(state, { action: 'start' });
@@ -304,6 +305,8 @@ test('all modes finish with independently calculated final ranking and penalty',
       state = apply(state, { action: 'start' });
       for (let step = 0; step < 11; step++)
         state = apply(state, { action: 'next' });
+    } else if (strategy === 'manual_all') {
+      state = apply(state, { action: 'all' });
     }
     const board = project(state, true);
     assert.equal(board.frozen, false);
@@ -347,6 +350,89 @@ test('immediate undo holds freeze until explicitly published again', () => {
   const published = apply(held, { action: 'all' });
   assert.equal(row(project(published, true), '느린 번개').rank, 5);
   assert.deepEqual(apply(published, { action: 'undo' }).current, held.current);
+});
+
+test('operator bulk release waits for all, then undo restores frozen waiting without a rank snapshot', () => {
+  const waiting = deepFreeze(create('manual_all'));
+  const frozen = project(waiting, true);
+  assert.equal(frozen.release.mode, 'not_started');
+  assert.equal(frozen.release.total_count, frozen.rows.length);
+  assert.equal(frozen.release.undo, null);
+  assert.equal(frozen.frozen, true);
+  assert.deepEqual(frozen.release.ranks, []);
+  assert.equal(frozen.release.resolver, null);
+  assert.equal(row(frozen, '느린 번개').rank, 2);
+  for (const action of [
+    { action: 'start' },
+    { action: 'rank', rank: 5 },
+    { action: 'next' },
+    { action: 'undo' },
+  ])
+    assert.equal(apply(waiting, action), waiting);
+  assert.equal(
+    apply(waiting, { action: 'all', expected_revision: 1 }),
+    waiting,
+  );
+  const published = deepFreeze(
+    apply(waiting, { action: 'all', expected_revision: 0 }),
+  );
+  const live = project(published, true);
+  assert.equal(live.release.mode, 'all');
+  assert.equal(live.release.undo.action, 'all');
+  assert.equal(live.release.revealed_count, 7);
+  assert.equal(live.frozen, false);
+  assert.deepEqual(live.release.ranks, []);
+  assert.ok(
+    live.rows.every(
+      (team) =>
+        !Object.hasOwn(team, 'rank_is_final') &&
+        !Object.hasOwn(team, 'is_finalized'),
+    ),
+  );
+  assert.equal(row(live, '느린 번개').rank, 5);
+  assert.deepEqual(
+    scoreboardValues(live),
+    scoreboardValues(project(create('immediate'), true)),
+  );
+  assert.equal(apply(published, { action: 'all' }), published);
+  assert.equal(
+    apply(published, { action: 'undo', expected_revision: 0 }),
+    published,
+  );
+  const restored = apply(published, { action: 'undo', expected_revision: 1 });
+  assert.deepEqual(restored.current, waiting.current);
+  assert.equal(project(restored, true).release.total_count, frozen.rows.length);
+  assert.deepEqual(
+    scoreboardValues(project(restored, true)),
+    scoreboardValues(frozen),
+  );
+  assert.equal(project(restored, true).release.mode, 'not_started');
+  assert.deepEqual(project(restored, true).release.ranks, []);
+  assert.deepEqual(
+    scoreboardValues(project(apply(restored, { action: 'all' }), true)),
+    scoreboardValues(live),
+  );
+});
+
+test('the count policy changes only pending counts in all four release strategies', () => {
+  for (const strategy of ['resolver', 'manual', 'manual_all', 'immediate']) {
+    const waiting =
+      strategy === 'immediate'
+        ? apply(create(strategy), { action: 'undo' })
+        : create(strategy);
+    const hidden = project(waiting, false);
+    const counts = project(waiting, true);
+    assert.equal(hidden.frozen, true);
+    assert.equal(cell(hidden, '차분한 오리', 'B').attempts, 2);
+    assert.equal(cell(hidden, '차분한 오리', 'B').pending_attempts, undefined);
+    assert.equal(cell(counts, '차분한 오리', 'B').pending_attempts, 2);
+    assert.equal(cell(counts, '차분한 오리', 'C').solved, false);
+    assert.equal(cell(counts, '차분한 오리', 'C').best_status, null);
+    assert.equal(cell(counts, '차분한 오리', 'C').penalty, null);
+    for (const team of counts.rows)
+      for (const score of team.problem_scores) delete score.pending_attempts;
+    assert.deepEqual(counts, hidden);
+  }
 });
 
 test('stale revisions, duplicate clicks and invalid actions do not mutate state', () => {

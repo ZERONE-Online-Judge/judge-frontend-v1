@@ -401,6 +401,7 @@ export function valueLabel(value: unknown, field = ''): string {
     },
     scoreboard_release_mode: {
       manual: '순위별 공개',
+      manual_all: '운영진 일괄 공개',
       resolver: '리졸버',
       immediate: '즉시 공개',
     },

@@ -56,6 +56,7 @@ export function operatorContestStatus(contest: Contest, now: number) {
       : null;
   const releaseLabel = {
     manual: '순위별 공개',
+    manual_all: '운영진 일괄 공개',
     immediate: '종료 즉시 전체 공개',
     resolver: '결과 순차 공개 (리졸버)',
   }[contest.scoreboard_release_mode ?? 'manual'];

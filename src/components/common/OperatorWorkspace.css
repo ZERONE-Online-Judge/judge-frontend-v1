@@ -21,6 +21,7 @@
   display: grid;
   align-content: start;
   gap: 20px;
+  isolation: isolate;
   container: operator-content / inline-size;
 }
 .operator-action {

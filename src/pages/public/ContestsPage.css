@@ -269,9 +269,10 @@
   display: grid;
   flex: 1;
   grid-template-columns: minmax(0, 1fr) 310px;
-  grid-template-rows: 28px 136px;
+  grid-template-rows: 28px minmax(136px, 1fr);
   align-items: center;
   min-width: 0;
+  min-height: 198px;
   gap: 16px 36px;
   text-align: left;
   --directory-timeline-dot: #8b7bce;
@@ -286,7 +287,7 @@
   --directory-timeline-line: #e5e8ef;
 }
 .contest-directory .directory-card-content.has-resources {
-  grid-template-rows: 28px 104px 32px;
+  grid-template-rows: 28px 104px minmax(50px, auto);
   row-gap: 8px;
 }
 .contest-directory .directory-card-topline {
@@ -694,11 +695,12 @@
 @media (max-width: 760px) {
   .contest-directory .directory-card-content {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 28px 136px 88px;
+    grid-template-rows: 28px minmax(136px, 1fr) 88px;
+    min-height: 302px;
     gap: 16px;
   }
   .contest-directory .directory-card-content.has-resources {
-    grid-template-rows: 28px 104px 80px 48px;
+    grid-template-rows: 28px 104px 80px minmax(66px, auto);
     row-gap: 8px;
   }
   .contest-directory .has-resources .directory-card-schedule {
@@ -787,11 +789,12 @@
     padding: 18px;
   }
   .contest-directory .directory-card-content {
-    grid-template-rows: 52px 136px 80px;
+    grid-template-rows: 52px minmax(136px, 1fr) 80px;
+    min-height: 310px;
     gap: 12px;
   }
   .contest-directory .directory-card-content.has-resources {
-    grid-template-rows: 52px 104px 64px 48px;
+    grid-template-rows: 52px 104px 64px minmax(66px, auto);
     row-gap: 8px;
   }
   .contest-directory .has-resources .directory-card-schedule > li {

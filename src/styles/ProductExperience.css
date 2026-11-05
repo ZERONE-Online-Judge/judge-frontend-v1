@@ -248,18 +248,16 @@
   box-shadow: none;
 }
 
-/* Preserve the established card silhouette: the calendar, title and schedule
-   share the available body space; resource-free cards have no empty footer row. */
+/* Keep access groups together below the card instead of spreading them apart. */
 .zoj-product .contest-directory .directory-resources {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   color: #64748b;
 }
 .zoj-product .contest-directory .directory-resources > div {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: baseline;
   gap: 12px;
 }
@@ -269,15 +267,13 @@
 }
 .zoj-product .contest-directory .directory-resources dd {
   color: #596579;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 @media (max-width: 760px) {
-  .zoj-product .contest-directory .directory-resources {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    gap: 4px;
-  }
   .zoj-product .contest-directory .directory-resources > div {
-    grid-template-columns: 64px minmax(0, 1fr);
     gap: 8px;
   }
 }

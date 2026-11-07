@@ -1,5 +1,10 @@
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import BoundedTextarea from '@/shared/ui/BoundedTextarea';
+import StatementFieldEditor from '@/components/operator/StatementFieldEditor';
+import {
+  statementImageAsset,
+  publicStatementImages,
+} from '@/domains/problemManagement/statementImageAssets';
 import StorageFileContent from '@/components/operator/StorageFileContent';
 import type { TextPreview } from '@/shared/lib/largeText';
 import BoundedText from '@/shared/ui/BoundedText';
@@ -696,6 +701,7 @@ function OperatorProblemsContent({
   const initialFormRef = useRef(emptyProblemForm);
   const [problemSearch, setProblemSearch] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
+  const [exampleStructureVersion, setExampleStructureVersion] = useState(0);
   const [authoringTab, setAuthoringTab] = useState<
     'settings' | 'statement' | 'editorial' | 'tests' | 'preview'
   >('settings');
@@ -832,19 +838,15 @@ function OperatorProblemsContent({
     );
   }, [testcaseSetsQuery.data]);
   const imageAssets = useMemo(
-    () =>
-      (assetsQuery.data ?? []).filter(
-        (asset) =>
-          !asset.storage_key.includes('/editorial-assets/') &&
-          (asset.mime_type.startsWith('image/') ||
-            asset.storage_key.includes('/assets/')),
-      ),
+    () => publicStatementImages(assetsQuery.data ?? []),
     [assetsQuery.data],
   );
   const editorialAssets = useMemo(
     () =>
-      (assetsQuery.data ?? []).filter((asset) =>
-        asset.storage_key.includes('/editorial-assets/'),
+      (assetsQuery.data ?? []).filter(
+        (asset) =>
+          asset.storage_key.includes('/editorial-assets/') &&
+          !asset.mime_type.startsWith('image/'),
       ),
     [assetsQuery.data],
   );
@@ -1088,28 +1090,51 @@ function OperatorProblemsContent({
     },
   });
 
-  const uploadAssetMutation = useMutation({
-    mutationFn: (file: File) =>
-      uploadProblemAsset(contestId, effectiveSelectedProblemId, token, file),
-    onSuccess: () => {
+  const uploadInlineImageMutation = useMutation({
+    mutationFn: async ({
+      problemId,
+      file,
+      editorial,
+    }: {
+      problemId: string;
+      file: File;
+      editorial: boolean;
+    }) => {
+      const asset = await uploadProblemAsset(
+        contestId,
+        problemId,
+        token,
+        file,
+        `problems/${problemId}/${editorial ? 'editorial-assets' : 'assets'}`,
+      );
+      const refreshed = await getProblemAssets(contestId, problemId, token);
+      queryClient.setQueryData(
+        ['operator', 'problem-assets', contestId, problemId, queryIdentity],
+        refreshed,
+      );
+      return statementImageAsset(
+        refreshed.find((item) => item.asset_id === asset.asset_id) ?? asset,
+      );
+    },
+    onSuccess: (_asset, { problemId }) => {
       void queryClient.invalidateQueries({
-        queryKey: [
-          'operator',
-          'problem-assets',
-          contestId,
-          effectiveSelectedProblemId,
-        ],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: [
-          'operator',
-          'problem-package-status',
-          contestId,
-          effectiveSelectedProblemId,
-        ],
+        queryKey: ['operator', 'problem-package-status', contestId, problemId],
       });
     },
   });
+
+  function uploadInlineImage(file: File, editorial = false) {
+    const problemId = effectiveSelectedProblemId;
+    if (!problemId)
+      return Promise.reject(
+        new Error('문제를 먼저 저장한 뒤 이미지를 첨부해 주세요.'),
+      );
+    return uploadInlineImageMutation.mutateAsync({
+      problemId,
+      file,
+      editorial,
+    });
+  }
 
   const uploadEditorialAssetMutation = useMutation({
     mutationFn: (file: File) =>
@@ -1479,6 +1504,7 @@ function OperatorProblemsContent({
   }
 
   function addExample() {
+    setExampleStructureVersion((version) => version + 1);
     setForm((prev) => ({
       ...prev,
       examples: [...prev.examples, { input: '', output: '', note: '' }],
@@ -1498,6 +1524,7 @@ function OperatorProblemsContent({
   }
 
   function removeExample(index: number) {
+    setExampleStructureVersion((version) => version + 1);
     setForm((prev) => ({
       ...prev,
       examples: prev.examples.filter(
@@ -1575,7 +1602,7 @@ function OperatorProblemsContent({
     saveProblemMutation.isPending ||
     deleteProblemMutation.isPending ||
     copyProblemMutation.isPending ||
-    uploadAssetMutation.isPending ||
+    uploadInlineImageMutation.isPending ||
     uploadEditorialAssetMutation.isPending ||
     uploadRoleFileMutation.isPending ||
     uploadMatchedTestcasesMutation.isPending ||
@@ -2068,6 +2095,17 @@ function OperatorProblemsContent({
                       <>
                         <ProblemLanguageEditor
                           key={form.problemId || 'new'}
+                          assets={assetsQuery.data ?? []}
+                          onUploadImage={
+                            effectiveSelectedProblemId
+                              ? uploadInlineImage
+                              : undefined
+                          }
+                          readOnly={
+                            saveProblemMutation.isPending ||
+                            deleteProblemMutation.isPending ||
+                            copyProblemMutation.isPending
+                          }
                           problem={{
                             problem_id: form.problemId,
                             problem_code: form.problemCode,
@@ -2103,60 +2141,100 @@ function OperatorProblemsContent({
                             }));
                           }}
                         />
-                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                          문제 본문
-                          <BoundedTextarea
-                            className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                            onChange={(event) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                statement: event.target.value,
-                              }))
-                            }
-                            value={form.statement}
-                          />
-                        </label>
+                        <StatementFieldEditor
+                          identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:statement`}
+                          label="문제 본문"
+                          assets={imageAssets}
+                          onUpload={
+                            effectiveSelectedProblemId
+                              ? (file) => uploadInlineImage(file, false)
+                              : undefined
+                          }
+                          disabled={
+                            saveProblemMutation.isPending ||
+                            deleteProblemMutation.isPending ||
+                            copyProblemMutation.isPending
+                          }
+                          className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                          onChange={(value) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              statement: value,
+                            }))
+                          }
+                          value={form.statement}
+                        />
                         <div className="grid gap-3 md:grid-cols-2">
-                          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                            입력 설명
-                            <BoundedTextarea
-                              className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                              onChange={(event) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  inputDescription: event.target.value,
-                                }))
-                              }
-                              value={form.inputDescription}
-                            />
-                          </label>
-                          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                            출력 설명
-                            <BoundedTextarea
-                              className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                              onChange={(event) =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  outputDescription: event.target.value,
-                                }))
-                              }
-                              value={form.outputDescription}
-                            />
-                          </label>
-                        </div>
-                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                          노트
-                          <BoundedTextarea
-                            className="min-h-24 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                            onChange={(event) =>
+                          <StatementFieldEditor
+                            identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:inputDescription`}
+                            label="입력 설명"
+                            assets={imageAssets}
+                            onUpload={
+                              effectiveSelectedProblemId
+                                ? (file) => uploadInlineImage(file, false)
+                                : undefined
+                            }
+                            disabled={
+                              saveProblemMutation.isPending ||
+                              deleteProblemMutation.isPending ||
+                              copyProblemMutation.isPending
+                            }
+                            className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                            onChange={(value) =>
                               setForm((prev) => ({
                                 ...prev,
-                                note: event.target.value,
+                                inputDescription: value,
                               }))
                             }
-                            value={form.note}
+                            value={form.inputDescription}
                           />
-                        </label>
+                          <StatementFieldEditor
+                            identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:outputDescription`}
+                            label="출력 설명"
+                            assets={imageAssets}
+                            onUpload={
+                              effectiveSelectedProblemId
+                                ? (file) => uploadInlineImage(file, false)
+                                : undefined
+                            }
+                            disabled={
+                              saveProblemMutation.isPending ||
+                              deleteProblemMutation.isPending ||
+                              copyProblemMutation.isPending
+                            }
+                            className="min-h-28 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                            onChange={(value) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                outputDescription: value,
+                              }))
+                            }
+                            value={form.outputDescription}
+                          />
+                        </div>
+                        <StatementFieldEditor
+                          identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:note`}
+                          label="노트"
+                          assets={imageAssets}
+                          onUpload={
+                            effectiveSelectedProblemId
+                              ? (file) => uploadInlineImage(file, false)
+                              : undefined
+                          }
+                          disabled={
+                            saveProblemMutation.isPending ||
+                            deleteProblemMutation.isPending ||
+                            copyProblemMutation.isPending
+                          }
+                          className="min-h-24 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                          onChange={(value) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              note: value,
+                            }))
+                          }
+                          value={form.note}
+                        />
                         <div className="grid gap-3 rounded-lg border border-slate-200 p-4">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -2218,18 +2296,28 @@ function OperatorProblemsContent({
                                   />
                                 </label>
                               </div>
-                              <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                                예제 설명
-                                <BoundedTextarea
-                                  className="min-h-20 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                                  onChange={(event) =>
-                                    updateExample(index, {
-                                      note: event.target.value,
-                                    })
-                                  }
-                                  value={example.note ?? ''}
-                                />
-                              </label>
+                              <StatementFieldEditor
+                                identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:example:${exampleStructureVersion}:${index}`}
+                                label="예제 설명"
+                                assets={imageAssets}
+                                onUpload={
+                                  effectiveSelectedProblemId
+                                    ? uploadInlineImage
+                                    : undefined
+                                }
+                                disabled={
+                                  saveProblemMutation.isPending ||
+                                  deleteProblemMutation.isPending ||
+                                  copyProblemMutation.isPending
+                                }
+                                className="min-h-20 resize-y rounded-lg border border-slate-200 px-3 py-3 text-sm leading-6 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                                onChange={(value) =>
+                                  updateExample(index, {
+                                    note: value,
+                                  })
+                                }
+                                value={example.note ?? ''}
+                              />
                             </section>
                           ))}
                           {!form.examples.length ? (
@@ -2238,92 +2326,52 @@ function OperatorProblemsContent({
                             </p>
                           ) : null}
                         </div>
-                        <div className="grid gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 p-4">
-                          <div className="grid gap-1">
-                            <p className="text-sm font-semibold text-indigo-800">
-                              문제/예제 이미지
-                            </p>
-                            <p className="text-xs font-medium text-slate-600">
-                              본문이나 예제 설명에 사용할 이미지를 업로드합니다.
-                            </p>
-                          </div>
-                          <label className="inline-flex h-10 w-fit cursor-pointer items-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition hover:bg-indigo-800">
-                            이미지 선택
-                            <input
-                              accept="image/png,image/jpeg,image/webp"
-                              className="sr-only"
-                              disabled={
-                                !effectiveSelectedProblemId ||
-                                uploadAssetMutation.isPending
-                              }
-                              onChange={(event) => {
-                                const file = event.currentTarget.files?.[0];
-                                if (file) uploadAssetMutation.mutate(file);
-                                event.currentTarget.value = '';
-                              }}
-                              type="file"
-                            />
-                          </label>
-                          <div className="grid gap-2">
-                            {imageAssets.map((asset) => (
-                              <p
-                                className="rounded-lg border border-indigo-100 bg-white px-3 py-2 text-xs font-medium text-slate-600"
-                                key={asset.asset_id}
-                              >
-                                {asset.original_filename}
-                              </p>
-                            ))}
-                            {effectiveSelectedProblemId &&
-                            !assetsQuery.isLoading &&
-                            !imageAssets.length ? (
-                              <p className="rounded-lg border border-dashed border-indigo-100 bg-white/60 px-3 py-5 text-center text-xs font-medium text-slate-500">
-                                업로드된 이미지가 없습니다.
-                              </p>
-                            ) : null}
-                          </div>
-                          {uploadAssetMutation.error ? (
-                            <ErrorBox
-                              error={uploadAssetMutation.error}
-                              fallback="이미지 업로드에 실패했습니다"
-                            />
-                          ) : null}
-                        </div>
+                        {!effectiveSelectedProblemId && (
+                          <p className="text-xs text-slate-500">
+                            이미지는 문제를 먼저 저장한 뒤 첨부할 수 있습니다.
+                          </p>
+                        )}
                       </>
                     ) : null}
                     {authoringTab === 'editorial' ? (
                       <>
-                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                          해설 본문
-                          <BoundedTextarea
-                            className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                            onChange={(event) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                editorial: event.target.value,
-                              }))
-                            }
-                            value={form.editorial}
-                          />
-                          <span className="text-xs font-medium text-slate-500">
-                            문제 본문과 동일한 Markdown, LaTeX, 이미지 문법을
-                            사용할 수 있습니다.
-                          </span>
-                        </label>
+                        <StatementFieldEditor
+                          identity={`${contestId}:${effectiveSelectedProblemId || 'new'}:${form.defaultStatementLanguage}:editorial`}
+                          label="해설 본문"
+                          assets={assetsQuery.data ?? []}
+                          onUpload={
+                            effectiveSelectedProblemId
+                              ? (file) => uploadInlineImage(file, true)
+                              : undefined
+                          }
+                          disabled={
+                            saveProblemMutation.isPending ||
+                            deleteProblemMutation.isPending ||
+                            copyProblemMutation.isPending
+                          }
+                          className="min-h-72 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                          onChange={(value) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              editorial: value,
+                            }))
+                          }
+                          value={form.editorial}
+                        />
                         <div className="grid gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 p-4">
                           <div className="grid gap-1">
                             <p className="text-sm font-semibold text-indigo-800">
-                              해설 PDF / 이미지
+                              해설 PDF 첨부
                             </p>
                             <p className="text-xs font-medium text-slate-600">
-                              해설집 PDF나 본문에 넣을 이미지를 업로드합니다.
-                              본문에는 아래 asset 문법을 붙여 넣어 사용할 수
-                              있습니다.
+                              PDF 해설집을 첨부합니다. 본문 이미지는 위의 이미지
+                              추가·관리를 이용해 주세요.
                             </p>
                           </div>
                           <label className="inline-flex h-10 w-fit cursor-pointer items-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition hover:bg-indigo-800">
                             파일 선택
                             <input
-                              accept="application/pdf,image/png,image/jpeg,image/webp"
+                              accept="application/pdf"
                               className="sr-only"
                               disabled={
                                 !effectiveSelectedProblemId ||

@@ -1,6 +1,7 @@
 const { test, beforeEach, afterEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { File } = require('node:buffer');
 const path = require('node:path');
 const Module = require('node:module');
 const ts = require('typescript');
@@ -40,6 +41,7 @@ function source(relative) {
   const native = loaded.require.bind(loaded);
   loaded.require = (id) => {
     if (mocks[id]) return mocks[id];
+    if (id.endsWith('.css')) return {};
     if (!id.startsWith('@/') && !id.startsWith('.')) return native(id);
     const next = id.startsWith('@/')
       ? id.slice(2)
@@ -141,9 +143,14 @@ async function click(text) {
   await act(() => element.click());
 }
 async function enter(label, value) {
-  const element = [...container.querySelectorAll('label')]
-    .find((el) => el.firstChild.textContent === label)
-    ?.querySelector('textarea');
+  const labelElement = [...container.querySelectorAll('label')].find(
+    (el) => el.firstChild.textContent === label,
+  );
+  const element =
+    labelElement?.querySelector('textarea') ||
+    (labelElement?.htmlFor
+      ? document.getElementById(labelElement.htmlFor)
+      : null);
   assert.ok(element, label);
   await act(() => {
     Object.getOwnPropertyDescriptor(
@@ -323,4 +330,152 @@ test('submission language choices follow each problem policy', async () => {
   assert.equal(picker.value, 'pypy3');
   await select(picker, 'kotlin');
   assert.equal(chosen, 'kotlin');
+});
+
+test('translated statement images use cursor insertion and keep editorial assets private', async () => {
+  global.HTMLElement = window.HTMLElement;
+  global.HTMLTextAreaElement = window.HTMLTextAreaElement;
+  window.HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  window.HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+  };
+  const assets = [
+    {
+      asset_id: 'diagram',
+      original_filename: 'diagram.png',
+      mime_type: 'image/png',
+      storage_key: 'problems/p/assets/diagram.png',
+    },
+    {
+      asset_id: 'secret',
+      original_filename: 'solution-only.png',
+      mime_type: 'image/png',
+      storage_key: 'problems/p/editorial-assets/solution-only.png',
+    },
+  ];
+  let current = problem();
+  current.statement_translations.en.statement = encoded(
+    'Before\n\nAfter',
+    'English',
+  );
+  function Form() {
+    const [p, setP] = React.useState(current);
+    return h(LanguageEditor, {
+      problem: p,
+      assets,
+      onChange(next) {
+        current = next;
+        setP(next);
+      },
+    });
+  }
+  await render(h(Form));
+  const textarea = container.querySelector('textarea[aria-label="번역 본문"]');
+  await act(() => {
+    textarea.focus();
+    textarea.setSelectionRange(6, 6);
+    document.dispatchEvent(
+      new window.Event('selectionchange', { bubbles: true }),
+    );
+  });
+  const open = textarea
+    .closest('.statement-image-tools')
+    .querySelector('button');
+  await act(() => open.click());
+  let dialog = document.querySelector('dialog');
+  assert.match(dialog.textContent, /diagram.png/);
+  assert.doesNotMatch(dialog.textContent, /solution-only/);
+  const apply = [...dialog.querySelectorAll('button')].find(
+    (el) => el.textContent === '커서 위치에 삽입',
+  );
+  await act(() => apply.click());
+  const body = parseProblemDocument(
+    current.statement_translations.en.statement,
+  ).statement;
+  assert.match(body, /^Before\n\n<img src="asset:\/\/diagram"/);
+  assert.match(body, />\n\nAfter$/);
+  assert.equal(current.statement, problem().statement);
+  assert.equal(
+    current.editorial_translations.en,
+    problem().editorial_translations.en,
+  );
+  assert.equal(document.querySelector('dialog'), null);
+  const editorial = container.querySelector('textarea[aria-label="번역 해설"]');
+  await act(() =>
+    editorial.closest('.statement-image-tools').querySelector('button').click(),
+  );
+  dialog = document.querySelector('dialog');
+  assert.match(dialog.textContent, /solution-only.png/);
+});
+
+test('image field is locked when bounded source cannot be edited in full', async () => {
+  const Field = source('components/operator/StatementFieldEditor.tsx').default;
+  await render(
+    h(Field, {
+      identity: 'p:ko:body',
+      label: '문제 본문',
+      value: 'x'.repeat(262145),
+      onChange() {
+        throw new Error('must not edit');
+      },
+    }),
+  );
+  assert.equal(container.querySelector('textarea').readOnly, true);
+  assert.equal(container.querySelector('.statement-image-toolbar'), null);
+});
+
+test('removing an earlier example cancels image insertion into a reused example slot', async () => {
+  global.HTMLElement = window.HTMLElement;
+  global.HTMLTextAreaElement = window.HTMLTextAreaElement;
+  let current = problem();
+  current.statement_translations.en.statement = encoded('Body', 'English', [
+    { input: '1', output: '1', note: '' },
+    { input: '2', output: '2', note: '' },
+  ]);
+  let complete;
+  function Form() {
+    const [p, setP] = React.useState(current);
+    return h(LanguageEditor, {
+      problem: p,
+      onUploadImage: () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+      onChange(next) {
+        current = next;
+        setP(next);
+      },
+    });
+  }
+  await render(h(Form));
+  const first = container.querySelector(
+    'textarea[aria-label="번역 예제 설명"]',
+  );
+  const file = new File(
+    [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])],
+    'diagram.png',
+    { type: 'image/png' },
+  );
+  await act(async () => {
+    const event = new window.Event('paste', {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, 'clipboardData', {
+      value: { files: [file], getData: () => '' },
+    });
+    first.dispatchEvent(event);
+    await new Promise((resolve) => global.setTimeout(resolve, 0));
+  });
+  assert.equal(typeof complete, 'function');
+  await click('이 예제 삭제');
+  await act(async () =>
+    complete({ id: 'new', source: 'asset://new', name: 'diagram.png' }),
+  );
+  const examples = parseProblemDocument(
+    current.statement_translations.en.statement,
+  ).examples;
+  assert.deepEqual(examples, [{ input: '2', output: '2', note: '' }]);
 });

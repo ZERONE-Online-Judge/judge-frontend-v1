@@ -1,8 +1,12 @@
+import StatementFieldEditor from './StatementFieldEditor';
+import { publicStatementImages } from '@/domains/problemManagement/statementImageAssets';
+import type { StatementImageAsset } from '@/shared/lib/statementImages';
 import BoundedTextarea from '@/shared/ui/BoundedTextarea';
 import Select from '@/shared/ui/Select';
 import { useState } from 'react';
 import type {
   Problem,
+  ProblemAsset,
   ProblemDocument,
   ProblemExample,
 } from '@/domains/problemManagement/types';
@@ -28,15 +32,25 @@ const fields = [
 export default function ProblemLanguageEditor({
   problem,
   onChange,
+  assets = [],
+  onUploadImage,
+  readOnly = false,
 }: {
   problem: Problem;
   onChange: (next: Problem) => void;
+  assets?: ProblemAsset[];
+  onUploadImage?: (
+    file: File,
+    editorial?: boolean,
+  ) => Promise<StatementImageAsset>;
+  readOnly?: boolean;
 }) {
   const defaultLanguage = problem.default_statement_language || 'ko';
   const translations = problem.statement_translations || {};
   const languages = Object.keys(translations);
   const [choice, setChoice] = useState('');
   const [adding, setAdding] = useState('');
+  const [exampleStructureVersion, setExampleStructureVersion] = useState(0);
   const [exampleDrafts, setExampleDrafts] = useState<
     Record<string, ProblemExample[]>
   >({});
@@ -71,6 +85,8 @@ export default function ProblemLanguageEditor({
     });
   }
   function changeExamples(next: ProblemExample[]) {
+    if (next.length !== examples.length)
+      setExampleStructureVersion((version) => version + 1);
     setExampleDrafts((previous) => ({ ...previous, [selected]: next }));
     changeDocument({ examples: next });
   }
@@ -222,20 +238,18 @@ export default function ProblemLanguageEditor({
                 />
               </label>
               {fields.map(([field, label]) => (
-                <label
+                <StatementFieldEditor
                   key={field}
-                  className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700"
-                >
-                  {label}
-                  <BoundedTextarea
-                    className={`${inputClass} font-mono text-xs leading-5`}
-                    rows={field === 'statement' ? 8 : 3}
-                    value={document[field]}
-                    onChange={(e) =>
-                      changeDocument({ [field]: e.target.value })
-                    }
-                  />
-                </label>
+                  identity={`${problem.problem_id}:${selected}:${field}`}
+                  label={label}
+                  assets={publicStatementImages(assets)}
+                  onUpload={onUploadImage}
+                  readOnly={readOnly}
+                  className={`${inputClass} font-mono text-xs leading-5`}
+                  rows={field === 'statement' ? 8 : 3}
+                  value={document[field]}
+                  onChange={(value) => changeDocument({ [field]: value })}
+                />
               ))}
               <details className="min-w-0 rounded-lg border border-slate-200 p-3">
                 <summary className="cursor-pointer text-sm font-semibold text-slate-700">
@@ -253,32 +267,47 @@ export default function ProblemLanguageEditor({
                       <legend className="text-xs font-bold">
                         예제 {index + 1}
                       </legend>
-                      {(['input', 'output', 'note'] as const).map((field) => (
-                        <label
-                          key={field}
-                          className="grid gap-2 text-xs font-semibold"
-                        >
-                          {field === 'input'
+                      {(['input', 'output', 'note'] as const).map((field) => {
+                        const label =
+                          field === 'input'
                             ? '번역 예제 입력'
                             : field === 'output'
                               ? '번역 예제 출력'
-                              : '번역 예제 설명'}
-                          <BoundedTextarea
+                              : '번역 예제 설명';
+                        const change = (value: string) =>
+                          changeExamples(
+                            examples.map((item, i) =>
+                              i === index ? { ...item, [field]: value } : item,
+                            ),
+                          );
+                        return field === 'note' ? (
+                          <StatementFieldEditor
+                            key={field}
+                            identity={`${problem.problem_id}:${selected}:example:${exampleStructureVersion}:${index}`}
+                            label={label}
+                            assets={publicStatementImages(assets)}
+                            onUpload={onUploadImage}
+                            readOnly={readOnly}
                             className={inputClass}
                             rows={3}
                             value={example[field] || ''}
-                            onChange={(e) =>
-                              changeExamples(
-                                examples.map((item, i) =>
-                                  i === index
-                                    ? { ...item, [field]: e.target.value }
-                                    : item,
-                                ),
-                              )
-                            }
+                            onChange={change}
                           />
-                        </label>
-                      ))}
+                        ) : (
+                          <label
+                            key={field}
+                            className="grid gap-2 text-xs font-semibold"
+                          >
+                            {label}
+                            <BoundedTextarea
+                              className={inputClass}
+                              rows={3}
+                              value={example[field] || ''}
+                              onChange={(e) => change(e.target.value)}
+                            />
+                          </label>
+                        );
+                      })}
                       <button
                         type="button"
                         className="w-fit text-xs font-bold text-rose-600"
@@ -308,23 +337,31 @@ export default function ProblemLanguageEditor({
                 <summary className="cursor-pointer text-sm font-semibold text-slate-700">
                   번역 해설 · 기존 해설 공개 정책 적용
                 </summary>
-                <label className="mt-3 grid gap-2 text-sm font-semibold">
-                  번역 해설
-                  <BoundedTextarea
+                <div className="mt-3">
+                  <StatementFieldEditor
+                    identity={`${problem.problem_id}:${selected}:editorial`}
+                    label="번역 해설"
+                    assets={assets}
+                    onUpload={
+                      onUploadImage
+                        ? (file) => onUploadImage(file, true)
+                        : undefined
+                    }
+                    readOnly={readOnly}
                     className={`${inputClass} font-mono text-xs`}
                     rows={6}
                     value={problem.editorial_translations?.[selected] || ''}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       onChange({
                         ...problem,
                         editorial_translations: {
                           ...problem.editorial_translations,
-                          [selected]: e.target.value,
+                          [selected]: value,
                         },
                       })
                     }
                   />
-                </label>
+                </div>
               </details>
             </>
           )}

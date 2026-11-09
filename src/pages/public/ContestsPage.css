@@ -389,10 +389,6 @@
   background: #f5f6f9;
   color: #667085;
 }
-.contest-directory .directory-private {
-  background: #faf5ed;
-  color: #84623c;
-}
 .contest-directory .directory-organization {
   display: -webkit-box;
   -webkit-box-orient: vertical;

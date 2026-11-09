@@ -1,4 +1,6 @@
 import { ExperienceArrow } from '@/components/common/PublicExperience';
+import ContestVisibilityTag from '@/components/ui/ContestVisibilityTag';
+import type { ContestCardVisibility } from '@/domains/contestAdministration/presentation';
 
 export type ContestDirectoryMeta = {
   phase: 'running' | 'upcoming' | 'ended';
@@ -50,7 +52,7 @@ export default function ContestDirectoryCardContent({
   meta,
   participant,
   operator,
-  privateContest,
+  visibility,
   countdown,
   publicLabels,
 }: {
@@ -59,7 +61,7 @@ export default function ContestDirectoryCardContent({
   meta: ContestDirectoryMeta;
   participant: boolean;
   operator: boolean;
-  privateContest: boolean;
+  visibility: ContestCardVisibility;
   countdown?: string;
   publicLabels: string[];
 }) {
@@ -82,9 +84,7 @@ export default function ContestDirectoryCardContent({
             <span className="directory-personal">내 참가</span>
           ) : null}
           {operator ? <span className="directory-personal">운영</span> : null}
-          {privateContest ? (
-            <span className="directory-private">비공개</span>
-          ) : null}
+          <ContestVisibilityTag visibility={visibility} />
         </div>
         <div className="directory-card-trailing">
           {countdown && !meta.scheduleTbd ? (

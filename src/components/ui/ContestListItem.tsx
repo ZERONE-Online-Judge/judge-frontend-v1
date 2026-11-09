@@ -5,13 +5,15 @@ import ContestDirectoryCardContent, {
 import { Link } from 'react-router-dom';
 import { useSessionStore } from '@/domains/identityAccess/sessionStore';
 import { SvgIcon } from '@/utils/Icons';
+import ContestVisibilityTag from '@/components/ui/ContestVisibilityTag';
+import type { ContestCardVisibility } from '@/domains/contestAdministration/presentation';
 
 export type ContestListItemData = {
   contestId: string;
   title: string;
   organization: string;
   status: string;
-  operatorOnlyVisible?: boolean;
+  visibility?: ContestCardVisibility;
   countdownLabel?: string;
   period?: string;
   registrationDeadline?: string;
@@ -28,7 +30,7 @@ export default function ContestListItem({
   title,
   organization,
   status,
-  operatorOnlyVisible = false,
+  visibility = 'public',
   countdownLabel,
   period,
   registrationDeadline,
@@ -55,7 +57,7 @@ export default function ContestListItem({
       meta={directoryMeta}
       participant={Boolean(isParticipantContest)}
       operator={Boolean(isOperatorContest || href?.startsWith('/operator/'))}
-      privateContest={operatorOnlyVisible}
+      visibility={visibility}
       countdown={countdownLabel}
       publicLabels={publicResourceLabels}
     />
@@ -84,10 +86,8 @@ export default function ContestListItem({
               }
             />
             {status}
-            {operatorOnlyVisible ? (
-              <span className="text-slate-400">* 비공개됨</span>
-            ) : null}
           </span>
+          <ContestVisibilityTag visibility={visibility} />
           <span className="min-w-0 text-xs font-bold break-keep text-slate-400 sm:text-sm">
             {organization}
           </span>

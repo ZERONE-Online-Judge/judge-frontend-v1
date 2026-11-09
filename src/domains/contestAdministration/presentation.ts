@@ -6,6 +6,21 @@ import {
 } from '@/domains/contestAdministration/logic';
 import { formatContestMoment, timeLeft } from '@/shared/lib/dateTime';
 
+export type ContestCardVisibility = 'public' | 'private' | 'operators';
+
+export function contestCardVisibility(contest: Contest): ContestCardVisibility {
+  const phase = contestAccessPhase(contest);
+  if (
+    phase === 'schedule_tbd' ||
+    (phase === 'before' && contest.status === 'scheduled')
+  ) {
+    return 'operators';
+  }
+  const visibility =
+    phase === 'ended' ? contest.visibility_after_end : contest.visibility;
+  return visibility === 'private' ? 'private' : 'public';
+}
+
 export function contestPeriodLabel(contest: Contest) {
   const phase = contestAccessPhase(contest);
   if (phase === 'schedule_tbd') return undefined;
@@ -68,6 +83,7 @@ export function toContestCardData(contest: Contest) {
     title: contest.title,
     organization: contest.organization_name,
     status: contestStatusLabel(contest.status),
+    visibility: contestCardVisibility(contest),
     countdownLabel: contestCountdownLabel(contest),
     period: contestPeriodLabel(contest),
     isOpen: contestIsOpen(contest),

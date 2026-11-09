@@ -14,10 +14,7 @@ import {
   getOperatorContests,
   getPublicContests,
 } from '@/domains/contestAdministration/api';
-import {
-  contestAccessPhase,
-  isContestHiddenFromPublic,
-} from '@/domains/contestAdministration/logic';
+import { contestAccessPhase } from '@/domains/contestAdministration/logic';
 import { toContestCardData } from '@/domains/contestAdministration/presentation';
 import type { Contest } from '@/domains/contestAdministration/types';
 import { isServiceMaster } from '@/domains/identityAccess/permissions';
@@ -372,10 +369,6 @@ export default function ContestsPage() {
                               isOperatorContest
                                 ? `/operator/contests/${encodeURIComponent(contest.contest_id)}`
                                 : undefined
-                            }
-                            operatorOnlyVisible={
-                              isOperatorContest &&
-                              isContestHiddenFromPublic(contest)
                             }
                             directoryMeta={{
                               phase: section.key,

@@ -158,7 +158,7 @@ test('mine includes preview assignments as operators and opens management', asyn
     '/operator/contests/preview',
   );
   assert.match(cards[1].textContent, /운영/);
-  assert.match(cards[1].textContent, /비공개/);
+  assert.match(cards[1].textContent, /운영자만 공개/);
   assert.match(cards[1].textContent, /일정 준비 중/);
 });
 test('operator assignments lead to management and participants to contestant workspace', async () => {
@@ -178,6 +178,31 @@ test('operator assignments lead to management and participants to contestant wor
     ),
     ['/contests/running', '/operator/contests/later'],
   );
+});
+test('cards distinguish public, private participant access, and operator-only preparation', async () => {
+  const publicContest = contest('public', -day, day);
+  const privateContest = {
+    ...contest('private', -day, day),
+    visibility: 'private',
+  };
+  const operatorContest = contest('operators', day, day * 2, 'scheduled');
+  publicQuery.data = [publicContest, privateContest];
+  session = {
+    account: {},
+    participantContests: [{ contest: privateContest }],
+    operatorContests: [{ contest: operatorContest, scopes: [] }],
+  };
+  await render();
+  const tags = [...host.querySelectorAll('.directory-card')].map((card) => {
+    const badges = card.querySelectorAll('.contest-visibility-tag');
+    assert.equal(badges.length, 1);
+    return [card.querySelector('h3').textContent, badges[0].textContent];
+  });
+  assert.deepEqual(Object.fromEntries(tags), {
+    public: '공개 대회',
+    private: '비공개 대회',
+    operators: '운영자만 공개',
+  });
 });
 test('failed loading stays distinct from empty state and invisible pages stop polling', async () => {
   visible = false;
@@ -233,9 +258,40 @@ test('directory requests and caches are scoped to the authenticated account and 
   assert.notDeepEqual(second.queryKey, anonymous.queryKey);
 });
 
-const { contestCountdownLabel } = source(
+const { contestCountdownLabel, toContestCardData } = source(
   'domains/contestAdministration/presentation.ts',
 );
+test('card visibility follows the active phase including automatic start and end transitions', () => {
+  const base = {
+    ...contest('privacy', -day, day, 'scheduled'),
+    visibility: 'private',
+    visibility_after_end: 'public',
+  };
+  assert.equal(toContestCardData(base).visibility, 'private');
+  assert.equal(
+    toContestCardData({
+      ...base,
+      end_at: new Date(Date.now() - 1).toISOString(),
+    }).visibility,
+    'public',
+  );
+  assert.equal(
+    toContestCardData({
+      ...base,
+      status: 'ended',
+      visibility_after_end: 'private',
+    }).visibility,
+    'private',
+  );
+  assert.equal(
+    toContestCardData({ ...base, status: 'draft' }).visibility,
+    'operators',
+  );
+  assert.equal(
+    toContestCardData({ ...base, status: 'schedule_tbd' }).visibility,
+    'operators',
+  );
+});
 for (const [label, now, start, expected] of [
   [
     'same Korean date',

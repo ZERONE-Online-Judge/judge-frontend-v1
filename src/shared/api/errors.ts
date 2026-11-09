@@ -83,6 +83,11 @@ export function isChangeNoticeCancelled(error: unknown) {
 }
 
 function apiErrorUserMessage(error: ApiClientError) {
+  if (
+    error.code === 'testcases_not_ready' ||
+    error.code === 'testcase_results_invalid'
+  )
+    return error.message;
   if (error.code.startsWith('board_')) return error.message;
   if (error.code.startsWith('change_notice_')) return error.message;
   if (error.status === 413)

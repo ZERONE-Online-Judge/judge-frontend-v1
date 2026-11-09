@@ -77,3 +77,37 @@ test('rejudging and deletion errors explain the required action', () => {
     );
   }
 });
+
+test('judging readiness and result errors retain the actionable server explanation', () => {
+  const { toApiError, formatApiError, formatUserApiError } = source(
+    'shared/api/errors.ts',
+  );
+  for (const [code, message] of [
+    [
+      'testcases_not_ready',
+      '채점할 활성 테스트가 없습니다. 테스트 케이스를 등록하고 활성화한 뒤 다시 요청해 주세요.',
+    ],
+    [
+      'testcase_results_invalid',
+      '채점 결과가 불완전합니다. 운영진에게 문의해 주세요.',
+    ],
+  ]) {
+    const error = toApiError(
+      { status: 422 },
+      {
+        error: { code, message, request_id: 'req-judging-fixture' },
+      },
+    );
+    for (const format of [formatApiError, formatUserApiError]) {
+      assert.equal(
+        format(error, '채점 요청 실패'),
+        `채점 요청 실패: ${message}`,
+      );
+      assert.doesNotMatch(
+        format(error, '채점 요청 실패'),
+        /request_id|req-judging-fixture|\{"/,
+      );
+    }
+    assert.equal(error.requestId, 'req-judging-fixture');
+  }
+});

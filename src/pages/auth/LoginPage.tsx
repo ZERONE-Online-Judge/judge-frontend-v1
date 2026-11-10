@@ -49,6 +49,11 @@ import { PasswordInput } from '@/components/auth/PasswordInput';
 import RememberedEmailField from '@/components/auth/RememberedEmailField';
 import { useRememberedEmails } from '@/domains/identityAccess/rememberedEmails';
 import { useRefreshGeneralSession } from '@/domains/identityAccess/useRefreshGeneralSession';
+import {
+  readSessionDescriptions,
+  type SessionDescription,
+} from '@/shared/lib/sessionEnvironment';
+import { SessionDescriptionList } from '@/shared/ui/SessionEnvironment';
 
 const OTP_VALID_SECONDS = 5 * 60;
 
@@ -62,6 +67,7 @@ type PendingSessionReplacement = {
   activeSessionCount: number;
   email: string;
   lastSeenAt?: string | null;
+  sessions: SessionDescription[];
   otpCode: string;
   method?: 'password' | 'passkey';
   transferToken?: string;
@@ -125,7 +131,7 @@ function isSessionConflictError(error: unknown): error is ApiClientError {
 
 function sessionConflictDetails(error: unknown) {
   if (!isSessionConflictError(error)) {
-    return { activeSessionCount: 1, lastSeenAt: null };
+    return { activeSessionCount: 1, lastSeenAt: null, sessions: [] };
   }
 
   const activeSessionCount = error.details?.active_session_count;
@@ -134,6 +140,7 @@ function sessionConflictDetails(error: unknown) {
     activeSessionCount:
       typeof activeSessionCount === 'number' ? activeSessionCount : 1,
     lastSeenAt: typeof lastSeenAt === 'string' ? lastSeenAt : null,
+    sessions: readSessionDescriptions(error.details?.sessions),
   };
 }
 
@@ -516,9 +523,8 @@ export default function LoginPage() {
       if (!forceNewSession && isSessionConflictError(error)) {
         const details = sessionConflictDetails(error);
         setPendingSessionReplacement({
-          activeSessionCount: details.activeSessionCount,
+          ...details,
           email: requestedOtpEmail || values.email.trim(),
-          lastSeenAt: details.lastSeenAt,
           otpCode: values.otpCode.trim(),
         });
         setMessage(
@@ -615,9 +621,8 @@ export default function LoginPage() {
       if (!forceNewSession && isSessionConflictError(error)) {
         const details = sessionConflictDetails(error);
         setPendingSessionReplacement({
-          activeSessionCount: details.activeSessionCount,
+          ...details,
           email: email.trim(),
-          lastSeenAt: details.lastSeenAt,
           otpCode: '',
           method: 'password',
         });
@@ -718,9 +723,10 @@ export default function LoginPage() {
             이 계정은 이미 다른 브라우저 또는 기기에서 로그인 중입니다. 이
             브라우저에서 계속 사용하면 이전 세션은 로그아웃됩니다.
           </p>
-          <div className="zoj-card mt-4 px-4 py-3 text-sm text-slate-600">
+          <div className="zoj-card mt-4 min-w-0 px-4 py-3 text-sm text-slate-600">
             활성 세션 {pendingSessionReplacement.activeSessionCount}개
-            {pendingSessionReplacement.lastSeenAt ? (
+            {!pendingSessionReplacement.sessions.length &&
+            pendingSessionReplacement.lastSeenAt ? (
               <>
                 {' · 마지막 사용 '}
                 {new Intl.DateTimeFormat('ko-KR', {
@@ -729,6 +735,19 @@ export default function LoginPage() {
                 }).format(new Date(pendingSessionReplacement.lastSeenAt))}
               </>
             ) : null}
+            <div className="mt-3">
+              <SessionDescriptionList
+                sessions={pendingSessionReplacement.sessions}
+                emptyText="환경 정보 없음"
+              />
+              {pendingSessionReplacement.activeSessionCount >
+                pendingSessionReplacement.sessions.length &&
+              pendingSessionReplacement.sessions.length > 0 ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  최근 세션 {pendingSessionReplacement.sessions.length}개 표시
+                </p>
+              ) : null}
+            </div>
           </div>
         </ModalDialog>
       ) : null}

@@ -1,4 +1,5 @@
 import { apiPageRequest, apiRequest } from '@/shared/api/client';
+import type { SessionDescription } from '@/shared/lib/sessionEnvironment';
 
 export const adminUserSortKeys = [
   'email',
@@ -20,6 +21,7 @@ export type AdminUser = {
   participant_contest_count: number;
 };
 export type AdminUserDetail = AdminUser & {
+  sessions?: SessionDescription[];
   participations: {
     contest_id: string;
     contest_title: string;

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { OperationalAuditLog } from '@/domains/auditMonitoring/types';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
+import SessionEnvironment from '@/shared/ui/SessionEnvironment';
 import {
   actionLabel,
   asRecord,
@@ -119,6 +120,10 @@ function Operation({
                     <time className="text-slate-600">
                       {formatDateTime(item.created_at)}
                     </time>
+                    <SessionEnvironment
+                      environment={item.environment}
+                      className="mt-1 block text-slate-500"
+                    />
                   </span>
                   <ResultBadge logs={[item]} />
                 </button>
@@ -229,6 +234,10 @@ export default function OperationalAuditLogTable({
                     <p className="mt-1 text-xs text-slate-600">
                       {roleLabel(log.actor_role)}
                     </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      <SessionEnvironment environment={log.environment} />
+                      {group.logs.length > 1 ? ' · 최근 기록' : ''}
+                    </p>
                   </td>
                   <td className="px-4 py-3.5 [overflow-wrap:anywhere] text-slate-600">
                     {contestLabel(log)}
@@ -259,6 +268,10 @@ export default function OperationalAuditLogTable({
             </div>
             <p className="text-xs [overflow-wrap:anywhere] text-slate-600">
               {actorLabel(group.logs[0])} · {contestLabel(group.logs[0])}
+            </p>
+            <p className="text-xs text-slate-600">
+              <SessionEnvironment environment={group.logs[0].environment} />
+              {group.logs.length > 1 ? ' · 최근 기록' : ''}
             </p>
             <Operation items={group.logs} onSelect={setSelected} />
           </article>
@@ -366,7 +379,10 @@ function AuditDetails({
               {log.actor_email} · {roleLabel(log.actor_role)}
             </p>
             <p>IP: {log.client_ip || '없음'}</p>
-            <p>{log.user_agent}</p>
+            <p>
+              접속 환경: <SessionEnvironment environment={log.environment} />
+            </p>
+            <p>원본 User-Agent: {log.user_agent || '없음'}</p>
             <code>
               {log.method} {log.path}
             </code>

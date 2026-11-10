@@ -1,5 +1,6 @@
 import type { Contest, Division } from '@/domains/contestAdministration/types';
 import type { Submission } from '@/domains/submissionScoreboard/types';
+import type { SessionEnvironmentData } from '@/shared/lib/sessionEnvironment';
 import type {
   ParticipantTeam,
   TeamMember,
@@ -73,6 +74,7 @@ export type OperationalAuditLog = {
   contest_id?: string | null;
   client_ip?: string | null;
   user_agent?: string | null;
+  environment?: SessionEnvironmentData | null;
   request_id?: string | null;
   details?: Record<string, unknown>;
   created_at: string;
@@ -118,6 +120,7 @@ export type AccessLog = {
   session_id?: string | null;
   client_ip?: string | null;
   user_agent?: string | null;
+  environment?: SessionEnvironmentData | null;
   request_id?: string | null;
   details?: Record<string, unknown>;
   created_at: string;

@@ -18,6 +18,7 @@ import { formatApiError } from '@/shared/api/errors';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import Select from '@/shared/ui/Select';
+import { SessionDescriptionList } from '@/shared/ui/SessionEnvironment';
 import './AdminUsersPage.css';
 
 const roleLabels: Record<string, string> = {
@@ -413,6 +414,23 @@ function UserDetail({
                 </dd>
               </div>
             </dl>
+          </section>
+          <section>
+            <h3 className="admin-user-section-title">활성 로그인 세션</h3>
+            {user.sessions?.length ? (
+              <p className="mb-2 text-xs text-slate-500">
+                최근 사용한 세션을 최대 20개 표시합니다.
+              </p>
+            ) : null}
+            <SessionDescriptionList
+              sessions={user.sessions}
+              emptyText={
+                user.sessions
+                  ? '활성 세션이 없습니다.'
+                  : '세션 정보를 확인할 수 없습니다.'
+              }
+              showExpiry
+            />
           </section>
           <section>
             <h3 className="admin-user-section-title">

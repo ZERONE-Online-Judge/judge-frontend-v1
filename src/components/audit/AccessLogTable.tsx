@@ -2,6 +2,8 @@ import { useState } from 'react';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import type { AccessLog } from '@/domains/auditMonitoring/types';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
+import SessionEnvironment from '@/shared/ui/SessionEnvironment';
+import { sessionEnvironmentLabel } from '@/shared/lib/sessionEnvironment';
 
 type AccessLogTableProps = {
   logs: AccessLog[];
@@ -137,6 +139,9 @@ export default function AccessLogTable({
             <p className="mt-1 text-sm [overflow-wrap:anywhere] text-slate-600">
               {log.team_name || roleLabel(log.actor_role)}
             </p>
+            <p className="mt-2 text-xs text-slate-600">
+              <SessionEnvironment environment={log.environment} />
+            </p>
             <div className="mt-3 flex min-w-0 items-center justify-between gap-3 border-t border-slate-100 pt-3">
               <span className="min-w-0 text-xs [overflow-wrap:anywhere] text-slate-500">
                 {log.client_ip || 'IP 정보 없음'}
@@ -235,6 +240,9 @@ export default function AccessLogTable({
                   <p className="mt-2 text-xs [overflow-wrap:anywhere] text-slate-500">
                     {log.client_ip || 'IP 정보 없음'}
                   </p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    <SessionEnvironment environment={log.environment} />
+                  </p>
                 </td>
                 <td className="px-4 py-4">
                   <button
@@ -272,7 +280,8 @@ export default function AccessLogTable({
               ['참가팀', selected.team_name || '—'],
               ['접속 내용', eventLabel(selected.event_type)],
               ['IP 주소', selected.client_ip || '—'],
-              ['브라우저 정보', selected.user_agent || '—'],
+              ['접속 환경', sessionEnvironmentLabel(selected.environment)],
+              ['원본 User-Agent', selected.user_agent || '—'],
               ['요청 ID', selected.request_id || '—'],
             ].map(([label, value]) => (
               <div

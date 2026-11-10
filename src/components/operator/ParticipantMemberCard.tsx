@@ -1,5 +1,6 @@
 import type { TeamMember } from '@/domains/teamParticipation/types';
 import { formatDateTime } from '@/shared/lib/dateTime';
+import { SessionDescriptionList } from '@/shared/ui/SessionEnvironment';
 export default function ParticipantMemberCard({
   member,
   pending,
@@ -61,6 +62,20 @@ export default function ParticipantMemberCard({
           </button>
         ) : null}
       </div>
+      {(member.active_sessions ?? 0) > 0 ? (
+        <div className="mt-1">
+          <SessionDescriptionList
+            sessions={member.sessions}
+            emptyText="환경 정보 없음"
+          />
+          {member.sessions?.length &&
+          (member.active_sessions ?? 0) > member.sessions.length ? (
+            <p className="mt-1 text-xs text-slate-500">
+              최근 세션 {member.sessions.length}개 표시
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -25,7 +25,8 @@ let state,
   recent,
   handler,
   refreshing,
-  otpRequests;
+  otpRequests,
+  otpFailure;
 const params = new URLSearchParams('next=/contests');
 const navigate = (...args) => navigation.push(args[0]);
 const session = {
@@ -116,6 +117,7 @@ const mocks = {
     },
     verifyGeneralOtp: async () => {
       calls.push(['verify-otp']);
+      if (otpFailure) throw otpFailure;
       return session;
     },
   },
@@ -203,6 +205,7 @@ function reset() {
   params.set('next', '/contests');
   calls = [];
   otpRequests = [];
+  otpFailure = null;
   navigation = [];
   supported = true;
   options = { password_available: false, passkey_available: false };
@@ -428,7 +431,24 @@ test('replacing an existing passkey session authenticates once then consumes the
   handler = async (method) => {
     if (method === 'passkey') {
       const error = new ApiError('session_conflict', 409);
-      error.details = { transfer_token: 'verified-transfer-proof-'.repeat(2) };
+      error.details = {
+        transfer_token: 'verified-transfer-proof-'.repeat(2),
+        active_session_count: 1,
+        sessions: [
+          {
+            scope: 'general',
+            issued_at: '2026-11-10T00:00:00Z',
+            last_seen_at: '2026-11-10T01:00:00Z',
+            expires_at: '2026-11-11T00:00:00Z',
+            environment: {
+              browser: 'Safari',
+              os: 'iOS',
+              device: 'mobile',
+              label: 'Safari · iOS · 모바일',
+            },
+          },
+        ],
+      };
       throw error;
     }
     return session;
@@ -441,6 +461,14 @@ test('replacing an existing passkey session authenticates once then consumes the
     [],
   );
   assert.ok(v.host.textContent.includes('기존 로그인 연결을 끊을까요?'));
+  assert.ok(
+    v.host
+      .querySelector('[role="dialog"]')
+      .textContent.includes('Safari · iOS · 모바일'),
+  );
+  assert.ok(
+    v.host.querySelector('[role="dialog"]').textContent.includes('마지막 사용'),
+  );
   await click(v, '이 브라우저에서 사용');
   assert.deepEqual(
     calls.filter(([name]) => name === 'passkey' || name === 'transfer'),
@@ -469,12 +497,75 @@ test('canceling session transfer discards approval without logging in', async ()
   };
   await click(v, '패스키로 로그인');
   await submit(v);
+  assert.ok(
+    v.host
+      .querySelector('[role="dialog"]')
+      .textContent.includes('환경 정보 없음'),
+  );
   await click(v, '이전 세션 유지');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'transfer').length, 0);
   assert.equal(button(v, '이 브라우저에서 사용'), undefined);
   await v.close();
 });
+
+for (const method of ['password', 'otp']) {
+  test(`${method} session conflict shows the stored session environment before any replacement`, async () => {
+    const v = await mount();
+    options = {
+      password_available: method === 'password',
+      passkey_available: false,
+    };
+    await input(v, '#login-email', 'user@example.com');
+    await submit(v);
+    const conflict = new ApiError('session_conflict', 409);
+    conflict.details = {
+      active_session_count: 1,
+      sessions: [
+        {
+          scope: 'general',
+          issued_at: '2026-11-10T00:00:00Z',
+          last_seen_at: null,
+          expires_at: '2026-11-11T00:00:00Z',
+          environment: {
+            browser: 'Chrome',
+            os: 'Android',
+            device: 'mobile',
+            label: 'Chrome · Android · 모바일',
+          },
+        },
+      ],
+    };
+    if (method === 'password') {
+      await input(v, '#login-password', 'Password1!');
+      handler = async () => {
+        throw conflict;
+      };
+    } else {
+      await input(v, '#login-otp', '123456');
+      otpFailure = conflict;
+    }
+    await submit(v);
+    assert.equal(state.generalSession, null);
+    assert.ok(
+      v.host
+        .querySelector('[role="dialog"]')
+        .textContent.includes('Chrome · Android · 모바일'),
+    );
+    assert.ok(
+      v.host.querySelector('[role="dialog"]').textContent.includes('로그인'),
+    );
+    await click(v, '이전 세션 유지');
+    assert.equal(state.generalSession, null);
+    assert.equal(
+      calls.filter(
+        ([name]) => name === (method === 'otp' ? 'verify-otp' : 'password'),
+      ).length,
+      1,
+    );
+    await v.close();
+  });
+}
 
 test('expired session transfer closes confirmation without another passkey prompt', async () => {
   const v = await mount();

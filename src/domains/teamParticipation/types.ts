@@ -1,4 +1,5 @@
 import type { Contest, Division } from '@/domains/contestAdministration/types';
+import type { SessionDescription } from '@/shared/lib/sessionEnvironment';
 
 export type TeamMemberRole = 'leader' | 'member';
 
@@ -10,6 +11,7 @@ export type TeamMember = {
   active_sessions?: number;
   last_login_at?: string | null;
   last_session_seen_at?: string | null;
+  sessions?: SessionDescription[];
 };
 
 export type TeamMemberDraft = {

@@ -9,6 +9,7 @@ import StorageFileContent from '@/components/operator/StorageFileContent';
 import type { TextPreview } from '@/shared/lib/largeText';
 import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
+import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
@@ -698,6 +699,7 @@ function OperatorProblemsContent({
   const queryClient = useQueryClient();
   const [editorMode, setEditorMode] = useState<ProblemEditorMode>('idle');
   const editorRef = useRef<HTMLDivElement>(null);
+  const problemIndexRef = useNavigationViewport<HTMLElement>();
   const initialFormRef = useRef(emptyProblemForm);
   const [problemSearch, setProblemSearch] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
@@ -1650,7 +1652,7 @@ function OperatorProblemsContent({
       />
 
       <div className="operator-problem-layout">
-        <aside className="operator-problem-index">
+        <aside ref={problemIndexRef} className="operator-problem-index">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-indigo-600 uppercase">
@@ -1775,7 +1777,7 @@ function OperatorProblemsContent({
               ) : null}
             </div>
           ) : null}
-          <div className="grid max-h-64 min-h-0 gap-2 overflow-y-auto pr-1 xl:max-h-none xl:flex-1">
+          <div className="operator-problem-index__list grid gap-2 pr-1">
             {filteredProblems.map((problem) => (
               <button
                 className={[

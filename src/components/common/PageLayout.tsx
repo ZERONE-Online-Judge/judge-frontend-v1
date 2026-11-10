@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 
 type PageHeadingVariant = 'page' | 'contest' | 'section' | 'management';
 type PageWidth = '5xl' | '6xl' | '7xl' | 'full';
@@ -93,6 +94,7 @@ export default function PageLayout({
   width = '7xl',
   variant = 'page',
 }: PageLayoutProps) {
+  const navigationRef = useNavigationViewport<HTMLElement>();
   const content = (
     <>
       {navigation && title ? (
@@ -130,7 +132,9 @@ export default function PageLayout({
     >
       {navigation ? (
         <>
-          <aside className="operator-layout__navigation">{navigation}</aside>
+          <aside ref={navigationRef} className="operator-layout__navigation">
+            {navigation}
+          </aside>
           <div className="operator-layout__content">{content}</div>
         </>
       ) : (

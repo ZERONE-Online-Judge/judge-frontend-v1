@@ -295,7 +295,9 @@ export function OperatorTabs({ contestId }: OperatorTabsProps) {
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
-    const media = window.matchMedia('(min-width: 768px)');
+    const media = window.matchMedia(
+      '(min-width: 768px) and (min-height: 480px)',
+    );
     const closeOnDesktop = (event: MediaQueryListEvent) => {
       if (event.matches) {
         setOpenedAt(null);

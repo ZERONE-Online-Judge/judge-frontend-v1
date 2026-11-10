@@ -1,5 +1,6 @@
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
+import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -85,6 +86,7 @@ function ProblemReviewContent({
   canViewEditorial: boolean;
 }) {
   const [params, setParams] = useSearchParams();
+  const problemIndexRef = useNavigationViewport<HTMLElement>();
   const [search, setSearch] = useState('');
   const identity = tokenQueryIdentity(token);
   const dashboard = useQuery({
@@ -205,7 +207,11 @@ function ProblemReviewContent({
         </p>
       ) : selected ? (
         <div className="operator-review-layout">
-          <aside aria-label="문제 목록" className="operator-review-index">
+          <aside
+            ref={problemIndexRef}
+            aria-label="문제 목록"
+            className="operator-review-index"
+          >
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-semibold text-slate-900">
                 문제 목록
@@ -214,7 +220,7 @@ function ProblemReviewContent({
                 {visibleProblems.length}개
               </span>
             </div>
-            <div className="grid max-h-60 gap-1.5 overflow-y-auto lg:max-h-[calc(100dvh-10rem)]">
+            <div className="operator-review-index__list grid gap-1.5">
               {visibleProblems.map((problem) => {
                 const latest = latestByProblem.get(problem.problem_id);
                 const selectedProblem =

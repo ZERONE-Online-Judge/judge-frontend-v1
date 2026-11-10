@@ -1,6 +1,7 @@
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
 import type { Ref } from 'react';
+import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import { Link } from 'react-router-dom';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import type { Division } from '@/domains/contestAdministration/types';
@@ -34,6 +35,7 @@ export default function ProblemSidebar({
   targetView = 'combined',
   search = '',
 }: ProblemSidebarProps) {
+  const menuRef = useNavigationViewport<HTMLDivElement>();
   const showDivisionSelect = divisions.length > 1 && onDivisionChange;
 
   return (
@@ -51,7 +53,7 @@ export default function ProblemSidebar({
         }
       }}
     >
-      <div className="zoj-problem-drawer__inner">
+      <div ref={menuRef} className="zoj-problem-drawer__inner">
         <header>
           <h2>
             문제 목록 <span>{problems.length}</span>

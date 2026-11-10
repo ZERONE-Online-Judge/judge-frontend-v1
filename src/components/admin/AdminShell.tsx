@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import { Link, NavLink } from 'react-router-dom';
 import PageLayout from '@/components/common/PageLayout';
 import { ManagementPanel } from '@/components/common/ManagementCards';
@@ -111,9 +112,10 @@ export function AdminLayout({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const sidebarRef = useNavigationViewport<HTMLElement>();
   return (
     <section className="admin-console">
-      <aside className="admin-sidebar">
+      <aside ref={sidebarRef} className="admin-sidebar">
         <Link to="/admin" className="admin-brand">
           <span className="admin-brand-mark">Z</span>
           <span>

@@ -22,7 +22,8 @@ const mediaMatches = new Map();
 window.matchMedia = (query) => ({
   matches: mediaMatches.get(query) ?? false,
   addEventListener: (_type, fn) => {
-    if (query === '(min-width: 768px)') desktopListeners.add(fn);
+    if (query === '(min-width: 768px) and (min-height: 480px)')
+      desktopListeners.add(fn);
   },
   removeEventListener: (_type, fn) => desktopListeners.delete(fn),
 });
@@ -1243,7 +1244,7 @@ function pointerEvent(target, type, pointerType = 'mouse') {
 
 test('operator rail starts compact and preserves an explicitly pinned menu', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   await render();
   const navigation = container.querySelector('.operator-navigation');
   assert.equal(navigation.dataset.collapsed, 'true');
@@ -1275,7 +1276,7 @@ test('operator rail starts compact and preserves an explicitly pinned menu', asy
 
 test('unpinned rail hover expands for a mouse and retracts without changing the saved preference', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   await render();
   const navigation = container.querySelector('.operator-navigation');
   const rail = navigation.querySelector('.operator-rail');
@@ -1294,7 +1295,7 @@ test('unpinned rail hover expands for a mouse and retracts without changing the 
 
 test('touch-only rail can be pinned and collapsed without hover or a focus trap', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   mediaMatches.set('(hover: hover) and (pointer: fine)', false);
   await render();
   const navigation = container.querySelector('.operator-navigation');
@@ -1330,7 +1331,7 @@ test('touch-only rail can be pinned and collapsed without hover or a focus trap'
 
 test('touching an expanded hover rail clears its transient mouse state', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   await render();
   const navigation = container.querySelector('.operator-navigation');
   const rail = navigation.querySelector('.operator-rail');
@@ -1347,7 +1348,7 @@ test('touching an expanded hover rail clears its transient mouse state', async (
 
 test('keyboard navigation still expands a rail after touch interaction', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   mediaMatches.set('(hover: hover) and (pointer: fine)', false);
   await render();
   const navigation = container.querySelector('.operator-navigation');
@@ -1373,7 +1374,7 @@ test('keyboard navigation still expands a rail after touch interaction', async (
 
 test('keyboard focus keeps the unpinned rail open until focus leaves', async () => {
   session = forRoles('settings_manager');
-  mediaMatches.set('(min-width: 768px)', true);
+  mediaMatches.set('(min-width: 768px) and (min-height: 480px)', true);
   await render();
   const navigation = container.querySelector('.operator-navigation');
   const first = navigation.querySelector('a');

@@ -499,29 +499,31 @@
   padding-top: 12px;
 }
 .contest-directory .directory-resources {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  gap: 24px;
+  gap: 4px;
   margin: 0;
   font-size: 11px;
   line-height: 1.5;
   color: #697386;
 }
 .contest-directory .directory-resources > div {
-  display: flex;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: baseline;
   min-width: 0;
   gap: 12px;
 }
 .contest-directory .directory-resources dt {
   flex-shrink: 0;
   color: #697386;
+  white-space: nowrap;
 }
 .contest-directory .directory-resources dd {
   min-width: 0;
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .contest-directory .directory-card-action {
   position: relative;
@@ -714,7 +716,7 @@
   }
   .contest-directory .directory-resources > div {
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-columns: 80px minmax(0, 1fr);
     gap: 8px;
   }
   .contest-directory .directory-card-schedule {

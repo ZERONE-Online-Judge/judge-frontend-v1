@@ -29,8 +29,11 @@ function moment(value: string) {
   };
 }
 
-function resourceGroups(labels: string[]) {
-  const groups = new Map<string, string[]>();
+function resourceGroups(labels: string[], visibility: ContestCardVisibility) {
+  const groups = new Map<string, string[]>([
+    ['비로그인 공개', []],
+    ['참가자 전용', []],
+  ]);
   for (const label of labels) {
     const suffix = label.endsWith(' 비로그인 공개')
       ? ' 비로그인 공개'
@@ -38,7 +41,11 @@ function resourceGroups(labels: string[]) {
         ? ' 참가자 공개 유지'
         : '';
     const access =
-      suffix === ' 비로그인 공개' ? '공개' : suffix ? '참가자 공개' : '자료';
+      suffix === ' 비로그인 공개' && visibility === 'public'
+        ? '비로그인 공개'
+        : suffix
+          ? '참가자 전용'
+          : '자료';
     const names = groups.get(access) ?? [];
     names.push(suffix ? label.slice(0, -suffix.length) : label);
     groups.set(access, names);
@@ -66,13 +73,14 @@ export default function ContestDirectoryCardContent({
   publicLabels: string[];
 }) {
   const start = new Date(meta.startAt);
+  const showResources = meta.phase === 'ended';
   const hasDate = !meta.scheduleTbd && Number.isFinite(start.getTime());
   const label = meta.scheduleTbd
     ? '일정 준비 중'
     : { running: '진행 중', upcoming: '시작 예정', ended: '종료' }[meta.phase];
   return (
     <div
-      className={`directory-card-content is-${meta.phase} ${publicLabels.length ? 'has-resources' : ''}`}
+      className={`directory-card-content is-${meta.phase} ${showResources ? 'has-resources' : ''}`}
     >
       <div className="directory-card-topline">
         <div className="directory-card-labels">
@@ -144,16 +152,18 @@ export default function ContestDirectoryCardContent({
           </ol>
         )}
       </div>
-      {publicLabels.length ? (
+      {showResources ? (
         <div className="directory-card-footer">
           <dl
             className="directory-resources"
             aria-label="종료 후 자료 공개 범위"
           >
-            {resourceGroups(publicLabels).map(([access, names]) => (
+            {resourceGroups(publicLabels, visibility).map(([access, names]) => (
               <div key={access}>
                 <dt>{access}</dt>
-                <dd title={names.join(' · ')}>{names.join(' · ')}</dd>
+                <dd title={names.length ? names.join(' · ') : undefined}>
+                  {names.length ? names.join(' · ') : '없음'}
+                </dd>
               </div>
             ))}
           </dl>

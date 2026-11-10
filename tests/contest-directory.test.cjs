@@ -292,6 +292,134 @@ test('card visibility follows the active phase including automatic start and end
     'operators',
   );
 });
+
+const DirectoryCard = source(
+  'components/ui/ContestDirectoryCardContent.tsx',
+).default;
+const cardResourceNames = [
+  '문제집',
+  '스코어보드',
+  '채점현황',
+  '공지사항',
+  '게시판',
+];
+async function renderDirectoryCard(publicLabels, overrides = {}) {
+  await act(async () =>
+    root.render(
+      h(DirectoryCard, {
+        title: '공개 범위 확인 대회',
+        organization: 'ZERONE',
+        meta: {
+          phase: 'ended',
+          startAt: '2026-05-28T17:30:00+09:00',
+          endAt: '2026-05-28T19:30:00+09:00',
+          scheduleTbd: false,
+        },
+        participant: false,
+        operator: false,
+        visibility: 'public',
+        publicLabels,
+        ...overrides,
+      }),
+    ),
+  );
+}
+function cardAccessRows() {
+  const summary = host.querySelector('dl[aria-label="종료 후 자료 공개 범위"]');
+  assert.ok(summary, 'ended cards explain both access levels');
+  return [...summary.children].map((row) => [
+    row.querySelector('dt').textContent,
+    row.querySelector('dd').textContent,
+  ]);
+}
+
+test('participant-only ended resources explicitly state that anonymous access is unavailable', async () => {
+  await renderDirectoryCard(
+    cardResourceNames.map((name) => `${name} 참가자 공개 유지`),
+  );
+  assert.deepEqual(cardAccessRows(), [
+    ['비로그인 공개', '없음'],
+    ['참가자 전용', cardResourceNames.join(' · ')],
+  ]);
+});
+
+test('mixed ended resource access keeps public and participant-only lists separate', async () => {
+  await renderDirectoryCard([
+    '문제집 비로그인 공개',
+    '스코어보드 참가자 공개 유지',
+    '채점현황 참가자 공개 유지',
+    '공지사항 비로그인 공개',
+    '게시판 참가자 공개 유지',
+  ]);
+  assert.deepEqual(cardAccessRows(), [
+    ['비로그인 공개', '문제집 · 공지사항'],
+    ['참가자 전용', '스코어보드 · 채점현황 · 게시판'],
+  ]);
+});
+
+test('ended cards with all resources private retain both explicit empty access rows', async () => {
+  await renderDirectoryCard([]);
+  assert.deepEqual(cardAccessRows(), [
+    ['비로그인 공개', '없음'],
+    ['참가자 전용', '없음'],
+  ]);
+});
+
+test('all-public ended resources say no participant-only resources without denying participant access', async () => {
+  await renderDirectoryCard(
+    cardResourceNames.map((name) => `${name} 비로그인 공개`),
+  );
+  assert.deepEqual(cardAccessRows(), [
+    ['비로그인 공개', cardResourceNames.join(' · ')],
+    ['참가자 전용', '없음'],
+  ]);
+  assert.doesNotMatch(host.textContent, /참가자 공개\s*없음/);
+});
+
+test('private contests do not claim anonymous access for resources configured public', async () => {
+  await renderDirectoryCard(
+    [
+      '문제집 비로그인 공개',
+      '스코어보드 참가자 공개 유지',
+      '공지사항 비로그인 공개',
+    ],
+    { visibility: 'private' },
+  );
+  assert.deepEqual(cardAccessRows(), [
+    ['비로그인 공개', '없음'],
+    ['참가자 전용', '문제집 · 스코어보드 · 공지사항'],
+  ]);
+  assert.equal(
+    host.querySelector('.contest-visibility-tag').textContent,
+    '비공개 대회',
+  );
+});
+
+for (const [phase, scheduleTbd] of [
+  ['running', false],
+  ['upcoming', false],
+  ['upcoming', true],
+]) {
+  test(`non-ended cards omit after-end access summary: ${phase}, schedule TBD ${scheduleTbd}`, async () => {
+    await renderDirectoryCard(
+      ['문제집 비로그인 공개', '게시판 참가자 공개 유지'],
+      {
+        meta: {
+          phase,
+          startAt: '2026-11-11T13:00:00+09:00',
+          endAt: '2026-11-11T20:00:00+09:00',
+          scheduleTbd,
+        },
+      },
+    );
+    assert.equal(
+      host.querySelector('dl[aria-label="종료 후 자료 공개 범위"]'),
+      null,
+    );
+    assert.doesNotMatch(host.textContent, /비로그인 공개|참가자 전용/);
+  });
+}
+
 for (const [label, now, start, expected] of [
   [
     'same Korean date',

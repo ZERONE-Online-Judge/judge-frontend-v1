@@ -17,7 +17,7 @@ dom.window.HTMLDialogElement.prototype.showModal = function () {
 dom.window.HTMLDialogElement.prototype.close = function () {
   this.open = false;
 };
-let resized, reducedMotion;
+let resized, reducedMotion, headerHeight, headerResize, disconnected;
 window.matchMedia = (query) => ({
   matches: query === '(prefers-reduced-motion: reduce)' && reducedMotion,
   addEventListener: (_type, fn) => {
@@ -76,6 +76,22 @@ function Observer() {
 }
 beforeEach(async () => {
   reducedMotion = false;
+  headerHeight = 65;
+  disconnected = false;
+  dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+    return {
+      height: this.classList.contains('site-header') ? headerHeight : 0,
+    };
+  };
+  global.ResizeObserver = class {
+    constructor(callback) {
+      headerResize = callback;
+    }
+    observe() {}
+    disconnect() {
+      disconnected = true;
+    }
+  };
   document.body.innerHTML = '<main></main>';
   root = createRoot(document.querySelector('main'));
   await act(() =>
@@ -95,6 +111,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await act(() => root.unmount());
+  delete global.ResizeObserver;
 });
 after(() => dom.window.close());
 async function click(el) {
@@ -214,7 +231,21 @@ test('interrupted animation still releases the modal and its scroll lock', async
     document.querySelector('.site-menu-drawer').dataset.state,
     'closing',
   );
-  await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+  await act(() => new Promise((resolve) => window.setTimeout(resolve, 300)));
   assert.equal(document.querySelector('dialog'), null);
   assert.equal(document.body.style.overflow, '');
+});
+
+test('scroll clearance follows header resizing and is removed on unmount', async () => {
+  const style = document.documentElement.style;
+  assert.equal(style.getPropertyValue('--zoj-site-header-height'), '65px');
+  headerHeight = 112.5;
+  await act(() => headerResize());
+  assert.equal(style.getPropertyValue('--zoj-site-header-height'), '113px');
+  headerHeight = 69;
+  await act(() => window.dispatchEvent(new window.Event('resize')));
+  assert.equal(style.getPropertyValue('--zoj-site-header-height'), '69px');
+  await act(() => root.render(null));
+  assert.equal(style.getPropertyValue('--zoj-site-header-height'), '');
+  assert.equal(disconnected, true);
 });

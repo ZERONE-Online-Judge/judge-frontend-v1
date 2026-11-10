@@ -1,3 +1,8 @@
+/* Native anchors, focus and scrollIntoView must clear the sticky navigation. */
+html:has(.site-header) {
+  scroll-padding-top: calc(var(--zoj-site-header-height, 72px) + 12px);
+}
+
 .site-header {
   position: sticky;
   top: 0;

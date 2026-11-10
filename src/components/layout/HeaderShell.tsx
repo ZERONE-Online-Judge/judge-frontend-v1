@@ -1,4 +1,11 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import SiteBrand from '@/components/layout/SiteBrand';
 import Modal from '@/shared/ui/Modal';
@@ -25,6 +32,32 @@ export default function HeaderShell({
   navItems,
 }: HeaderShellProps) {
   const location = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const root = header.ownerDocument.documentElement;
+    const property = '--zoj-site-header-height';
+    const previous = root.style.getPropertyValue(property);
+    const measure = () => {
+      root.style.setProperty(
+        property,
+        `${Math.ceil(header.getBoundingClientRect().height)}px`,
+      );
+    };
+    measure();
+    const observer =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
+    observer?.observe(header);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+      if (previous) root.style.setProperty(property, previous);
+      else root.style.removeProperty(property);
+    };
+  }, []);
   const [menu, setMenu] = useState<{
     locationKey: string;
     closing: boolean;
@@ -80,7 +113,7 @@ export default function HeaderShell({
   }
 
   return (
-    <header className="site-header">
+    <header ref={headerRef} className="site-header">
       <div className="site-header-inner">
         <button
           type="button"

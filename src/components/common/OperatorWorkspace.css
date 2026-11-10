@@ -132,9 +132,9 @@
   }
   .operator-problem-index {
     position: sticky;
-    top: 92px;
+    top: calc(var(--zoj-site-header-height, 72px) + 20px);
     max-height: min(
-      calc(100dvh - 112px),
+      calc(100dvh - var(--zoj-site-header-height, 72px) - 40px),
       var(--zoj-navigation-available-height, 100dvh)
     );
     overflow-y: auto;
@@ -155,9 +155,9 @@
   }
   .operator-review-index {
     position: sticky;
-    top: 92px;
+    top: calc(var(--zoj-site-header-height, 72px) + 20px);
     max-height: min(
-      calc(100dvh - 112px),
+      calc(100dvh - var(--zoj-site-header-height, 72px) - 40px),
       var(--zoj-navigation-available-height, 100dvh)
     );
     overflow-y: auto;
@@ -615,7 +615,7 @@
   }
   .operator-layout__navigation {
     position: sticky;
-    top: 88px;
+    top: calc(var(--zoj-site-header-height, 72px) + 16px);
     z-index: 20;
     overflow: visible;
   }
@@ -625,7 +625,7 @@
     width: 240px;
     min-height: 0;
     max-height: min(
-      calc(100dvh - 108px),
+      calc(100dvh - var(--zoj-site-header-height, 72px) - 36px),
       var(--zoj-navigation-available-height, 100dvh)
     );
     overflow: hidden auto;

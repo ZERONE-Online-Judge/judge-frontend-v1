@@ -1,5 +1,5 @@
 import Select from '@/shared/ui/Select';
-import ParticipantMemberCard from '@/components/operator/ParticipantMemberCard';
+import ParticipantTeamRoster from '@/components/operator/ParticipantTeamRoster';
 import ParticipantBulkImport from '@/components/operator/ParticipantBulkImport';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import ParticipantDivisionsPanel from '@/components/operator/ParticipantDivisionsPanel';
@@ -34,7 +34,6 @@ import type {
   TeamMemberRole,
 } from '@/domains/teamParticipation/types';
 import { formatApiError } from '@/shared/api/errors';
-import { formatDateTime } from '@/shared/lib/dateTime';
 
 type TeamForm = {
   divisionId: string;
@@ -640,123 +639,39 @@ function OperatorParticipantsContent({
           description="등록된 참가팀과 팀원 상태입니다."
           title="참가팀 목록"
         >
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full min-w-[980px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-600">
-                <tr>
-                  <th className="w-56 border-r border-b border-slate-200 px-4 py-3">
-                    팀
-                  </th>
-                  <th className="w-32 border-r border-b border-slate-200 px-4 py-3">
-                    유형
-                  </th>
-                  <th className="w-[27rem] border-r border-b border-slate-200 px-4 py-3">
-                    팀원
-                  </th>
-                  <th className="w-40 border-r border-b border-slate-200 px-4 py-3">
-                    등록
-                  </th>
-                  <th className="w-40 border-b border-slate-200 px-4 py-3">
-                    관리
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredTeams.length > 0 ? (
-                  filteredTeams.map((team) => (
-                    <tr
-                      className="hover:bg-indigo-50/40"
-                      key={team.participant_team_id}
-                    >
-                      <td className="border-r border-slate-100 px-4 py-4 align-top">
-                        <strong
-                          className="zoj-break-anywhere font-semibold text-slate-950"
-                          title={team.team_name}
-                        >
-                          {team.team_name}
-                        </strong>
-                        <StatusPill status={team.status} />
-                      </td>
-                      <td className="zoj-break-anywhere border-r border-slate-100 px-4 py-4 align-top font-medium text-slate-700">
-                        {divisionById.get(team.division_id)?.name ??
-                          team.division?.name ??
-                          '-'}
-                      </td>
-                      <td className="border-r border-slate-100 px-4 py-4 align-top">
-                        <div className="grid gap-2">
-                          {team.members.map((member) => (
-                            <ParticipantMemberCard
-                              key={member.team_member_id ?? member.email}
-                              member={member}
-                              pending={revokeSessionMutation.isPending}
-                              onRevoke={() =>
-                                revokeSessionMutation.mutate({
-                                  memberId: member.team_member_id!,
-                                  teamId: team.participant_team_id,
-                                })
-                              }
-                            />
-                          ))}
-                        </div>
-                      </td>
-                      <td className="border-r border-slate-100 px-4 py-4 align-top font-medium text-slate-600">
-                        {formatDateTime(team.created_at)}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            className="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700"
-                            onClick={() => editTeam(team)}
-                            type="button"
-                          >
-                            팀/팀원 편집
-                          </button>
-                          <button
-                            className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700"
-                            onClick={() => confirmDeleteTeam(team)}
-                            type="button"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      className="px-4 py-10 text-center text-sm font-medium text-slate-600"
-                      colSpan={5}
-                    >
-                      표시할 참가팀이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="grid min-w-0 gap-4">
+            {filteredTeams.length > 0 ? (
+              filteredTeams.map((team) => (
+                <ParticipantTeamRoster
+                  key={team.participant_team_id}
+                  team={team}
+                  divisionName={
+                    divisionById.get(team.division_id)?.name ??
+                    team.division?.name ??
+                    '-'
+                  }
+                  pending={revokeSessionMutation.isPending}
+                  canManage={canManageParticipants}
+                  onEdit={() => editTeam(team)}
+                  onDelete={() => confirmDeleteTeam(team)}
+                  onRevoke={(member) => {
+                    if (member.team_member_id)
+                      revokeSessionMutation.mutate({
+                        memberId: member.team_member_id,
+                        teamId: team.participant_team_id,
+                      });
+                  }}
+                />
+              ))
+            ) : (
+              <p className="rounded-xl border border-slate-200 px-4 py-10 text-center text-sm font-medium text-slate-600">
+                표시할 참가팀이 없습니다.
+              </p>
+            )}
           </div>
         </OperatorPanel>
       </div>
     </PageLayout>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const tone =
-    status === 'active'
-      ? 'bg-emerald-50 text-emerald-700'
-      : status === 'disqualified'
-        ? 'bg-rose-50 text-rose-700'
-        : 'bg-amber-50 text-amber-700';
-  const label =
-    participantStatusOptions.find(([value]) => value === status)?.[1] ?? status;
-
-  return (
-    <span
-      className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${tone}`}
-    >
-      {label}
-    </span>
   );
 }
 

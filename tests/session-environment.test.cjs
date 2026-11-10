@@ -270,7 +270,15 @@ test('operator member cards show the member session environment and retain accou
       onRevoke: () => revoked++,
     }),
   );
-  assert.ok(host.textContent.includes('세션 2개'));
+  const disclosure = host.querySelector('details');
+  assert.equal(disclosure.open, false);
+  assert.ok(host.querySelector('summary').textContent.includes('활성 세션'));
+  assert.equal(
+    host.querySelector('summary').textContent.includes('2개'),
+    false,
+  );
+  await act(async () => host.querySelector('summary').click());
+  assert.equal(disclosure.open, true);
   assert.ok(host.textContent.includes('Chrome · Windows'));
   assert.ok(host.textContent.includes('Safari · iOS · 모바일'));
   await act(async () =>

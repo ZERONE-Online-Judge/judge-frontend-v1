@@ -1,0 +1,372 @@
+.participant-team-roster {
+  min-width: 0;
+  padding: 22px 24px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.participant-roster-heading,
+.participant-roster-team-title,
+.participant-roster-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.participant-roster-heading {
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.participant-roster-team {
+  min-width: 0;
+}
+
+.participant-roster-team-title {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.participant-roster-team-title h3 {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+  overflow-wrap: anywhere;
+}
+
+.participant-team-status {
+  border-radius: 6px;
+  padding: 3px 7px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.participant-team-status.is-active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.participant-team-status.is-disqualified {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.participant-roster-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.participant-roster-actions {
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.participant-roster-actions button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.participant-roster-actions button:hover {
+  background: #f8fafc;
+  color: #4f46e5;
+}
+
+.participant-roster-actions button.is-destructive:hover {
+  color: #be123c;
+  background: #fff1f2;
+}
+
+.participant-roster-members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.participant-roster-columns,
+.participant-member-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.participant-roster-columns {
+  padding: 15px 0 4px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.participant-member {
+  min-width: 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.participant-member:last-child {
+  border-bottom: 0;
+}
+
+.participant-member-row {
+  min-width: 0;
+  min-height: 76px;
+  padding: 14px 0;
+}
+
+summary.participant-member-row {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.participant-member-row::-webkit-details-marker {
+  display: none;
+}
+
+.participant-member-name {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 9px;
+}
+
+.participant-member-full-name {
+  min-width: 0;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.participant-member-role {
+  color: #64748b;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.participant-member-role.is-leader {
+  color: #6355c7;
+  font-weight: 600;
+}
+
+.participant-member-email {
+  min-width: 0;
+  color: #64748b;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.participant-member-session {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: 4px;
+}
+
+.participant-member-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.participant-member-status.is-active {
+  color: #047857;
+  font-weight: 600;
+}
+
+.participant-session-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.participant-session-platform {
+  flex: none;
+  margin-left: 2px;
+}
+
+.participant-member-last-used {
+  color: #64748b;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.participant-member-chevron {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  border-radius: 7px;
+  color: #64748b;
+  transition: background 160ms ease;
+}
+
+.participant-member-chevron svg {
+  transition: transform 180ms ease;
+}
+
+.participant-member-disclosure[open] .participant-member-chevron svg {
+  transform: rotate(180deg);
+}
+
+summary.participant-member-row:hover .participant-member-chevron {
+  background: #f1f5f9;
+  color: #4f46e5;
+}
+
+.participant-member-detail {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+}
+
+.participant-member-environments {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.participant-member-environment {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+}
+
+.participant-member-login-time {
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.participant-member-logout {
+  min-height: 36px;
+  border-radius: 6px;
+  color: #be123c;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.participant-member-logout:hover {
+  color: #9f1239;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.participant-member-logout:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.participant-roster-actions button:focus-visible,
+summary.participant-member-row:focus-visible,
+.participant-member-logout:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid #6366f1;
+  outline-offset: 3px;
+}
+
+@media (max-width: 639px) {
+  .participant-team-roster {
+    padding: 18px 16px 4px;
+  }
+
+  .participant-roster-heading {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 16px;
+  }
+
+  .participant-roster-team-title h3 {
+    font-size: 17px;
+  }
+
+  .participant-roster-registered {
+    flex-basis: 100%;
+  }
+
+  .participant-roster-columns {
+    display: none;
+  }
+
+  .participant-member-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 6px 10px;
+    padding: 17px 0;
+  }
+
+  .participant-member-email {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .participant-member-session {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-top: 3px;
+  }
+
+  .participant-member-chevron {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    width: 44px;
+    height: 44px;
+  }
+
+  .participant-member-detail {
+    gap: 8px;
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  .participant-roster-actions button,
+  .participant-member-logout,
+  .participant-member-chevron {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .participant-member-chevron,
+  .participant-member-chevron svg {
+    transition: none;
+  }
+}

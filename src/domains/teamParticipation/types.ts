@@ -50,7 +50,52 @@ export type ParticipantSession = {
 
 export type ParticipantBulkImportResponse = {
   created: ParticipantTeam[];
-  errors: { row: number; team_name: string; message: string }[];
+  results?: {
+    row: number;
+    status: 'created' | 'failed';
+    participant_team_id?: string;
+    team_name?: string;
+    warnings?: ParticipantImportIssue[];
+  }[];
+  errors: {
+    row: number;
+    team_name: string;
+    message: string;
+    code?: string;
+    field?: string;
+    errors?: ParticipantImportIssue[];
+  }[];
+};
+
+export type ParticipantImportIssue = {
+  code: string;
+  field: string;
+  message: string;
+  email?: string;
+};
+export type ParticipantBulkPreview = {
+  rows: {
+    row: number;
+    team_name: string;
+    input: TeamImportRow;
+    normalized: TeamImportRow | null;
+    valid: boolean;
+    errors: ParticipantImportIssue[];
+    warnings: ParticipantImportIssue[];
+    corrections: {
+      field: string;
+      before: unknown;
+      after: unknown;
+      message: string;
+    }[];
+  }[];
+  summary: {
+    total: number;
+    ready: number;
+    invalid: number;
+    corrected: number;
+    warnings: number;
+  };
 };
 
 export type ParticipantOtpRequestResponse = {

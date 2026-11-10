@@ -1,16 +1,11 @@
 import Select from '@/shared/ui/Select';
 import ParticipantMemberCard from '@/components/operator/ParticipantMemberCard';
+import ParticipantBulkImport from '@/components/operator/ParticipantBulkImport';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import ParticipantDivisionsPanel from '@/components/operator/ParticipantDivisionsPanel';
 import { hasContestPermission } from '@/domains/identityAccess/permissions';
 import useConfirmation from '@/shared/ui/useConfirmation';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -25,7 +20,6 @@ import { getOperatorContestDashboard } from '@/domains/contestAdministration/api
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import {
   addParticipantTeamMember,
-  bulkCreateParticipantTeams,
   createParticipantTeam,
   deleteParticipantTeam,
   formatParticipantTeamError,
@@ -34,7 +28,6 @@ import {
   updateParticipantTeam,
   updateParticipantTeamMember,
 } from '@/domains/teamParticipation/api';
-import { parseTeamImportFile } from '@/domains/teamParticipation/importParser';
 import type {
   ParticipantTeam,
   TeamMember,
@@ -117,11 +110,9 @@ function OperatorParticipantsContent({
   const queryIdentity = tokenQueryIdentity(token);
   const teamEditorRef = useRef<HTMLDivElement | null>(null);
   const [teamEditorOpen, setTeamEditorOpen] = useState(false);
-  const [bulkEditorOpen, setBulkEditorOpen] = useState(false);
   const [teamSaved, setTeamSaved] = useState('');
   const [teamForm, setTeamForm] = useState(emptyTeamForm);
   const [draftMembers, setDraftMembers] = useState<TeamMember[]>([]);
-  const [bulkText, setBulkText] = useState('');
   const [search, setSearch] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [formError, setFormError] = useState('');
@@ -269,19 +260,6 @@ function OperatorParticipantsContent({
     },
   });
 
-  const bulkCreateMutation = useMutation({
-    mutationFn: () =>
-      bulkCreateParticipantTeams(
-        contestId,
-        token,
-        parseTeamImportFile(bulkText, divisions),
-      ),
-    onSuccess: () => {
-      setBulkText('');
-      invalidateParticipants();
-    },
-  });
-
   const revokeSessionMutation = useMutation({
     mutationFn: ({ memberId, teamId }: { memberId: string; teamId: string }) =>
       revokeParticipantMemberSessions(contestId, teamId, memberId, token),
@@ -372,16 +350,6 @@ function OperatorParticipantsContent({
     ) {
       deleteTeamMutation.mutate(team);
     }
-  }
-
-  function readBulkFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = '';
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => setBulkText(String(reader.result ?? ''));
-    reader.readAsText(file);
   }
 
   return (
@@ -624,62 +592,13 @@ function OperatorParticipantsContent({
             </CollapsibleEditor>
           </div>
 
-          <CollapsibleEditor
-            open={bulkEditorOpen}
-            onOpenChange={setBulkEditorOpen}
-            busy={bulkCreateMutation.isPending}
-            draft={Boolean(bulkText)}
-            description="CSV·TSV 파일을 올리거나 붙여넣어 여러 팀을 한 번에 등록합니다."
-            title="일괄 등록"
-          >
-            <form
-              className="grid gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                bulkCreateMutation.mutate();
-              }}
-            >
-              <p className="text-xs leading-5 break-words text-slate-600">
-                CSV/TSV 헤더: team_name, division, leader_name, leader_email,
-                member1_name, member1_email…
-              </p>
-              <input
-                aria-label="참가팀 CSV·TSV 파일"
-                accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"
-                className="block w-full text-xs font-medium text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
-                onChange={readBulkFile}
-                type="file"
-              />
-              <textarea
-                aria-label="참가팀 일괄 등록 내용"
-                className="min-h-44 resize-y rounded-lg border border-slate-200 px-3 py-3 font-mono text-xs leading-5 text-slate-950 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                onChange={(event) => setBulkText(event.target.value)}
-                placeholder={
-                  'team_name,division,leader_name,leader_email,member1_name,member1_email,member2_name,member2_email\nTeam A,일반,홍길동,a@example.com,김철수,b@example.com,이영희,c@example.com'
-                }
-                value={bulkText}
-              />
-              {bulkCreateMutation.error ? (
-                <ErrorBox
-                  error={bulkCreateMutation.error}
-                  fallback="참가팀 일괄 등록에 실패했습니다"
-                />
-              ) : null}
-              {bulkCreateMutation.data ? (
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                  {bulkCreateMutation.data.created.length}팀 등록,{' '}
-                  {bulkCreateMutation.data.errors.length}건 실패
-                </p>
-              ) : null}
-              <button
-                disabled={bulkCreateMutation.isPending || !bulkText.trim()}
-                className="h-10 w-fit rounded-lg border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 disabled:opacity-50"
-                type="submit"
-              >
-                {bulkCreateMutation.isPending ? '등록 중…' : '일괄 등록 실행'}
-              </button>
-            </form>
-          </CollapsibleEditor>
+          <ParticipantBulkImport
+            key={`${contestId}/${queryIdentity}`}
+            contestId={contestId}
+            token={token}
+            divisions={divisions}
+            onRegistered={invalidateParticipants}
+          />
         </div>
         {teamSaved ? (
           <p

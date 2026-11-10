@@ -2,6 +2,8 @@ import type { PublicContestDetail } from '@/domains/contestAdministration/types'
 import { saveParticipantSession } from '@/domains/identityAccess/sessionStorage';
 import type {
   ParticipantBulkImportResponse,
+  ParticipantBulkPreview,
+  ParticipantImportIssue,
   ParticipantOtpRequestResponse,
   ParticipantSession,
   ParticipantSessionApi,
@@ -12,6 +14,25 @@ import type {
 } from '@/domains/teamParticipation/types';
 import { apiRequest } from '@/shared/api/client';
 import { ApiClientError, formatApiError } from '@/shared/api/errors';
+
+export function formatParticipantImportIssue(issue: ParticipantImportIssue) {
+  const field = issue.field.replace(/\[(\d+)\]/g, '.$1');
+  const labels: Record<string, string> = {
+    team_name: '팀명',
+    division_id: '참가 유형',
+    'leader.name': '팀장 이름',
+    'leader.email': '팀장 이메일',
+  };
+  const member = field.match(/^members\.(\d+)\.(name|email)$/);
+  const label = Object.hasOwn(labels, field)
+    ? labels[field]
+    : member
+      ? `팀원 ${Number(member[1]) + 1} ${member[2] === 'email' ? '이메일' : '이름'}`
+      : issue.email
+        ? '이메일'
+        : '';
+  return `${label ? `${label}${issue.email ? ` (${issue.email})` : ''}: ` : ''}${issue.message}`;
+}
 
 export function formatParticipantTeamError(error: unknown, fallback: string) {
   if (error instanceof ApiClientError) {
@@ -180,6 +201,19 @@ export function bulkCreateParticipantTeams(
       method: 'POST',
       body: JSON.stringify({ teams }),
     },
+  );
+}
+
+export function previewParticipantTeams(
+  contestId: string,
+  token: string,
+  teams: TeamImportRow[],
+  signal?: AbortSignal,
+) {
+  return apiRequest<ParticipantBulkPreview>(
+    `/operator/contests/${contestId}/participants:bulk-preview`,
+    token,
+    { method: 'POST', body: JSON.stringify({ teams }), signal },
   );
 }
 

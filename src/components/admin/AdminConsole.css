@@ -16,13 +16,13 @@
 }
 .admin-sidebar {
   position: sticky;
-  top: calc(var(--zoj-site-header-height, 72px) + 20px);
+  top: calc(var(--zoj-sticky-header-height, 72px) + 20px);
   display: grid;
   gap: 28px;
   min-width: 0;
   min-height: 0;
   max-height: min(
-    calc(100dvh - var(--zoj-site-header-height, 72px) - 40px),
+    calc(100dvh - var(--zoj-sticky-header-height, 72px) - 40px),
     var(--zoj-navigation-available-height, 100dvh)
   );
   grid-template-rows: auto minmax(44px, 1fr) auto;

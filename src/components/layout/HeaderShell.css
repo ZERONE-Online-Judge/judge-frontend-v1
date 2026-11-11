@@ -1,6 +1,7 @@
 /* Native anchors, focus and scrollIntoView must clear the sticky navigation. */
 html:has(.site-header) {
-  scroll-padding-top: calc(var(--zoj-site-header-height, 72px) + 12px);
+  --zoj-sticky-header-height: var(--zoj-site-header-height, 72px);
+  scroll-padding-top: calc(var(--zoj-sticky-header-height) + 12px);
 }
 
 .site-header {
@@ -277,6 +278,15 @@ html:has(.site-header) {
   }
 }
 @media (max-width: 900px) {
+  /* Keep mobile browser chrome and the site header from covering page tools.
+     The header retains its normal-flow space and scrolls with the document. */
+  html:has(.site-header) {
+    --zoj-sticky-header-height: 0px;
+  }
+  .site-header {
+    position: relative;
+    top: auto;
+  }
   .site-header-inner {
     width: calc(100% - 40px);
     gap: 10px;

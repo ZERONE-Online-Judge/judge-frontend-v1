@@ -1,3 +1,4 @@
+import { noticeCountdownEditorText } from '@/domains/serviceCommunication/noticeCountdown';
 import NoticeEditorFields, {
   type NoticeForm,
 } from '@/components/operator/NoticeEditorFields';
@@ -126,9 +127,9 @@ function OperatorNoticesContent({
   const contest = dashboardQuery.data?.contest;
   const emergencyNotice =
     emergencyDraft ??
-    contest?.emergency_notice_template ??
-    contest?.emergency_notice ??
-    '';
+    noticeCountdownEditorText(
+      contest?.emergency_notice_template ?? contest?.emergency_notice ?? '',
+    );
   const notices = noticesQuery.data ?? [];
   const isNoticeListLoading =
     noticesQuery.isPending || (noticesQuery.isFetching && !noticesQuery.data);
@@ -248,7 +249,7 @@ function OperatorNoticesContent({
 
   function editNotice(notice: ContestNotice) {
     setForm({
-      body: notice.body_template ?? notice.body,
+      body: noticeCountdownEditorText(notice.body_template ?? notice.body),
       emergency: notice.emergency,
       noticeId: notice.contest_notice_id,
       pinned: notice.pinned,
@@ -341,11 +342,18 @@ function OperatorNoticesContent({
                       onChange={(event) =>
                         setEmergencyNotice(event.target.value)
                       }
+                      onBlur={() =>
+                        setEmergencyNotice(
+                          noticeCountdownEditorText(emergencyNotice),
+                        )
+                      }
                       placeholder="전광판에 표시할 긴급공지 문구를 입력하세요."
                       value={emergencyNotice}
                     />
                   </label>
                   <NoticeCountdownCommands
+                    text={emergencyNotice}
+                    contest={contest}
                     onInsert={(command) =>
                       setEmergencyNotice(
                         [emergencyNotice.trimEnd(), command]

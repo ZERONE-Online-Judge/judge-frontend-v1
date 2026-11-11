@@ -1,3 +1,4 @@
+import { noticeCountdownEditorText } from '@/domains/serviceCommunication/noticeCountdown';
 import Select from '@/shared/ui/Select';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Contest } from '@/domains/contestAdministration/types';
@@ -58,10 +59,18 @@ export default function NoticeEditorFields({
           onChange={(event) =>
             setForm((prev) => ({ ...prev, body: event.target.value }))
           }
+          onBlur={() =>
+            setForm((current) => ({
+              ...current,
+              body: noticeCountdownEditorText(current.body),
+            }))
+          }
           value={form.body}
         />
       </label>
       <NoticeCountdownCommands
+        text={form.body}
+        contest={contest}
         onInsert={(command) =>
           setForm((current) => ({
             ...current,

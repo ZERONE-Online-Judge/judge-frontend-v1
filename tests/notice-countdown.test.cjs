@@ -50,9 +50,11 @@ function source(relative) {
   );
   return loaded.exports;
 }
-const { renderNoticeCountdown: render } = source(
-  'domains/serviceCommunication/noticeCountdown.ts',
-);
+const {
+  renderNoticeCountdown: render,
+  noticeCountdownEditorText: editorText,
+  noticeCountdownMoments: moments,
+} = source('domains/serviceCommunication/noticeCountdown.ts');
 const Banner = source('components/contest/ContestEmergencyNotice.tsx').default;
 const { default: NoticeText, NoticeCountdownCommands: Commands } = source(
   'components/contest/NoticeCountdownText.tsx',
@@ -272,4 +274,79 @@ test('insertion buttons provide the three supported commands without submitting 
     '{{countdown:freeze}}',
     '{{countdown:end}}',
   ]);
+});
+
+test('notice editors show the pinned instant in KST and keep exact countdown semantics', () => {
+  const original = '{{countdown:freeze@2026-11-11T08:00:00+00:00}}';
+  const expected = '{{countdown:freeze@2026-11-11T17:00:00+09:00}}';
+  assert.equal(editorText(original), expected);
+  assert.equal(editorText(expected), expected);
+  const changedSchedule = { ...contest, freeze_at: '2026-11-12T08:00:00Z' };
+  const clock = Date.parse('2026-11-11T07:59:50Z');
+  assert.equal(
+    render(original, changedSchedule, clock).text,
+    '스코어보드 프리즈까지 10초 남았습니다.',
+  );
+  assert.equal(
+    render(expected, changedSchedule, clock).text,
+    render(original, changedSchedule, clock).text,
+  );
+});
+
+test('KST conversion preserves fractions, surrounding text, offsets and date boundaries', () => {
+  const cases = [
+    ['2026-12-31T23:59:59.123456Z', '2027-01-01T08:59:59.123456+09:00'],
+    ['2026-11-11T08:00:00.000+00:00', '2026-11-11T17:00:00.000+09:00'],
+    ['2026-11-11T08:00:00-07:00', '2026-11-12T00:00:00+09:00'],
+    ['2026-11-11T08:00:00+05:30', '2026-11-11T11:30:00+09:00'],
+  ];
+  for (const [value, expected] of cases) {
+    assert.equal(
+      editorText(`안내\n{{countdown:start@${value}}}\n완료`),
+      `안내\n{{countdown:start@${expected}}}\n완료`,
+    );
+    assert.equal(Date.parse(value), Date.parse(expected));
+  }
+});
+
+test('editor conversion leaves dynamic commands, unknown targets and invalid times intact', () => {
+  for (const value of [
+    '일반 공지',
+    '{{countdown:start}}',
+    '{{countdown:freeze}}',
+    '{{countdown:end}}',
+    '{{countdown:unknown@2026-11-11T08:00:00Z}}',
+    '{{countdown:freeze@2026-11-11T08:00:00}}',
+    '{{countdown:freeze@not-a-dateZ}}',
+    '{{countdown:freeze@2026-99-99T08:00:00Z}}',
+  ])
+    assert.equal(editorText(value), value);
+});
+
+test('human-readable references always use Korea time and deduplicate equivalent instants', () => {
+  const value = '{{countdown:freeze@2026-11-11T08:00:00Z}}';
+  const result = moments(`${value} ${editorText(value)}`, contest);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].label, '스코어보드 프리즈');
+  assert.match(result[0].time, /2026년 11월 11일/);
+  assert.match(result[0].time, /오후 5:00/);
+  assert.match(moments('{{countdown:end}}', contest)[0].time, /오후 11:00/);
+  assert.deepEqual(moments('{{countdown:start@invalid}}'), []);
+});
+
+test('countdown editing help explains the command and shows the KST deadline', async () => {
+  await mount(
+    React.createElement(Commands, {
+      onInsert: () => {},
+      text: '{{countdown:freeze@2026-11-11T17:00:00+09:00}}',
+      contest,
+    }),
+  );
+  assert.match(container.textContent, /@ 뒤는 카운트다운 기준 시각/);
+  const list = container.querySelector(
+    '[aria-label="카운트다운 기준 시각 (KST)"]',
+  );
+  assert.match(list.textContent, /스코어보드 프리즈/);
+  assert.match(list.textContent, /오후 5:00/);
+  assert.match(list.textContent, /KST/);
 });

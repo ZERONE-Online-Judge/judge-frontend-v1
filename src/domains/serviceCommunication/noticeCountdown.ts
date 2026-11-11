@@ -14,6 +14,53 @@ const completed = {
 };
 const commandPattern = /\{\{countdown:(start|freeze|end)(?:@([^\s{}]+))?\}\}/g;
 
+/** Keep pinned instants, including fractional seconds, while editing in KST. */
+export function noticeCountdownEditorText(text: string) {
+  return text.replace(
+    commandPattern,
+    (command: string, target: Target, fixed?: string) => {
+      if (!fixed) return command;
+      const parts = fixed.match(
+        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/,
+      );
+      const instant = Date.parse(fixed);
+      if (!parts || !Number.isFinite(instant)) return command;
+      const shifted = new Date(instant + 9 * 3_600_000);
+      if (!Number.isFinite(shifted.getTime())) return command;
+      const local = shifted.toISOString();
+      if (!/^\d{4}-/.test(local)) return command;
+      return `{{countdown:${target}@${local.slice(0, 19)}${parts[2] ?? ''}+09:00}}`;
+    },
+  );
+}
+
+export function noticeCountdownMoments(text: string, contest?: Contest) {
+  const result: { key: string; label: string; time: string }[] = [];
+  for (const match of text.matchAll(commandPattern)) {
+    const target = match[1] as Target;
+    const value = match[2] ?? contest?.[`${target}_at`];
+    const instant =
+      value && /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? Date.parse(value) : NaN;
+    if (!Number.isFinite(instant)) continue;
+    const key = `${target}:${instant}`;
+    if (result.some((item) => item.key === key)) continue;
+    result.push({
+      key,
+      label: labels[target],
+      time: new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(instant),
+    });
+  }
+  return result;
+}
+
 export function renderNoticeCountdown(
   template: string,
   contest: Contest | undefined,

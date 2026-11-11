@@ -307,9 +307,10 @@ export function getOperatorDivisionScoreboard(
   contestId: string,
   divisionId: string,
   token: string,
+  view: 'operator' | 'participant' = 'operator',
 ) {
   return apiRequest<OperatorScoreboardResponse>(
-    `/operator/contests/${contestId}/divisions/${divisionId}/scoreboard/internal`,
+    `/operator/contests/${contestId}/divisions/${divisionId}/scoreboard/internal${view === 'participant' ? '?view=participant' : ''}`,
     token,
   );
 }

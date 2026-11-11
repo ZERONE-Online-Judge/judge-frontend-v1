@@ -569,6 +569,10 @@ function OperatorScoreboardContent({
   contestId: string;
   token: string;
 }) {
+  const [view, setView] = useState<'operator' | 'participant'>(
+    canReadLive ? 'operator' : 'participant',
+  );
+  const participantView = !canReadLive || view === 'participant';
   const [freezeChange, setFreezeChange] = useState<FreezeChange | null>(null);
   const isVisible = useDocumentVisibility();
   const queryClient = useQueryClient();
@@ -602,11 +606,14 @@ function OperatorScoreboardContent({
     refetchIntervalInBackground: false,
   });
   const contest = dashboardQuery.data?.contest;
-  const canViewBoard =
-    canReadLive ||
-    ['running', 'ended', 'finalized', 'archived'].includes(
-      contest?.status ?? '',
-    );
+  const participantBoardStarted = [
+    'running',
+    'ended',
+    'finalized',
+    'archived',
+  ].includes(contest?.status ?? '');
+  const canViewBoard = canReadLive || participantBoardStarted;
+  const canViewSelectedBoard = !participantView || participantBoardStarted;
   const problemsQuery = useQuery({
     enabled: canReadProblems && canViewBoard,
     queryKey: ['operator', 'problems', contestId, queryIdentity],
@@ -620,7 +627,7 @@ function OperatorScoreboardContent({
     ? selectedDivisionId
     : (divisions[0]?.division_id ?? '');
   const scoreboardQuery = useQuery({
-    enabled: Boolean(divisionId) && canViewBoard,
+    enabled: Boolean(divisionId) && canViewBoard && canViewSelectedBoard,
     queryKey: [
       'operator',
       'scoreboard',
@@ -628,8 +635,22 @@ function OperatorScoreboardContent({
       divisionId,
       queryIdentity,
       canReadLive,
+      participantView ? 'participant' : 'operator',
     ],
-    queryFn: () => getOperatorDivisionScoreboard(contestId, divisionId, token),
+    queryFn: async () => {
+      const board = await getOperatorDivisionScoreboard(
+        contestId,
+        divisionId,
+        token,
+        participantView ? 'participant' : 'operator',
+      );
+      if (participantView && board.operator_live_view !== false) {
+        throw new Error(
+          '참가자 기준 스코어보드를 확인하지 못했습니다. 다시 불러와 주세요.',
+        );
+      }
+      return board;
+    },
     refetchInterval: isVisible ? 5_000 : false,
     refetchIntervalInBackground: false,
   });
@@ -653,7 +674,9 @@ function OperatorScoreboardContent({
   });
 
   const liveView =
-    canReadLive && scoreboardQuery.data?.operator_live_view !== false;
+    canReadLive &&
+    !participantView &&
+    scoreboardQuery.data?.operator_live_view !== false;
   const freezeMode = contest?.scoreboard_freeze_mode ?? 'auto';
   const releaseMode = contest?.scoreboard_release_mode ?? 'manual';
   const releaseOption = scoreboardReleaseOption(releaseMode);
@@ -705,6 +728,36 @@ function OperatorScoreboardContent({
         liveView
           ? '운영자용 내부 순위입니다. 프리즈 이후에도 최신 채점 결과가 반영됩니다.'
           : '참가자와 같은 순위표입니다. 프리즈와 순위 공개 정책이 적용됩니다.'
+      }
+      actions={
+        canReadLive ? (
+          <div
+            className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1"
+            role="group"
+            aria-label="스코어보드 보기 기준"
+          >
+            {(
+              [
+                { value: 'operator', label: '운영자 기준' },
+                { value: 'participant', label: '참가자 기준' },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={view === item.value}
+                className={`min-h-11 rounded-md px-3 py-2 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 ${view === item.value ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                onClick={() => {
+                  setSelectedPenaltyRow(null);
+                  setFreezeChange(null);
+                  setView(item.value);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : undefined
       }
       eyebrow="Operator"
       title="스코어보드"
@@ -896,8 +949,12 @@ function OperatorScoreboardContent({
             </label>
           </>
         }
-        description="유형별 스코어보드를 확인합니다."
-        title="순위표"
+        description={
+          participantView
+            ? '참가자 기준 미리보기입니다. 프리즈와 결과 공개 상태가 순위·문제별 결과·통계에 반영됩니다.'
+            : '유형별 스코어보드를 확인합니다.'
+        }
+        title={participantView ? '순위표 · 참가자 기준' : '순위표'}
       >
         {presentationPopupBlocked ? (
           <p
@@ -929,29 +986,59 @@ function OperatorScoreboardContent({
             strategy={releaseMode}
           />
         ) : null}
-        {scoreboardQuery.data?.frozen_public_view ? (
+        {participantView && !canViewSelectedBoard ? (
+          <p
+            role="status"
+            className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+          >
+            대회 시작 전에는 참가자 스코어보드가 공개되지 않습니다. 운영자
+            기준으로 전환하면 내부 순위를 확인할 수 있습니다.
+          </p>
+        ) : null}
+        {participantView &&
+        ended &&
+        contest?.scoreboard_access_after_end === 'private' ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            종료 후 스코어보드는 참가자에게 비공개입니다. 아래 순위표는 프리즈와
+            결과 공개 기준을 확인하는 운영자용 미리보기입니다.
+          </p>
+        ) : null}
+        {scoreboardQuery.data?.frozen_public_view && canViewSelectedBoard ? (
           <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
             {liveView
               ? '공개 스코어보드는 프리즈 상태입니다. 이 화면은 최신 성적을 보여주는 운영자 내부 순위입니다.'
               : '프리즈가 적용된 참가자 순위표입니다. 미공개 채점 결과는 표시되지 않습니다.'}
           </p>
         ) : null}
-        <ContestScoreboardTable
-          release={scoreboardQuery.data?.release}
-          onSelectPenaltyBreakdown={setSelectedPenaltyRow}
-          problems={problems}
-          rows={rows}
-        />
-        {scoreboardQuery.data ? (
+        {canViewSelectedBoard && scoreboardQuery.isLoading ? (
+          <p role="status" className="text-sm text-slate-500">
+            {participantView ? '참가자 기준' : '운영자 기준'} 스코어보드를
+            불러오는 중입니다.
+          </p>
+        ) : null}
+        {canViewSelectedBoard && !scoreboardQuery.isError ? (
+          <ContestScoreboardTable
+            release={scoreboardQuery.data?.release}
+            onSelectPenaltyBreakdown={
+              liveView ? setSelectedPenaltyRow : undefined
+            }
+            problems={problems}
+            rows={rows}
+          />
+        ) : null}
+        {canViewSelectedBoard && scoreboardQuery.data ? (
           <ProblemStatsBlock problemStats={problemStats} problems={problems} />
         ) : null}
-        {!scoreboardQuery.isLoading && rows.length === 0 ? (
+        {canViewSelectedBoard &&
+        !scoreboardQuery.isLoading &&
+        !scoreboardQuery.isError &&
+        rows.length === 0 ? (
           <p className="mt-4 rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-medium text-slate-500">
             표시할 스코어보드가 없습니다.
           </p>
         ) : null}
       </OperatorPanel>
-      {penaltyRow ? (
+      {liveView && penaltyRow ? (
         <PenaltyBreakdownModal
           contestStartAt={contest?.start_at}
           onClose={() => setSelectedPenaltyRow(null)}

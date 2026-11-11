@@ -17,7 +17,15 @@ const { createRoot } = require('react-dom/client');
 const { MemoryRouter, Routes, Route } = require('react-router-dom');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 const h = React.createElement;
-let session, contest, reads, changes, release, rejectNext;
+let session,
+  contest,
+  reads,
+  changes,
+  release,
+  rejectNext,
+  viewReads,
+  participantGate,
+  wrongProjection;
 const division = { division_id: 'division', name: '일반부' };
 const row = {
   rank: 1,
@@ -91,9 +99,17 @@ const mocks = {
     listOperatorContestQuestions: async () => [],
   },
   '@/domains/submissionScoreboard/api': {
-    getOperatorDivisionScoreboard: async () => {
+    getOperatorDivisionScoreboard: async (
+      _contestId,
+      _divisionId,
+      _token,
+      view,
+    ) => {
       reads.scoreboard += 1;
+      viewReads.push(view);
+      if (view === 'participant' && participantGate) await participantGate;
       const live =
+        (view !== 'participant' || wrongProjection) &&
         session.operatorSession.staff.contest_scopes.contest.includes(
           'contest.scoreboard.view',
         );
@@ -236,6 +252,9 @@ beforeEach(() => {
   reads = { dashboard: 0, problems: 0, scoreboard: 0, release: 0 };
   changes = [];
   rejectNext = false;
+  viewReads = [];
+  participantGate = null;
+  wrongProjection = false;
   release = {
     mode: 'not_started',
     ranks: [],
@@ -385,6 +404,10 @@ test('started staff without live permission see the participant board without co
   assert.ok(reads.scoreboard > 0);
   assert.match(container.textContent, /참가자 표시 팀/);
   assert.match(container.textContent, /프리즈가 적용된 참가자 순위표/);
+  assert.equal(
+    container.querySelector('table tbody tr td:last-child button'),
+    null,
+  );
   assert.doesNotMatch(
     container.textContent,
     /최신 성적을 보여주는 운영자 내부 순위/,
@@ -725,4 +748,91 @@ test('only scoreboard managers see the temporary presentation account card', asy
   manage();
   await render();
   assert.ok(button('전용 계정 만들기'));
+});
+
+test('operators toggle the participant projection without changing contest settings', async () => {
+  manage();
+  await render();
+  assert.match(container.textContent, /확인할 팀/);
+  assert.equal(button('운영자 기준').getAttribute('aria-pressed'), 'true');
+  await click(button('참가자 기준'));
+  assert.equal(button('참가자 기준').getAttribute('aria-pressed'), 'true');
+  assert.equal(viewReads.at(-1), 'participant');
+  assert.match(container.textContent, /참가자 표시 팀/);
+  assert.doesNotMatch(container.textContent, /확인할 팀/);
+  assert.match(container.textContent, /프리즈가 적용된 참가자 순위표/);
+  assert.equal(
+    container.querySelector('table tbody tr td:last-child button'),
+    null,
+  );
+  assert.equal(button('프레젠테이션 팝업'), undefined);
+  assert.equal(button('오토'), undefined);
+  assert.equal(button('라이브'), undefined);
+  assert.equal(button('프리즈'), undefined);
+  assert.deepEqual(changes, []);
+  await click(button('운영자 기준'));
+  assert.match(container.textContent, /확인할 팀/);
+  assert.doesNotMatch(container.textContent, /참가자 표시 팀/);
+  assert.ok(button('프레젠테이션 팝업'));
+});
+
+test('participant loading never displays cached internal results or an old penalty dialog', async () => {
+  await render();
+  await click(container.querySelector('table tbody tr td:last-child button'));
+  assert.ok(document.querySelector('dialog'));
+  let finish;
+  participantGate = new Promise((resolve) => {
+    finish = resolve;
+  });
+  await click(button('참가자 기준'));
+  assert.equal(document.querySelector('dialog'), null);
+  assert.doesNotMatch(container.textContent, /확인할 팀/);
+  await act(async () => finish());
+  await flush();
+  assert.match(container.textContent, /참가자 표시 팀/);
+});
+
+test('participant selection waits before start but permits switching back to the operator board', async () => {
+  contest.status = 'open';
+  await render();
+  const initialReads = reads.scoreboard;
+  assert.match(container.textContent, /확인할 팀/);
+  await click(button('참가자 기준'));
+  assert.match(
+    container.textContent,
+    /대회 시작 전에는 참가자 스코어보드가 공개되지 않습니다/,
+  );
+  assert.equal(reads.scoreboard, initialReads);
+  assert.equal(container.querySelector('table'), null);
+  await click(button('운영자 기준'));
+  assert.match(container.textContent, /확인할 팀/);
+});
+
+test('a participant request rejects an unexpected internal response rather than relabeling it', async () => {
+  wrongProjection = true;
+  await render();
+  await click(button('참가자 기준'));
+  assert.match(
+    container.textContent,
+    /참가자 기준 스코어보드를 확인하지 못했습니다/,
+  );
+  assert.doesNotMatch(container.textContent, /확인할 팀/);
+});
+
+test('basic staff have no toggle to request real standings', async () => {
+  session.operatorSession.staff.contest_scopes.contest = ['contest.view'];
+  await render();
+  assert.equal(button('운영자 기준'), undefined);
+  assert.equal(button('참가자 기준'), undefined);
+  assert.deepEqual(viewReads, ['participant']);
+  assert.match(container.textContent, /참가자 표시 팀/);
+});
+
+test('private post-contest access is identified as an operator preview', async () => {
+  contest.status = 'ended';
+  contest.scoreboard_access_after_end = 'private';
+  await render();
+  await click(button('참가자 기준'));
+  assert.match(container.textContent, /종료 후 스코어보드는 참가자에게 비공개/);
+  assert.match(container.textContent, /운영자용 미리보기/);
 });

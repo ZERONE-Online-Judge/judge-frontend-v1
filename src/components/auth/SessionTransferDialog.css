@@ -1,0 +1,193 @@
+.zoj-modal-shell.session-transfer-modal[data-size='sm'] {
+  --zoj-modal-padding: 30px;
+  max-width: 520px;
+  border-radius: 18px;
+}
+.session-transfer-modal .zoj-modal-header {
+  position: relative;
+  padding-bottom: 0;
+  border: 0;
+  background: var(--zoj-surface-raised);
+}
+.session-transfer-modal .zoj-modal-heading {
+  padding-right: 22px;
+}
+.session-transfer-modal .zoj-modal-heading h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.session-transfer-modal .zoj-modal-description {
+  margin-top: 10px;
+  font-size: 13px;
+}
+.session-transfer-modal .zoj-modal-header-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.session-transfer-modal .zoj-modal-close {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+}
+.session-transfer-modal .zoj-modal-body {
+  padding-top: 24px;
+  padding-bottom: 0;
+}
+.session-transfer-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.session-transfer-device {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 10px 15px;
+  border-radius: 12px;
+  background: #f6f7fb;
+  text-align: center;
+}
+.session-transfer-icon {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  margin-bottom: 3px;
+  color: #9098ab;
+}
+.session-transfer-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.session-transfer-label {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #747e93;
+}
+.session-transfer-device strong {
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #59657e;
+  overflow-wrap: anywhere;
+}
+.session-transfer-outcome {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #737e93;
+}
+.session-transfer-device--current {
+  align-self: stretch;
+  justify-content: center;
+  background: #f0edff;
+}
+.session-transfer-device--current :is(.session-transfer-icon, strong) {
+  color: var(--zoj-accent);
+}
+.session-transfer-arrow {
+  width: 20px;
+  height: 20px;
+  justify-self: center;
+  color: #9095af;
+}
+.session-transfer-activity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px 12px;
+  margin-top: 15px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #66728a;
+}
+.session-transfer-activity > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.session-transfer-activity svg {
+  width: 14px;
+  height: 14px;
+}
+.session-transfer-activity time {
+  font-variant-numeric: tabular-nums;
+}
+.session-transfer-others {
+  margin-top: 16px;
+  border-top: 1px solid var(--zoj-border);
+  padding-top: 12px;
+  font-size: 12px;
+  color: #66728a;
+}
+.session-transfer-others summary {
+  cursor: pointer;
+}
+.session-transfer-others ul {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.session-transfer-others li {
+  display: grid;
+  gap: 4px;
+}
+.session-transfer-others p {
+  margin-top: 10px;
+}
+.session-transfer-modal .zoj-modal-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  padding-top: 24px;
+  padding-bottom: var(--zoj-modal-padding);
+  border: 0;
+  background: var(--zoj-surface-raised);
+}
+.session-transfer-modal .zoj-modal-action {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.session-transfer-modal .zoj-modal-action svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+@media (max-width: 639px) {
+  .zoj-modal-shell.session-transfer-modal[data-size='sm'] {
+    --zoj-modal-padding: 22px;
+  }
+  .session-transfer-modal .zoj-modal-heading h2 {
+    font-size: 19px;
+  }
+  .session-transfer-modal .zoj-modal-close {
+    min-height: 44px;
+    width: 44px;
+  }
+  .session-transfer-route {
+    grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr);
+    gap: 4px;
+  }
+  .session-transfer-device {
+    padding-inline: 6px;
+  }
+  .session-transfer-device strong {
+    font-size: 12px;
+  }
+  .session-transfer-modal .zoj-modal-action {
+    font-size: 12px;
+  }
+}
+
+.session-transfer-modal .zoj-modal-action[data-tone='secondary'] {
+  color: #59657e;
+}

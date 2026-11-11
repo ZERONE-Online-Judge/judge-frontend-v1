@@ -53,7 +53,7 @@ import {
   readSessionDescriptions,
   type SessionDescription,
 } from '@/shared/lib/sessionEnvironment';
-import { SessionDescriptionList } from '@/shared/ui/SessionEnvironment';
+import SessionTransferDialog from '@/components/auth/SessionTransferDialog';
 
 const OTP_VALID_SECONDS = 5 * 60;
 
@@ -697,59 +697,14 @@ export default function LoginPage() {
       ) : null}
 
       {pendingSessionReplacement ? (
-        <ModalDialog
-          titleId="session-replacement-title"
-          title="기존 로그인 연결을 끊을까요?"
-          onClose={isSubmitting ? undefined : cancelSessionReplacement}
-          footer={
-            <>
-              <ModalButton
-                disabled={isSubmitting}
-                onClick={cancelSessionReplacement}
-              >
-                이전 세션 유지
-              </ModalButton>
-              <ModalButton
-                tone="primary"
-                disabled={isSubmitting}
-                onClick={confirmSessionReplacement}
-              >
-                이 브라우저에서 사용
-              </ModalButton>
-            </>
-          }
-        >
-          <p className="zoj-modal-copy">
-            이 계정은 이미 다른 브라우저 또는 기기에서 로그인 중입니다. 이
-            브라우저에서 계속 사용하면 이전 세션은 로그아웃됩니다.
-          </p>
-          <div className="zoj-card mt-4 min-w-0 px-4 py-3 text-sm text-slate-600">
-            활성 세션 {pendingSessionReplacement.activeSessionCount}개
-            {!pendingSessionReplacement.sessions.length &&
-            pendingSessionReplacement.lastSeenAt ? (
-              <>
-                {' · 마지막 사용 '}
-                {new Intl.DateTimeFormat('ko-KR', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }).format(new Date(pendingSessionReplacement.lastSeenAt))}
-              </>
-            ) : null}
-            <div className="mt-3">
-              <SessionDescriptionList
-                sessions={pendingSessionReplacement.sessions}
-                emptyText="환경 정보 없음"
-              />
-              {pendingSessionReplacement.activeSessionCount >
-                pendingSessionReplacement.sessions.length &&
-              pendingSessionReplacement.sessions.length > 0 ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  최근 세션 {pendingSessionReplacement.sessions.length}개 표시
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </ModalDialog>
+        <SessionTransferDialog
+          sessions={pendingSessionReplacement.sessions}
+          activeSessionCount={pendingSessionReplacement.activeSessionCount}
+          lastSeenAt={pendingSessionReplacement.lastSeenAt}
+          pending={isSubmitting}
+          onCancel={cancelSessionReplacement}
+          onConfirm={confirmSessionReplacement}
+        />
       ) : null}
 
       <div className="login-shell">

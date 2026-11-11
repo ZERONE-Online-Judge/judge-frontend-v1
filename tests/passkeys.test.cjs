@@ -26,7 +26,9 @@ let state,
   handler,
   refreshing,
   otpRequests,
-  otpFailure;
+  otpFailure,
+  passwordArguments,
+  otpVerifyArguments;
 const params = new URLSearchParams('next=/contests');
 const navigate = (...args) => navigation.push(args[0]);
 const session = {
@@ -103,9 +105,10 @@ const mocks = {
   },
   '@/domains/identityAccess/accountPasswords': {
     getLoginOptions: async () => options,
-    loginGeneralPassword: async () => {
+    loginGeneralPassword: async (...args) => {
       calls.push(['password']);
-      if (handler) return handler('password');
+      passwordArguments.push(args);
+      if (handler) return handler('password', ...args);
       return session;
     },
   },
@@ -115,8 +118,9 @@ const mocks = {
       calls.push(['request-otp']);
       return { cooldown_seconds: 10 };
     },
-    verifyGeneralOtp: async () => {
+    verifyGeneralOtp: async (...args) => {
       calls.push(['verify-otp']);
+      otpVerifyArguments.push(args);
       if (otpFailure) throw otpFailure;
       return session;
     },
@@ -143,11 +147,12 @@ const mocks = {
       message ? h('p', { role: 'status' }, message) : null,
   },
   '@/shared/ui/ModalDialog': {
-    default: ({ title, children, footer, onClose }) =>
+    default: ({ title, description, children, footer, onClose }) =>
       h(
         'section',
         { role: 'dialog' },
         h('h2', null, title),
+        description && h('p', null, description),
         children,
         footer,
         onClose &&
@@ -199,6 +204,9 @@ for (const value of Object.values(mocks))
   if (value.default) value.__esModule = true;
 const Login = source('pages/auth/LoginPage.tsx').default;
 const Dialog = source('components/auth/PasskeyDialog.tsx').default;
+const TransferDialog = source(
+  'components/auth/SessionTransferDialog.tsx',
+).default;
 function reset() {
   window.localStorage.clear();
   for (const key of [...params.keys()]) params.delete(key);
@@ -206,6 +214,8 @@ function reset() {
   calls = [];
   otpRequests = [];
   otpFailure = null;
+  passwordArguments = [];
+  otpVerifyArguments = [];
   navigation = [];
   supported = true;
   options = { password_available: false, passkey_available: false };
@@ -460,16 +470,16 @@ test('replacing an existing passkey session authenticates once then consumes the
     JSON.parse(window.localStorage.getItem('zoj.login-emails.v1')).emails,
     [],
   );
-  assert.ok(v.host.textContent.includes('기존 로그인 연결을 끊을까요?'));
+  assert.ok(v.host.textContent.includes('로그인을 여기로 옮길까요?'));
   assert.ok(
     v.host
       .querySelector('[role="dialog"]')
       .textContent.includes('Safari · iOS · 모바일'),
   );
   assert.ok(
-    v.host.querySelector('[role="dialog"]').textContent.includes('마지막 사용'),
+    v.host.querySelector('[role="dialog"]').textContent.includes('마지막 활동'),
   );
-  await click(v, '이 브라우저에서 사용');
+  await click(v, '여기서 로그인');
   assert.deepEqual(
     calls.filter(([name]) => name === 'passkey' || name === 'transfer'),
     [
@@ -502,10 +512,10 @@ test('canceling session transfer discards approval without logging in', async ()
       .querySelector('[role="dialog"]')
       .textContent.includes('환경 정보 없음'),
   );
-  await click(v, '이전 세션 유지');
+  await click(v, '기존 로그인 유지');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'transfer').length, 0);
-  assert.equal(button(v, '이 브라우저에서 사용'), undefined);
+  assert.equal(button(v, '여기서 로그인'), undefined);
   await v.close();
 });
 
@@ -555,7 +565,7 @@ for (const method of ['password', 'otp']) {
     assert.ok(
       v.host.querySelector('[role="dialog"]').textContent.includes('로그인'),
     );
-    await click(v, '이전 세션 유지');
+    await click(v, '기존 로그인 유지');
     assert.equal(state.generalSession, null);
     assert.equal(
       calls.filter(
@@ -582,11 +592,11 @@ test('expired session transfer closes confirmation without another passkey promp
   };
   await click(v, '패스키로 로그인');
   await submit(v);
-  await click(v, '이 브라우저에서 사용');
+  await click(v, '여기서 로그인');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'passkey').length, 1);
   assert.equal(calls.filter(([name]) => name === 'transfer').length, 1);
-  assert.equal(button(v, '이 브라우저에서 사용'), undefined);
+  assert.equal(button(v, '여기서 로그인'), undefined);
   assert.ok(v.host.textContent.includes('다시 시도해 주세요'));
   await v.close();
 });
@@ -1028,5 +1038,177 @@ test('an already valid stored login returns to Editor only after validation fini
   refreshing = false;
   await v.render();
   assert.deepEqual(navigation, [target]);
+  await v.close();
+});
+
+for (const method of ['password', 'otp']) {
+  test(`${method} handoff confirms the existing forced-login flow once`, async () => {
+    const v = await mount();
+    supported = false;
+    options = {
+      password_available: method === 'password',
+      passkey_available: false,
+    };
+    await input(v, '#login-email', 'user@example.com');
+    await submit(v);
+    const conflict = new ApiError('session_conflict', 409);
+    conflict.details = { active_session_count: 1 };
+    if (method === 'password') {
+      await input(v, '#login-password', 'Password1!');
+      handler = (_method, _email, _password, force) => {
+        if (!force) throw conflict;
+        return session;
+      };
+    } else {
+      await input(v, '#login-otp', '123456');
+      otpFailure = conflict;
+    }
+    await submit(v);
+    assert.equal(state.generalSession, null);
+    assert.match(v.host.textContent, /로그인을 여기로 옮길까요/);
+    if (method === 'otp') otpFailure = null;
+    await click(v, '여기서 로그인');
+    assert.equal(state.generalSession, session);
+    const attempts =
+      method === 'password' ? passwordArguments : otpVerifyArguments;
+    assert.equal(attempts.length, 2);
+    assert.equal(attempts.at(-1).at(-1), true);
+    await v.close();
+  });
+}
+
+test('handoff uses recorded activity in KST and never labels login time as activity', async () => {
+  const base = {
+    scope: 'general',
+    issued_at: '2026-11-10T01:00:00Z',
+    expires_at: '2026-11-12T00:00:00Z',
+    environment: {
+      browser: 'Safari',
+      os: 'iOS',
+      device: 'mobile',
+      label: 'Safari · iOS',
+    },
+  };
+  for (const [lastSeen, fallback, expected] of [
+    ['2026-11-10T08:00:00Z', null, '17:00'],
+    [null, '2026-11-10T09:00:00Z', '18:00'],
+    ['invalid', 'also-invalid', null],
+    [null, null, null],
+  ]) {
+    const v = await mount(TransferDialog, {
+      sessions: [{ ...base, last_seen_at: lastSeen }],
+      lastSeenAt: fallback,
+      activeSessionCount: 1,
+      pending: false,
+      onCancel() {},
+      onConfirm() {},
+    });
+    assert.match(v.host.textContent, /Safari · iOS/);
+    const time = v.host.querySelector('time');
+    if (expected) {
+      assert.ok(time.textContent.includes(expected));
+      assert.match(time.title, /KST/);
+    } else {
+      assert.equal(time, null);
+      assert.match(v.host.textContent, /활동 시간 정보 없음/);
+      assert.doesNotMatch(v.host.textContent, /10:00/);
+    }
+    await v.close();
+  }
+});
+
+test('multiple sessions keep the representative device paired with its own activity', async () => {
+  const v = await mount(TransferDialog, {
+    sessions: [
+      {
+        scope: 'general',
+        issued_at: '2026-11-10T01:00:00Z',
+        last_seen_at: '2026-11-10T08:00:00Z',
+        expires_at: '2026-11-12T00:00:00Z',
+        environment: { label: 'Old phone', device: 'mobile' },
+      },
+      {
+        scope: 'general',
+        issued_at: '2026-11-10T02:00:00Z',
+        last_seen_at: '2026-11-10T09:00:00Z',
+        expires_at: '2026-11-12T00:00:00Z',
+        environment: { label: 'Recent PC', device: 'desktop' },
+      },
+    ],
+    activeSessionCount: 2,
+    lastSeenAt: '2026-11-10T12:00:00Z',
+    pending: false,
+    onCancel() {},
+    onConfirm() {},
+  });
+  assert.match(
+    v.host.querySelector('.session-transfer-device').textContent,
+    /Recent PC/,
+  );
+  assert.match(
+    v.host.querySelector('.session-transfer-activity time').textContent,
+    /18:00/,
+  );
+  assert.match(v.host.textContent, /계속하면 모두 종료/);
+  const details = v.host.querySelector('details');
+  assert.equal(details.open, false);
+  assert.match(details.textContent, /Old phone/);
+  assert.match(details.textContent, /17:00/);
+  await v.close();
+});
+
+test('handoff pending state blocks cancel, close and duplicate login requests', async () => {
+  const v = await mount();
+  options = { password_available: true, passkey_available: false };
+  await input(v, '#login-email', 'user@example.com');
+  await submit(v);
+  await input(v, '#login-password', 'Password1!');
+  handler = () => {
+    throw new ApiError('session_conflict', 409);
+  };
+  await submit(v);
+  let finish;
+  handler = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  await click(v, '여기서 로그인');
+  assert.equal(button(v, '기존 로그인 유지').disabled, true);
+  assert.equal(button(v, '로그인 중…').disabled, true);
+  assert.equal(v.host.querySelector('button[aria-label="닫기"]'), null);
+  await click(v, '로그인 중…');
+  assert.equal(passwordArguments.length, 2);
+  await act(async () => finish(session));
+  assert.equal(state.generalSession, session);
+  await v.close();
+});
+
+test('a truncated multi-session summary cannot masquerade as the shown device activity', async () => {
+  const v = await mount(TransferDialog, {
+    sessions: [
+      {
+        scope: 'general',
+        issued_at: '2026-11-10T01:00:00Z',
+        last_seen_at: null,
+        expires_at: '2026-11-12T00:00:00Z',
+        environment: { label: 'Known phone', device: 'mobile' },
+      },
+    ],
+    activeSessionCount: 2,
+    lastSeenAt: '2026-11-10T12:00:00Z',
+    pending: false,
+    onCancel() {},
+    onConfirm() {},
+  });
+  assert.match(
+    v.host.querySelector('.session-transfer-device').textContent,
+    /Known phone/,
+  );
+  assert.equal(v.host.querySelector('.session-transfer-activity time'), null);
+  assert.match(
+    v.host.querySelector('.session-transfer-activity').textContent,
+    /활동 시간 정보 없음/,
+  );
+  assert.match(v.host.querySelector('details').textContent, /추가 로그인 1개/);
   await v.close();
 });

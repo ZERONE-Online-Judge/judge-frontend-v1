@@ -25,7 +25,8 @@ let session,
   rejectNext,
   viewReads,
   participantGate,
-  wrongProjection;
+  wrongProjection,
+  problemStatsOverride;
 const division = { division_id: 'division', name: '일반부' };
 const row = {
   rank: 1,
@@ -117,17 +118,21 @@ const mocks = {
         rows: [{ ...row, team_name: live ? row.team_name : '참가자 표시 팀' }],
         operator_live_view: live,
         frozen_public_view: true,
-        problem_stats: [
-          {
-            problem_id: 'problem',
-            problem_code: 'A',
-            total_submissions: 1,
-            accepted_submissions: 1,
-            accepted_team_count: 1,
-            total_team_count: 1,
-            acceptance_rate: 100,
-          },
-        ],
+        problem_stats: live
+          ? (problemStatsOverride ?? [
+              {
+                problem_id: 'problem',
+                problem_code: 'A',
+                total_submissions: 1,
+                accepted_submissions: 1,
+                accepted_team_count: 1,
+                attempted_team_count: 1,
+                total_team_count: 1,
+                acceptance_rate: 100,
+                team_acceptance_rate: 100,
+              },
+            ])
+          : [],
       };
     },
     getScoreboardRelease: async () => {
@@ -255,6 +260,7 @@ beforeEach(() => {
   viewReads = [];
   participantGate = null;
   wrongProjection = false;
+  problemStatsOverride = null;
   release = {
     mode: 'not_started',
     ranks: [],
@@ -835,4 +841,117 @@ test('private post-contest access is identified as an operator preview', async (
   await click(button('참가자 기준'));
   assert.match(container.textContent, /종료 후 스코어보드는 참가자에게 비공개/);
   assert.match(container.textContent, /운영자용 미리보기/);
+});
+
+function problemStatsRegion() {
+  return container.querySelector(
+    '[aria-label="문제별 제출 통계, 좌우로 스크롤하여 확인"]',
+  );
+}
+
+test('problem statistics distinguish submission and team rates with explicit denominators', async () => {
+  problemStatsOverride = [
+    {
+      problem_id: 'problem',
+      problem_code: 'A',
+      total_submissions: 10,
+      accepted_submissions: 6,
+      accepted_team_count: 2,
+      attempted_team_count: 5,
+      total_team_count: 17,
+      acceptance_rate: 60,
+      team_acceptance_rate: 40,
+    },
+  ];
+  await render();
+  const region = problemStatsRegion();
+  assert.ok(region);
+  const headers = [...region.querySelectorAll('thead th')].map((cell) =>
+    cell.textContent.trim(),
+  );
+  assert.deepEqual(headers, [
+    '문제',
+    '제출 정답률',
+    '팀 정답률',
+    '전체 팀 중 정답',
+    '첫 정답 팀',
+    '첫 정답 시간',
+  ]);
+  const cells = region.querySelectorAll('tbody td');
+  assert.match(cells[1].textContent, /60%/);
+  assert.match(cells[1].textContent, /정답 6 \/ 제출 10건/);
+  assert.match(cells[2].textContent, /40%/);
+  assert.match(cells[2].textContent, /정답 2 \/ 시도 5팀/);
+  assert.equal(cells[3].textContent.replace(/\s/g, ''), '2/17팀');
+  assert.match(
+    container.textContent,
+    /같은 팀이 여러 번 제출해도 팀 정답률에서는 한 팀/,
+  );
+});
+
+test('statistics distinguish no attempts from attempts with no accepted teams', async () => {
+  problemStatsOverride = [
+    {
+      problem_id: 'problem',
+      problem_code: 'A',
+      total_submissions: 0,
+      accepted_submissions: 0,
+      accepted_team_count: 0,
+      attempted_team_count: 0,
+      total_team_count: 17,
+      acceptance_rate: null,
+      team_acceptance_rate: null,
+    },
+    {
+      problem_id: 'other',
+      problem_code: 'B',
+      total_submissions: 8,
+      accepted_submissions: 0,
+      accepted_team_count: 0,
+      attempted_team_count: 3,
+      total_team_count: 17,
+      acceptance_rate: 0,
+      team_acceptance_rate: 0,
+    },
+  ];
+  await render();
+  const rows = problemStatsRegion().querySelectorAll('tbody tr');
+  const empty = rows[0].querySelectorAll('td');
+  assert.equal(empty[1].querySelector('span').textContent, '-');
+  assert.match(empty[1].textContent, /제출 없음/);
+  assert.equal(empty[2].querySelector('span').textContent, '-');
+  assert.match(empty[2].textContent, /시도 없음/);
+  const attempted = rows[1].querySelectorAll('td');
+  assert.equal(attempted[2].querySelector('span').textContent, '0%');
+  assert.match(attempted[2].textContent, /정답 0 \/ 시도 3팀/);
+});
+
+test('missing historical team metrics are not inferred from all contest teams', async () => {
+  problemStatsOverride = [
+    {
+      problem_id: 'problem',
+      problem_code: 'A',
+      total_submissions: 5,
+      accepted_submissions: 4,
+      accepted_team_count: 2,
+      acceptance_rate: 80,
+    },
+  ];
+  await render();
+  const cells = problemStatsRegion().querySelectorAll('tbody td');
+  assert.equal(cells[2].querySelector('span').textContent, '-');
+  assert.match(cells[2].textContent, /집계 정보 없음/);
+  assert.equal(cells[3].textContent.replace(/\s/g, ''), '2팀');
+});
+
+test('a public projection without aggregate statistics does not fabricate zero-rate rows', async () => {
+  session.operatorSession.staff.contest_scopes.contest.push(
+    'contest.problem.view',
+  );
+  await render();
+  assert.ok(problemStatsRegion());
+  await click(button('참가자 기준'));
+  assert.match(container.textContent, /참가자 표시 팀/);
+  assert.equal(problemStatsRegion(), null);
+  assert.doesNotMatch(container.textContent, /문제별 제출 통계/);
 });

@@ -107,8 +107,10 @@ export type ScoreboardProblemStat = {
   total_submissions: number;
   accepted_submissions: number;
   accepted_team_count: number;
+  attempted_team_count?: number;
   total_team_count?: number;
   acceptance_rate: number | null;
+  team_acceptance_rate?: number | null;
   first_accepted_team_id?: string | null;
   first_accepted_team_name?: string | null;
   first_accepted_at?: string | null;

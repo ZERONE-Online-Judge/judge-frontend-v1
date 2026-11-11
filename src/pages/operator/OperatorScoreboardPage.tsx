@@ -289,8 +289,10 @@ function ProblemStatsBlock({
           total_submissions: 0,
           accepted_submissions: 0,
           accepted_team_count: 0,
+          attempted_team_count: 0,
           total_team_count: 0,
           acceptance_rate: null,
+          team_acceptance_rate: null,
           first_accepted_team_id: null,
           first_accepted_team_name: null,
           first_accepted_at: null,
@@ -306,7 +308,7 @@ function ProblemStatsBlock({
     );
   }, [problemStats, problems]);
 
-  if (!rows.length) return null;
+  if (!problemStats.length || !rows.length) return null;
 
   return (
     <section className="mt-5 grid gap-3 border-t border-slate-200 pt-5">
@@ -319,24 +321,31 @@ function ProblemStatsBlock({
             문제별 제출 통계
           </h3>
         </div>
-        <p className="text-xs font-medium text-slate-500">
-          정답률은 정답 제출 수 / 총 제출 수 기준입니다.
-        </p>
+        <div className="grid gap-1 text-xs font-medium text-slate-500">
+          <p>제출: 정답 제출 / 전체 제출 · 팀: 정답 팀 / 시도한 팀</p>
+          <p>같은 팀이 여러 번 제출해도 팀 정답률에서는 한 팀으로 셉니다.</p>
+        </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+      <div
+        className="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+        role="region"
+        aria-label="문제별 제출 통계, 좌우로 스크롤하여 확인"
+        tabIndex={0}
+      >
+        <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+          <caption className="sr-only">문제별 제출 정답률과 팀 정답률</caption>
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
             <tr>
               <th className="border-r border-slate-200 px-4 py-3">문제</th>
-              <th className="border-r border-slate-200 px-4 py-3 text-right">
-                총 제출
+              <th className="min-w-40 border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
+                제출 정답률
               </th>
-              <th className="border-r border-slate-200 px-4 py-3 text-right">
-                정답률
+              <th className="min-w-40 border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
+                팀 정답률
               </th>
-              <th className="border-r border-slate-200 px-4 py-3 text-right">
-                정답 팀
+              <th className="border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
+                전체 팀 중 정답
               </th>
               <th className="border-r border-slate-200 px-4 py-3">
                 첫 정답 팀
@@ -352,16 +361,34 @@ function ProblemStatsBlock({
                     ? `${problem.problem_code}. ${problem.title}`
                     : stat.problem_code}
                 </td>
-                <td className="border-r border-slate-100 px-4 py-3 text-right font-medium text-slate-700">
-                  {stat.total_submissions.toLocaleString('ko-KR')}
+                <td className="border-r border-slate-100 px-4 py-3 text-right whitespace-nowrap">
+                  <span className="block font-semibold text-indigo-700">
+                    {formatAcceptanceRate(stat.acceptance_rate)}
+                  </span>
+                  <span className="mt-1 block text-xs font-medium text-slate-500">
+                    {stat.total_submissions === 0
+                      ? '제출 없음'
+                      : `정답 ${stat.accepted_submissions.toLocaleString('ko-KR')} / 제출 ${stat.total_submissions.toLocaleString('ko-KR')}건`}
+                  </span>
                 </td>
-                <td className="border-r border-slate-100 px-4 py-3 text-right font-semibold text-indigo-700">
-                  {formatAcceptanceRate(stat.acceptance_rate)}
+                <td className="border-r border-slate-100 px-4 py-3 text-right whitespace-nowrap">
+                  <span className="block font-semibold text-indigo-700">
+                    {formatAcceptanceRate(stat.team_acceptance_rate)}
+                  </span>
+                  <span className="mt-1 block text-xs font-medium text-slate-500">
+                    {stat.attempted_team_count === undefined
+                      ? '집계 정보 없음'
+                      : stat.attempted_team_count === 0
+                        ? '시도 없음'
+                        : `정답 ${stat.accepted_team_count.toLocaleString('ko-KR')} / 시도 ${stat.attempted_team_count.toLocaleString('ko-KR')}팀`}
+                  </span>
                 </td>
-                <td className="border-r border-slate-100 px-4 py-3 text-right font-medium text-slate-700">
+                <td className="border-r border-slate-100 px-4 py-3 text-right font-medium whitespace-nowrap text-slate-700">
                   {stat.accepted_team_count.toLocaleString('ko-KR')}
                   <span className="ml-1 text-xs font-medium text-slate-400">
-                    / {(stat.total_team_count ?? 0).toLocaleString('ko-KR')}팀
+                    {stat.total_team_count === undefined
+                      ? '팀'
+                      : `/ ${stat.total_team_count.toLocaleString('ko-KR')}팀`}
                   </span>
                 </td>
                 <td className="zoj-break-anywhere border-r border-slate-100 px-4 py-3 font-medium text-slate-700">

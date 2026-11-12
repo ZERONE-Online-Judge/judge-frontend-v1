@@ -3,7 +3,50 @@ import type { PresentationSoundCue } from './presentationAnnouncements';
 
 const SOUND_STORAGE_KEY = 'zoj.presentation.sound.v1';
 const VOLUME_STORAGE_KEY = 'zoj.presentation.volume.v1';
-const DEFAULT_VOLUME = 0.35;
+const DEFAULT_VOLUME = 0.75;
+const VOICE_GAIN = 0.36;
+const REPLACEMENT_FADE_SECONDS = 0.008;
+type SoundVoice = {
+  oscillator: OscillatorNode;
+  gain: GainNode;
+  startsAt: number;
+};
+const currentVoices = new WeakMap<AudioContext, Set<SoundVoice>>();
+
+function stopCurrentCue(context: AudioContext) {
+  const voices = currentVoices.get(context);
+  if (!voices) return;
+  currentVoices.delete(context);
+  const now = context.currentTime;
+  for (const voice of voices) {
+    const { oscillator, gain, startsAt } = voice;
+    const fade =
+      context.state === 'running' &&
+      startsAt < now &&
+      typeof gain.gain.cancelAndHoldAtTime === 'function';
+    try {
+      if (fade) {
+        gain.gain.cancelAndHoldAtTime(now);
+        gain.gain.linearRampToValueAtTime(0, now + REPLACEMENT_FADE_SECONDS);
+      } else {
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(0, now);
+      }
+      oscillator.stop(now + (fade ? REPLACEMENT_FADE_SECONDS : 0));
+    } catch {
+      // An interrupted or closed output may reject scheduling changes.
+      oscillator.disconnect();
+      gain.disconnect();
+      voices.delete(voice);
+    } finally {
+      if (!fade) {
+        oscillator.disconnect();
+        gain.disconnect();
+        voices.delete(voice);
+      }
+    }
+  }
+}
 
 function audioConstructor(): typeof AudioContext | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -45,9 +88,14 @@ export function playPresentationSound(
   cue: PresentationSoundCue,
   volume = DEFAULT_VOLUME,
 ) {
-  if (context.state !== 'running' || !Number.isFinite(volume) || volume <= 0)
-    return false;
-  const amplitude = Math.min(1, volume) * 0.08;
+  if (!Number.isFinite(volume)) return false;
+  // Replace the cue, including notes that have not started yet. Repeated test
+  // clicks must not stack gain or leave old melodies waiting to play later.
+  stopCurrentCue(context);
+  if (context.state !== 'running' || volume <= 0) return false;
+  const amplitude = Math.min(1, volume) * VOICE_GAIN;
+  const voices = new Set<SoundVoice>();
+  currentVoices.set(context, voices);
   for (const note of presentationSoundNotes(cue)) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
@@ -56,15 +104,26 @@ export function playPresentationSound(
     oscillator.frequency.setValueAtTime(note.frequency, at);
     gain.gain.setValueAtTime(0, at);
     gain.gain.linearRampToValueAtTime(amplitude, at + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + note.duration);
+    // Hold a clear tone before a gentle release. At most two notes overlap,
+    // so even maximum volume stays below a combined gain of 0.72.
+    gain.gain.setValueAtTime(
+      amplitude,
+      at + note.duration - Math.max(0.03, note.duration * 0.35),
+    );
+    gain.gain.linearRampToValueAtTime(0, at + note.duration);
     oscillator.connect(gain);
     gain.connect(context.destination);
+    const voice = { oscillator, gain, startsAt: at };
+    voices.add(voice);
     oscillator.onended = () => {
       oscillator.disconnect();
       gain.disconnect();
+      voices.delete(voice);
+      if (!voices.size && currentVoices.get(context) === voices)
+        currentVoices.delete(context);
     };
     oscillator.start(at);
-    oscillator.stop(at + note.duration + 0.02);
+    oscillator.stop(at + note.duration + 0.005);
   }
   return true;
 }
@@ -80,7 +139,8 @@ function storedEnabled() {
 function storedVolume() {
   try {
     const stored = window.localStorage.getItem(VOLUME_STORAGE_KEY);
-    const value = stored === null ? DEFAULT_VOLUME : Number(stored);
+    const value =
+      stored === null || !stored.trim() ? DEFAULT_VOLUME : Number(stored);
     return Number.isFinite(value)
       ? Math.min(1, Math.max(0, value))
       : DEFAULT_VOLUME;
@@ -131,8 +191,10 @@ export function usePresentationSound() {
         player = created;
         playerRef.current = created;
         created.onstatechange = () => {
-          if (playerRef.current === created)
+          if (playerRef.current === created) {
+            if (created.state !== 'running') stopCurrentCue(created);
             setUnlocked(created.state === 'running');
+          }
         };
       }
       // Called only by a button: browsers can reject an unsolicited resume.
@@ -192,6 +254,7 @@ export function usePresentationSound() {
     if (!Number.isFinite(value)) return;
     const next = Math.min(1, Math.max(0, value));
     volumeRef.current = next;
+    if (next === 0 && playerRef.current) stopCurrentCue(playerRef.current);
     setVolumeState(next);
     savePreference(VOLUME_STORAGE_KEY, String(next));
   }, []);

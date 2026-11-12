@@ -85,6 +85,7 @@ async function mount(overrides = {}) {
     state = preferences.usePresentationDisplayPreferences();
     const [selected, setSelected] = React.useState([]);
     const [soundEnabled, setSoundEnabled] = React.useState(false);
+    const [soundVolume, setSoundVolume] = React.useState(0.75);
     return h(Settings, {
       ...state,
       onThemeChange: state.setTheme,
@@ -97,6 +98,11 @@ async function mount(overrides = {}) {
       },
       soundEnabled,
       onSoundEnabledChange: setSoundEnabled,
+      soundVolume,
+      onSoundVolumeChange: (volume) => {
+        callbacks.push({ volume });
+        setSoundVolume(volume);
+      },
       onTestSound: () => callbacks.push('test-sound'),
       ...overrides,
     });
@@ -285,6 +291,65 @@ test('theme, sound and test actions change display state without contest APIs', 
   await click(button('소리 테스트'));
   assert.equal(callbacks.at(-1), 'test-sound');
   assert.equal(button('전체화면').disabled, true);
+});
+
+test('sound volume exposes its percentage and mute value independently from sound and font controls', async () => {
+  await mount();
+  await click(button('화면 설정'));
+  const label = [...host.querySelectorAll('label')].find(
+    (node) => node.textContent.trim() === '효과음 음량',
+  );
+  assert.ok(label, 'The volume slider has a visible associated label');
+  const slider = document.getElementById(label.htmlFor);
+  assert.ok(slider);
+  assert.equal(slider.type, 'range');
+  assert.equal(slider.min, '0');
+  assert.equal(slider.max, '100');
+  assert.equal(slider.step, '5');
+  assert.equal(slider.value, '75');
+  const output = [...host.querySelectorAll('output')].find((node) =>
+    node.htmlFor.contains(slider.id),
+  );
+  assert.ok(output, 'Volume output is associated with its slider');
+  assert.match(output.textContent, /75%/);
+  for (const [percentage, volume] of [
+    [25, 0.25],
+    [0, 0],
+    [100, 1],
+  ]) {
+    await act(() => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      ).set.call(slider, String(percentage));
+      slider.dispatchEvent(new window.Event('input', { bubbles: true }));
+      slider.dispatchEvent(new window.Event('change', { bubbles: true }));
+    });
+    assert.deepEqual(callbacks.at(-1), { volume });
+    assert.equal(slider.value, String(percentage));
+    if (percentage === 0) {
+      assert.match(output.textContent, /무음/);
+      assert.match(slider.getAttribute('aria-valuetext'), /무음/);
+    } else {
+      assert.match(output.textContent, new RegExp(`${percentage}%`));
+      assert.match(
+        slider.getAttribute('aria-valuetext'),
+        new RegExp(`${percentage}%`),
+      );
+    }
+    assert.equal(state.fontScale, 1, 'Audio volume cannot change font size');
+    assert.equal(button('효과음').getAttribute('aria-checked'), 'false');
+  }
+  await click(button('효과음'));
+  assert.equal(button('효과음').getAttribute('aria-checked'), 'true');
+  assert.equal(slider.value, '100', 'Toggling sound preserves selected volume');
+  await click(button('소리 테스트'));
+  assert.equal(callbacks.at(-1), 'test-sound');
+  await click(button('효과음'));
+  assert.equal(button('효과음').getAttribute('aria-checked'), 'false');
+  assert.equal(slider.value, '100');
+  await click(button('소리 테스트'));
+  assert.equal(callbacks.at(-1), 'test-sound');
 });
 
 test('fullscreen uses the display container in a user gesture and reports browser rejection', async () => {

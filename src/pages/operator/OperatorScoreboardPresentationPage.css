@@ -813,6 +813,9 @@
   color: var(--presentation-text);
   cursor: pointer;
 }
+.presentation-sound-level {
+  margin-top: 14px;
+}
 .presentation-sound-toggle > span {
   display: grid;
   gap: 3px;

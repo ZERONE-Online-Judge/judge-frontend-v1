@@ -14,6 +14,8 @@ type Props = {
   selectedDivisionIds: string[];
   onDivisionIdsChange: (ids: string[]) => void;
   soundEnabled: boolean;
+  soundVolume: number;
+  onSoundVolumeChange: (volume: number) => void;
   onSoundEnabledChange: (enabled: boolean) => void;
   onTestSound: () => void;
   soundStatus?: string;
@@ -34,6 +36,8 @@ export default function PresentationDisplaySettings({
   selectedDivisionIds,
   onDivisionIdsChange,
   soundEnabled,
+  soundVolume,
+  onSoundVolumeChange,
   onSoundEnabledChange,
   onTestSound,
   soundStatus,
@@ -327,9 +331,40 @@ export default function PresentationDisplaySettings({
               </span>
               <i aria-hidden="true" />
             </button>
+            <div className="presentation-sound-level">
+              <div className="presentation-settings-label-row">
+                <label htmlFor={`${id}-volume`}>효과음 음량</label>
+                <output htmlFor={`${id}-volume`}>
+                  {soundVolume === 0
+                    ? '무음'
+                    : `${Math.round(soundVolume * 100)}%`}
+                </output>
+              </div>
+              <input
+                id={`${id}-volume`}
+                className="presentation-font-slider"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={Math.round(soundVolume * 100)}
+                aria-valuetext={
+                  soundVolume === 0
+                    ? '무음'
+                    : `${Math.round(soundVolume * 100)}%`
+                }
+                onChange={(event) =>
+                  onSoundVolumeChange(Number(event.target.value) / 100)
+                }
+              />
+              <div className="presentation-font-range" aria-hidden="true">
+                <span>무음 0%</span>
+                <span>최대 100%</span>
+              </div>
+            </div>
             <p className="presentation-settings-hint">
-              소리가 들리지 않으면 화면을 한 번 클릭하거나 소리 테스트를 눌러
-              주세요.
+              소리 테스트로 음량을 맞춰 주세요. 기기·브라우저의 음량도 함께
+              적용됩니다.
             </p>
           </div>
           <fieldset className="presentation-settings-group">

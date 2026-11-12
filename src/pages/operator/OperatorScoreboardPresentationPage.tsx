@@ -455,6 +455,8 @@ export function OperatorScoreboardPresentationContent({
         setSearchParams(next, { replace: true });
       }}
       soundEnabled={sound.enabled}
+      soundVolume={sound.volume}
+      onSoundVolumeChange={sound.setVolume}
       onSoundEnabledChange={(enabled) => {
         if (enabled) void sound.enable();
         else sound.disable();
@@ -465,9 +467,11 @@ export function OperatorScoreboardPresentationContent({
           ? '이 브라우저는 효과음을 지원하지 않습니다.'
           : !sound.enabled
             ? '효과음이 꺼져 있습니다.'
-            : sound.unlocked
-              ? '효과음 사용 중'
-              : '화면을 한 번 클릭하면 효과음이 활성화됩니다.'
+            : sound.volume === 0
+              ? '음량이 0%로 설정되어 있습니다.'
+              : sound.unlocked
+                ? '효과음 사용 중'
+                : '화면을 한 번 클릭하면 효과음이 활성화됩니다.'
       }
     />
   );

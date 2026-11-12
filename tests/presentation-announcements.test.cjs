@@ -343,6 +343,7 @@ function fakeAudioContext() {
   const trace = [];
   const context = {
     trace,
+    oscillators: [],
     state: 'running',
     currentTime: 100,
     destination: {},
@@ -358,15 +359,18 @@ function fakeAudioContext() {
         start: (at) => trace.push(['start', at]),
         stop: (at) => trace.push(['stop', at]),
       };
+      context.oscillators.push(oscillator);
       return oscillator;
     },
     createGain() {
       return {
         gain: {
-          setValueAtTime: () => {},
+          setValueAtTime: (value, at) => trace.push(['set-gain', value, at]),
           linearRampToValueAtTime: (value, at) =>
             trace.push(['gain', value, at]),
           exponentialRampToValueAtTime: () => {},
+          cancelScheduledValues: (at) => trace.push(['cancel', at]),
+          cancelAndHoldAtTime: (at) => trace.push(['hold', at]),
         },
         connect: () => {},
         disconnect: () => {},
@@ -375,10 +379,12 @@ function fakeAudioContext() {
     async resume() {
       this.state = 'running';
       trace.push(['resume']);
+      this.onstatechange?.();
     },
     async suspend() {
       this.state = 'suspended';
       trace.push(['suspend']);
+      this.onstatechange?.();
     },
     async close() {
       this.state = 'closed';
@@ -388,10 +394,10 @@ function fakeAudioContext() {
   return context;
 }
 
-test('generated cues use bounded gentle envelopes, distinct zero melodies and no suspended playback', () => {
+test('generated cues hold an audible tone with headroom, distinct melodies and no suspended playback', () => {
   for (const cue of ['warning', 'tick', 'start', 'end']) {
     const context = fakeAudioContext();
-    assert.equal(playPresentationSound(context, cue, 0.35), true);
+    assert.equal(playPresentationSound(context, cue), true);
     assert.equal(
       context.trace.filter(([type]) => type === 'start').length,
       cue === 'tick' ? 1 : 3,
@@ -399,7 +405,23 @@ test('generated cues use bounded gentle envelopes, distinct zero melodies and no
     assert.ok(
       context.trace
         .filter(([type]) => type === 'gain')
-        .every(([, gain]) => gain <= 0.028),
+        .every(([, gain]) => gain <= 0.27),
+    );
+    assert(
+      context.trace.some(([type, gain]) => type === 'gain' && gain === 0.27),
+    );
+    const holds = context.trace.filter(
+      ([type, gain]) => type === 'set-gain' && gain === 0.27,
+    );
+    assert.equal(holds.length, cue === 'tick' ? 1 : 3);
+    const notes = presentationSoundNotes(cue);
+    holds.forEach(([, , at], index) =>
+      assert(
+        at >=
+          context.currentTime +
+            notes[index].offset +
+            notes[index].duration * 0.5,
+      ),
     );
   }
   assert.notDeepEqual(
@@ -411,6 +433,44 @@ test('generated cues use bounded gentle envelopes, distinct zero melodies and no
   context.state = 'suspended';
   assert.equal(playPresentationSound(context, 'warning', 1), false);
   assert.equal(context.trace.length, 0);
+});
+
+test('new cues replace old active and future notes instead of stacking or playing a backlog', () => {
+  const context = fakeAudioContext();
+  assert.equal(playPresentationSound(context, 'warning', 1), true);
+  const oldVoices = [...context.oscillators];
+  context.currentTime += 0.05;
+  const before = context.trace.length;
+  assert.equal(playPresentationSound(context, 'tick', 1), true);
+  const replacement = context.trace.slice(before);
+  const stops = replacement.filter(([type]) => type === 'stop');
+  assert.equal(stops.length, 4); // Three old voices stop, plus the new tick's end.
+  assert(
+    stops.slice(0, 3).every(([, at]) => at <= context.currentTime + 0.008),
+  );
+  assert.equal(replacement.filter(([type]) => type === 'cancel').length, 2);
+  assert.equal(replacement.filter(([type]) => type === 'hold').length, 1);
+  oldVoices.forEach((voice) => voice.onended());
+  const tick = context.oscillators.at(-1);
+  tick.onended();
+  const ended = context.trace.length;
+  assert.equal(playPresentationSound(context, 'end', 0), false);
+  assert.equal(context.trace.length, ended);
+});
+
+test('cue replacement stays isolated to its own audio output and invalid volumes schedule nothing', () => {
+  const first = fakeAudioContext(),
+    second = fakeAudioContext();
+  playPresentationSound(first, 'warning', 1);
+  const before = first.trace.length;
+  playPresentationSound(second, 'start', 1);
+  playPresentationSound(second, 'tick', 1);
+  assert.equal(first.trace.length, before);
+  for (const value of [NaN, Infinity, -Infinity]) {
+    const player = fakeAudioContext();
+    assert.equal(playPresentationSound(player, 'warning', value), false);
+    assert.deepEqual(player.trace, []);
+  }
 });
 
 test('sound requires a gesture even with a saved preference, and mute/test/volume stay controlled', async () => {
@@ -612,7 +672,143 @@ test('blocked storage still defaults sound on without attempting autoplay', asyn
     await act(() => root.render(h(Harness)));
     assert.equal(state.enabled, true);
     assert.equal(state.unlocked, false);
+    assert.equal(state.volume, 0.75);
   } finally {
     Object.defineProperty(window, 'localStorage', original);
   }
+});
+
+test('volume defaults are audible for missing or corrupt values without replacing saved choices', async () => {
+  const contexts = [];
+  window.AudioContext = class {
+    constructor() {
+      contexts.push(fakeAudioContext());
+      return contexts.at(-1);
+    }
+  };
+  let state;
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  const key = 'zoj.presentation.volume.v1';
+  for (const [stored, expected] of [
+    [null, 0.75],
+    ['', 0.75],
+    [' \n ', 0.75],
+    ['broken', 0.75],
+    ['NaN', 0.75],
+    ['Infinity', 0.75],
+    ['0.35', 0.35],
+    ['0', 0],
+    ['1', 1],
+    ['2', 1],
+    ['-1', 0],
+  ]) {
+    if (stored === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, stored);
+    root = createRoot(host);
+    await act(() => root.render(h(Harness)));
+    assert.equal(
+      state.volume,
+      expected,
+      `stored volume ${JSON.stringify(stored)}`,
+    );
+    assert.equal(window.localStorage.getItem(key), stored);
+    state.play('warning');
+    assert.equal(contexts.length, 0, 'Reading volume must not enable autoplay');
+    await act(() => root.unmount());
+    root = undefined;
+  }
+});
+
+test('zero volume immediately cancels the current cue and persists separately from mute', async () => {
+  let player, state;
+  window.AudioContext = class {
+    constructor() {
+      player = fakeAudioContext();
+      player.state = 'suspended';
+      return player;
+    }
+  };
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  root = createRoot(host);
+  await act(() => root.render(h(Harness)));
+  await act(async () => state.test());
+  player.currentTime += 0.05;
+  const before = player.trace.length;
+  await act(() => state.setVolume(0));
+  const stops = player.trace.slice(before).filter(([type]) => type === 'stop');
+  assert.equal(stops.length, 3);
+  assert(stops.every(([, at]) => at <= player.currentTime + 0.008));
+  assert.equal(state.volume, 0);
+  assert.equal(state.enabled, true);
+  assert.equal(player.state, 'running');
+  assert.equal(window.localStorage.getItem('zoj.presentation.volume.v1'), '0');
+  const starts = player.trace.filter(([type]) => type === 'start').length;
+  state.play('tick');
+  assert.equal(
+    player.trace.filter(([type]) => type === 'start').length,
+    starts,
+  );
+  await act(() => state.setVolume(0.35));
+  state.play('tick');
+  assert.equal(
+    window.localStorage.getItem('zoj.presentation.volume.v1'),
+    '0.35',
+  );
+  assert(
+    player.trace.some(([type, gain]) => type === 'gain' && gain === 0.126),
+  );
+  for (const value of [NaN, Infinity, -Infinity])
+    await act(() => state.setVolume(value));
+  assert.equal(state.volume, 0.35);
+});
+
+test('suspending output drops scheduled notes so a later gesture cannot replay an old cue', async () => {
+  let player, state;
+  window.AudioContext = class {
+    constructor() {
+      player = fakeAudioContext();
+      player.state = 'suspended';
+      return player;
+    }
+  };
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  root = createRoot(host);
+  await act(() => root.render(h(Harness)));
+  await act(async () => state.test());
+  player.currentTime += 0.1;
+  const before = player.trace.length;
+  await act(async () => player.suspend());
+  assert.equal(state.unlocked, false);
+  assert.equal(state.enabled, true);
+  assert.equal(
+    player.trace.slice(before).filter(([type]) => type === 'cancel').length,
+    3,
+  );
+  const starts = player.trace.filter(([type]) => type === 'start').length;
+  state.play('end');
+  await act(async () => state.enable());
+  assert.equal(
+    player.trace.filter(([type]) => type === 'start').length,
+    starts,
+  );
+  state.play('tick');
+  assert.equal(
+    player.trace.filter(([type]) => type === 'start').length,
+    starts + 1,
+  );
 });

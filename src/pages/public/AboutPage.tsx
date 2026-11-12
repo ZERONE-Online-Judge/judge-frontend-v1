@@ -330,9 +330,73 @@ export default function AboutPage() {
             <p className="about-eyebrow">01 / 운영 이력</p>
             <div>
               <h2 id="about-experience-heading">운영 이력</h2>
-              <p>ZOJ는 HEPC 2026에서 대회 운영과 채점에 사용됐습니다.</p>
+              <p>
+                HEPC 2026에 이어 2026 ZOAC까지, 실제 대회 현장에서 운영 경험을
+                쌓아가고 있습니다.
+              </p>
             </div>
           </div>
+          <article
+            className="about-zoac-case"
+            aria-labelledby="about-zoac-heading"
+            data-reveal
+          >
+            <header className="about-zoac-case__header">
+              <span className="about-event-badge">최신 운영 사례</span>
+              <time dateTime="2026-11-12">2026. 11. 12</time>
+            </header>
+            <div className="about-zoac-case__body">
+              <div className="about-zoac-case__copy">
+                <h3 id="about-zoac-heading">2026 ZOAC</h3>
+                <p className="about-zoac-case__name">
+                  Zero One Algorithm Contest
+                </p>
+                <p className="about-zoac-case__lead">
+                  16개 팀의 경쟁을 하나의 플랫폼에서.
+                </p>
+                <p className="about-zoac-case__description">
+                  16개 팀이 참여한 3시간의 알고리즘 경연. 참가자 관리와 문제
+                  공개부터 코드 제출·자동 채점, 스코어보드까지 대회 전반의
+                  운영을 ZOJ 한곳에 모았습니다. 스코어보드 프리즈와 리졸버
+                  방식의 순위 공개를 갖춰, 대회 진행부터 결과 발표까지 이어지는
+                  운영 흐름을 지원했습니다.
+                </p>
+                <ul
+                  className="about-zoac-case__features"
+                  aria-label="운영 범위"
+                >
+                  <li>참가자 관리·문제 공개</li>
+                  <li>코드 제출·자동 채점</li>
+                  <li>프리즈·리졸버</li>
+                </ul>
+              </div>
+              <dl className="about-zoac-case__stats">
+                <div>
+                  <dt>참가팀</dt>
+                  <dd>
+                    16<span>팀</span>
+                  </dd>
+                  <p>실제 대회에 함께한 팀</p>
+                </div>
+                <div>
+                  <dt>대회 진행</dt>
+                  <dd>
+                    3<span>시간</span>
+                  </dd>
+                  <p>알고리즘 경연 운영</p>
+                </div>
+              </dl>
+            </div>
+            <footer className="about-zoac-case__footer">
+              <p>한양대학교 ERICA 알고리즘 학회 영과일</p>
+              <Link
+                className="about-text-link"
+                to="/contests/755cab93-4cab-4926-9f71-09a237bde73f"
+              >
+                대회 개요 보기 <Arrow />
+              </Link>
+            </footer>
+          </article>
           <div className="about-event-banner" data-reveal>
             <div>
               <span className="about-event-badge">첫 실운영</span>

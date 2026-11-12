@@ -1,13 +1,19 @@
 import Select from '@/shared/ui/Select';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import CodeEditor from '@/shared/ui/CodeEditor';
 import PageNotice from '@/shared/ui/PageNotice';
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
+import {
+  inspectSubmissionEntryPoint,
+  type SubmissionEntryPointCheck,
+} from '@/domains/submissionScoreboard/submissionEntryPoint';
+import SubmissionEntryPointDialog from '@/components/contest/problem/SubmissionEntryPointDialog';
 
 type ProblemSubmitPanelProps = {
   allowedLanguages?: JudgeLanguage[];
   problemCode?: string;
   problemTitle?: string;
+  submissionContextKey?: string;
   language: JudgeLanguage;
   sourceCode: string;
   isSubmitting: boolean;
@@ -38,6 +44,7 @@ export default function ProblemSubmitPanel({
   allowedLanguages,
   problemCode,
   problemTitle,
+  submissionContextKey,
   language,
   sourceCode,
   isSubmitting,
@@ -59,6 +66,65 @@ export default function ProblemSubmitPanel({
   const [resizedEditorHeight, setResizedEditorHeight] = useState<number | null>(
     null,
   );
+  const [confirmation, setConfirmation] = useState<{
+    language: JudgeLanguage;
+    sourceCode: string;
+    context: string;
+    allowed: string;
+    check: SubmissionEntryPointCheck;
+  } | null>(null);
+  const submitLock = useRef(false);
+  const context = JSON.stringify([
+    submissionContextKey ?? '',
+    problemCode ?? '',
+    problemTitle ?? '',
+    title,
+    submitLabel,
+  ]);
+  const allowed = allowedLanguages
+    ? [...new Set(allowedLanguages)].sort().join(',')
+    : '*';
+  const languageAllowed =
+    !allowedLanguages || allowedLanguages.includes(language);
+  const submitDisabled =
+    isSubmitting || !sourceCode.trim() || !canSubmit || !languageAllowed;
+  const confirmationCurrent = Boolean(
+    confirmation &&
+    confirmation.language === language &&
+    confirmation.sourceCode === sourceCode &&
+    confirmation.context === context &&
+    confirmation.allowed === allowed &&
+    !submitDisabled,
+  );
+  // Discard the exact snapshot as soon as any submission input changes. A
+  // later edit back to the same text must not revive an earlier confirmation.
+  if (confirmation && !confirmationCurrent) setConfirmation(null);
+  const entryPointGuidance = useMemo(
+    () => inspectSubmissionEntryPoint(language, ''),
+    [language],
+  );
+  function sendSubmission() {
+    if (submitDisabled || submitLock.current) return;
+    submitLock.current = true;
+    // Guard duplicate clicks in the same event batch. Ongoing requests use
+    // isSubmitting; a completed failure must allow an immediate explicit retry.
+    queueMicrotask(() => {
+      submitLock.current = false;
+    });
+    setConfirmation(null);
+    onSubmit();
+  }
+
+  function requestSubmission() {
+    if (submitDisabled || submitLock.current) return;
+    const check = inspectSubmissionEntryPoint(language, sourceCode);
+    if (check) {
+      setConfirmation({ language, sourceCode, context, allowed, check });
+    } else {
+      sendSubmission();
+    }
+  }
+
   const panelClassName =
     layout === 'standalone'
       ? 'bg-slate-50 px-4 py-5 sm:px-7 sm:py-7'
@@ -100,6 +166,17 @@ export default function ProblemSubmitPanel({
         </span>
       </label>
 
+      {entryPointGuidance ? (
+        <p className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-5 text-indigo-900">
+          <strong className="font-mono">{entryPointGuidance.filename}</strong>로
+          저장합니다.{' '}
+          {language === 'java8'
+            ? 'package 선언 없이 Main 클래스와 public static void main(String[] args)를 작성해 주세요.'
+            : '실행 가능한 JAR로 실행합니다. 일반적인 진입점은 파일 최상위의 fun main() 또는 fun main(args: Array<String>)입니다.'}{' '}
+          제출 전에 실행 형식을 한 번 더 확인합니다.
+        </p>
+      ) : null}
+
       <details className="mt-3 text-xs text-slate-500">
         <summary className="cursor-pointer py-2">편집기 높이 조절</summary>
         <label className="mt-2 grid gap-2">
@@ -138,8 +215,8 @@ export default function ProblemSubmitPanel({
 
       <button
         className="mt-4 flex h-11 w-full items-center justify-center rounded bg-[#6d5dfc] px-5 text-sm font-black text-white transition hover:bg-[#5b4be6] disabled:bg-slate-300"
-        disabled={isSubmitting || !sourceCode.trim() || !canSubmit}
-        onClick={onSubmit}
+        disabled={submitDisabled}
+        onClick={requestSubmission}
         type="button"
       >
         {isSubmitting ? submittingLabel : submitLabel}
@@ -149,6 +226,15 @@ export default function ProblemSubmitPanel({
         <PageNotice message={message} status={messageStatus} />
       </div>
       {footer ? <div className="mt-4">{footer}</div> : null}
+      {confirmation && confirmationCurrent ? (
+        <SubmissionEntryPointDialog
+          check={confirmation.check}
+          onClose={() => setConfirmation(null)}
+          onConfirm={() => {
+            if (confirmationCurrent) sendSubmission();
+          }}
+        />
+      ) : null}
     </aside>
   );
 }

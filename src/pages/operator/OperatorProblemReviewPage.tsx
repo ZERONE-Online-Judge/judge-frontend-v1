@@ -434,6 +434,7 @@ function ReviewWorkspace({
         <div className="grid min-w-0 gap-4">
           <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 [&_h2]:text-base">
             <ProblemSubmitPanel
+              submissionContextKey={`${contestId}:${problem.problem_id}:review`}
               title="검수 코드 제출"
               layout="standalone"
               editorHeight={360}

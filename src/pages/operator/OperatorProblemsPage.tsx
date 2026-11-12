@@ -3513,6 +3513,7 @@ function ProblemPreviewModal({
             onLanguageChange={onLanguageChange}
             onSourceCodeChange={onSourceCodeChange}
             onSubmit={onSubmit}
+            submissionContextKey={`${problem.problem_id}:preview`}
             sourceCode={sourceCode}
           />
           <OperatorPreviewJudgeResult submission={testSubmission} />

@@ -820,6 +820,7 @@ function ContestProblemDetailContent({
                 />
                 <ProblemSubmitPanel
                   allowedLanguages={problem.allowed_languages}
+                  canSubmit={canSubmitActiveDraft}
                   isSubmitting={
                     submitMutation.isPending || mockSubmitMutation.isPending
                   }
@@ -831,6 +832,7 @@ function ContestProblemDetailContent({
                   onSubmit={submitActiveDraft}
                   problemCode={problem.problem_code}
                   problemTitle={problem.title}
+                  submissionContextKey={`${contestId}:${problem.problem_id}:${activeDraftKey}:${canMockJudge ? 'mock' : 'submit'}`}
                   sourceCode={activeSourceCode}
                   submitLabel={submitPanelButtonLabel}
                   submittingLabel={canMockJudge ? '채점 중' : '제출 중'}
@@ -878,6 +880,7 @@ function ContestProblemDetailContent({
                   onSubmit={submitActiveDraft}
                   problemCode={problem.problem_code}
                   problemTitle={problem.title}
+                  submissionContextKey={`${contestId}:${problem.problem_id}:${activeDraftKey}:${canMockJudge ? 'mock' : 'submit'}`}
                   sourceCode={activeSourceCode}
                   submitLabel={submitPanelButtonLabel}
                   submittingLabel={canMockJudge ? '채점 중' : '제출 중'}

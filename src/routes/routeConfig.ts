@@ -40,6 +40,9 @@ const JudgeStatusPage = lazy(() => import('@/pages/public/JudgeStatusPage'));
 const PresentationPage = lazy(
   () => import('@/pages/presentation/PresentationPage'),
 );
+const PresentationLoginPage = lazy(
+  () => import('@/pages/presentation/PresentationLoginPage'),
+);
 const EditorReturnPage = lazy(() => import('@/pages/auth/EditorReturnPage'));
 const EditorAccountPage = lazy(() => import('@/pages/auth/EditorAccountPage'));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
@@ -314,6 +317,13 @@ export const appRoutes: readonly AppRoute[] = [
     name: '대회 프레젠테이션',
     path: '/presentation/contests/:contestId',
     Component: PresentationPage,
+    showInNavigation: false,
+  },
+  {
+    access: 'public',
+    name: '프레젠테이션 자동 로그인',
+    path: '/presentation/login',
+    Component: PresentationLoginPage,
     showInNavigation: false,
   },
   {

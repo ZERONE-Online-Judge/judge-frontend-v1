@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import PageSeo from '@/shared/seo/PageSeo';
 import PublicEasterEggs from '@/components/public/easterEggs/PublicEasterEggs';
 import PasswordSetupGuidance from '@/components/auth/PasswordSetupGuidance';
+import { isDedicatedPresentationPath } from '@/domains/presentationAccess/paths';
 import '@/styles/ProductExperience.css';
 
 type LayoutProps = {
@@ -25,7 +26,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [pathname, hash, navigationType]);
   useUsageTracking();
   if (
-    /^\/presentation\/contests\/[^/]+\/?$/.test(pathname) ||
+    isDedicatedPresentationPath(pathname) ||
     /^\/operator\/contests\/[^/]+\/scoreboard\/presentation\/?$/.test(pathname)
   ) {
     return (

@@ -66,6 +66,7 @@ function RouteAccessGuard({
   const displaySession = usePresentationSession((state) => state.session);
   if (
     displaySession &&
+    !/^\/presentation\/login\/*$/i.test(location.pathname) &&
     location.pathname !== presentationPath(displaySession.contest_id)
   ) {
     return (

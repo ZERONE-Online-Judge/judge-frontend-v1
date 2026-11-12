@@ -654,6 +654,13 @@ function OperatorScoreboardContent({
   )
     ? selectedDivisionId
     : (divisions[0]?.division_id ?? '');
+  const presentationDivisionIds = storedPresentationDivisions(
+    presentationLaunchIds.length
+      ? JSON.stringify(presentationLaunchIds)
+      : readStoredValue(presentationStorageKey),
+    divisions.map((division) => division.division_id),
+    divisionId,
+  );
   const scoreboardQuery = useQuery({
     enabled: Boolean(divisionId) && canViewBoard && canViewSelectedBoard,
     queryKey: [
@@ -794,11 +801,7 @@ function OperatorScoreboardContent({
       {presentationSetupOpen && (
         <PresentationLaunchDialog
           divisions={divisions}
-          initialSelection={storedPresentationDivisions(
-            readStoredValue(presentationStorageKey),
-            divisions.map((division) => division.division_id),
-            divisionId,
-          )}
+          initialSelection={presentationDivisionIds}
           onClose={() => setPresentationSetupOpen(false)}
           onLaunch={(ids) => {
             setPresentationLaunchIds(ids);
@@ -830,8 +833,17 @@ function OperatorScoreboardContent({
           }}
         />
       ) : null}
-      {canManage && liveView ? (
-        <PresentationAccountCard contestId={contestId} token={token} />
+      {liveView ? (
+        <PresentationAccountCard
+          contestId={contestId}
+          token={token}
+          canManage={canManage}
+          onOpenPopup={() => setPresentationSetupOpen(true)}
+          popupDisabled={!divisions.length}
+          popupBlocked={presentationPopupBlocked}
+          popupUrl={presentationUrl(contestId, presentationLaunchIds)}
+          divisionIds={presentationDivisionIds}
+        />
       ) : null}
 
       {contest && liveView ? (
@@ -940,17 +952,6 @@ function OperatorScoreboardContent({
       <OperatorPanel
         actions={
           <>
-            {liveView ? (
-              <button
-                className="zoj-pressable inline-flex h-10 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-                disabled={!divisions.length}
-                onClick={() => setPresentationSetupOpen(true)}
-                type="button"
-              >
-                <ScoreboardIcon />
-                프레젠테이션 팝업
-              </button>
-            ) : null}
             <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
               <ScoreboardIcon />
               <Select
@@ -980,23 +981,6 @@ function OperatorScoreboardContent({
         }
         title={participantView ? '순위표 · 참가자 기준' : '순위표'}
       >
-        {presentationPopupBlocked ? (
-          <p
-            role="status"
-            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-          >
-            브라우저에서 팝업이 차단되었습니다. 팝업을 허용하거나{' '}
-            <a
-              className="font-medium underline underline-offset-4"
-              href={presentationUrl(contestId, presentationLaunchIds)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              새 탭에서 프레젠테이션 열기
-            </a>
-            를 선택하세요.
-          </p>
-        ) : null}
         {canManage && liveView && contest && ended && divisionId ? (
           <ScoreboardReleaseControl
             key={divisionId}

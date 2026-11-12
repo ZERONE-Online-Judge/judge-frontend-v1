@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { isDedicatedPresentationPath } from '@/domains/presentationAccess/paths';
 import {
   SESSION_EXPIRED_EVENT,
   type SessionExpiredEventDetail,
@@ -30,9 +31,11 @@ function loginRedirectPath(currentPath: string) {
 export default function SessionExpiryRedirector() {
   const location = useLocation();
   const navigate = useNavigate();
+  const presentationOnly = isDedicatedPresentationPath(location.pathname);
   const [expiredPath, setExpiredPath] = useState<string | null>(null);
 
   useEffect(() => {
+    if (presentationOnly) return;
     function onSessionExpired(event: Event) {
       const detail = (event as CustomEvent<SessionExpiredEventDetail>).detail;
       const currentPath =
@@ -46,9 +49,9 @@ export default function SessionExpiryRedirector() {
     return () => {
       window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
     };
-  }, [location.hash, location.pathname, location.search]);
+  }, [location.hash, location.pathname, location.search, presentationOnly]);
 
-  if (expiredPath === null) return null;
+  if (presentationOnly || expiredPath === null) return null;
 
   function leave(to: string) {
     navigate(to, { replace: true });

@@ -7,14 +7,14 @@ import ChangeNoticeDialog from '@/components/operator/ChangeNoticeDialog';
 
 export default function App() {
   return (
-    <AppProviders>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AppProviders>
         <SessionExpiryRedirector />
         <ChangeNoticeDialog />
         <Layout>
           <AppRoutes />
         </Layout>
-      </BrowserRouter>
-    </AppProviders>
+      </AppProviders>
+    </BrowserRouter>
   );
 }

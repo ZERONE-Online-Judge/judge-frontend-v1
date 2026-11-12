@@ -45,7 +45,10 @@ let releases,
   rejectUpdate,
   customBoards,
   undoHistory,
-  pendingPresentationRead;
+  pendingPresentationRead,
+  operatorScopes,
+  presentationAccountReads,
+  presentationAccountValue;
 
 function board(divisionId) {
   if (customBoards[divisionId]) return customBoards[divisionId];
@@ -69,7 +72,10 @@ let displayReads = 0;
 const mocks = {
   '@/shared/api/client': { API_BASE_URL: '/api' },
   '@/domains/presentationAccess/api': {
-    getPresentationAccount: async () => null,
+    getPresentationAccount: async () => {
+      presentationAccountReads++;
+      return presentationAccountValue;
+    },
     getPresentationScoreboard: async () => {
       displayReads++;
       return {
@@ -90,7 +96,7 @@ const mocks = {
           email: 'master@example.test',
           display_name: '마스터',
           is_service_master: false,
-          contest_scopes: { contest: ['contest.*'] },
+          contest_scopes: { contest: operatorScopes },
         },
       }),
     OperatorPanel: ({ title, description, actions, children }) =>
@@ -230,6 +236,9 @@ beforeEach(() => {
   releaseReads = 0;
   rejectUpdate = false;
   pendingPresentationRead = null;
+  operatorScopes = ['contest.*'];
+  presentationAccountReads = 0;
+  presentationAccountValue = null;
   customBoards = {};
   undoHistory = { a: [], b: [] };
   window.localStorage.clear();
@@ -1120,4 +1129,71 @@ test('display settings change local appearance and selected divisions without pu
   assert.equal(updateCalls.length, 0);
   assert.equal(releaseReads, 0);
   assertDisplayPreferencesOnly(display);
+});
+
+test('presentation view card contains the only popup action above rankings for view-only operators', async () => {
+  operatorScopes = ['contest.scoreboard.view'];
+  presentationAccountValue = {
+    email: 'hidden@display.zoj.kr',
+    active: true,
+    expires_at: '2099-01-01T00:00:00Z',
+  };
+  const operator = await renderPage(
+    OperatorPage,
+    '/operator/contests/contest/scoreboard',
+  );
+  const card = [...operator.querySelectorAll('[data-edit-card]')].find(
+    (item) => item.querySelector('h2')?.textContent === '프레젠테이션 뷰',
+  );
+  assert.ok(card);
+  assert.ok(button(card, '프레젠테이션 팝업'));
+  assert.equal(
+    [...operator.querySelectorAll('button')].filter(
+      (item) => item.textContent === '프레젠테이션 팝업',
+    ).length,
+    1,
+  );
+  const rankings = [...operator.querySelectorAll('h2')]
+    .find((item) => item.textContent === '순위표')
+    .closest('section');
+  assert.ok(
+    card.compareDocumentPosition(rankings) &
+      window.Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  assert.equal(button(rankings, '프레젠테이션 팝업'), undefined);
+  assert.equal(presentationAccountReads, 0);
+  assert.doesNotMatch(
+    operator.textContent,
+    /hidden@display|전용 계정 만들기|자동 로그인 링크 복사/,
+  );
+});
+
+test('popup blocking fallback stays inside the presentation view card with the launched division', async () => {
+  const original = window.open;
+  window.open = () => null;
+  try {
+    const operator = await renderPage(
+      OperatorPage,
+      '/operator/contests/contest/scoreboard',
+    );
+    const card = [...operator.querySelectorAll('[data-edit-card]')].find(
+      (item) => item.querySelector('h2')?.textContent === '프레젠테이션 뷰',
+    );
+    await act(async () => button(card, '프레젠테이션 팝업').click());
+    const dialog = document.querySelector('dialog');
+    await act(async () => button(dialog, '선택한 유형으로 열기').click());
+    const fallback = card.querySelector('a[target="_blank"]');
+    assert.ok(fallback);
+    assert.equal(
+      fallback.getAttribute('href'),
+      '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+    );
+    assert.match(card.textContent, /팝업이 차단/);
+    const rankings = [...operator.querySelectorAll('h2')]
+      .find((item) => item.textContent === '순위표')
+      .closest('section');
+    assert.doesNotMatch(rankings.textContent, /팝업이 차단/);
+  } finally {
+    window.open = original;
+  }
 });

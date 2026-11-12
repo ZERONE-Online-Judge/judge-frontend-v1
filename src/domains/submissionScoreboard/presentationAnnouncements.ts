@@ -3,7 +3,16 @@ import type { ContestTiming } from '@/domains/contestAdministration/contestTimer
 export type PresentationAnnouncementContest = ContestTiming & {
   contest_id: string;
 };
-export type PresentationSoundCue = 'warning' | 'tick' | 'start' | 'end';
+export type PresentationSoundCue =
+  | 'warning'
+  | 'tick'
+  | 'start'
+  | 'end'
+  | 'reveal'
+  | 'accepted'
+  | 'rejected'
+  | 'result'
+  | 'complete';
 export type PresentationAnnouncement = {
   key: string;
   kinds: ('freeze' | 'end')[];

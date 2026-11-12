@@ -6,6 +6,8 @@ const VOLUME_STORAGE_KEY = 'zoj.presentation.volume.v1';
 const DEFAULT_VOLUME = 0.75;
 const VOICE_GAIN = 0.36;
 const WARNING_VOICE_GAIN = 0.82;
+const RELEASE_VOICE_GAIN = 0.55;
+const REJECTED_VOICE_GAIN = 0.42;
 const REPLACEMENT_FADE_SECONDS = 0.008;
 type SoundVoice = {
   oscillator: OscillatorNode;
@@ -80,6 +82,53 @@ export function presentationSoundNotes(cue: PresentationSoundCue) {
         offset: index * 0.19,
         duration: 0.32,
       }));
+    case 'reveal':
+      return [
+        { frequency: 660, offset: 0, duration: 0.1 },
+        { frequency: 660, offset: 0.16, duration: 0.14 },
+      ];
+    case 'accepted':
+      return [
+        { frequency: 659.25, offset: 0, duration: 0.11 },
+        { frequency: 783.99, offset: 0.14, duration: 0.11 },
+        { frequency: 1046.5, offset: 0.28, duration: 0.22 },
+      ];
+    case 'rejected':
+      return [
+        { frequency: 392, offset: 0, duration: 0.14 },
+        { frequency: 329.63, offset: 0.19, duration: 0.22 },
+      ];
+    case 'result':
+      return [
+        { frequency: 523.25, offset: 0, duration: 0.16 },
+        { frequency: 783.99, offset: 0.2, duration: 0.16 },
+        { frequency: 1046.5, offset: 0.4, duration: 0.26 },
+      ];
+    case 'complete':
+      return [
+        { frequency: 523.25, offset: 0, duration: 0.14 },
+        { frequency: 659.25, offset: 0.18, duration: 0.14 },
+        { frequency: 783.99, offset: 0.36, duration: 0.18 },
+        { frequency: 1046.5, offset: 0.62, duration: 0.22 },
+        { frequency: 783.99, offset: 0.88, duration: 0.18 },
+        { frequency: 1046.5, offset: 1.12, duration: 0.38 },
+      ];
+  }
+}
+
+function voiceGain(cue: PresentationSoundCue) {
+  switch (cue) {
+    case 'warning':
+      return WARNING_VOICE_GAIN;
+    case 'rejected':
+      return REJECTED_VOICE_GAIN;
+    case 'reveal':
+    case 'accepted':
+    case 'result':
+    case 'complete':
+      return RELEASE_VOICE_GAIN;
+    default:
+      return VOICE_GAIN;
   }
 }
 
@@ -94,8 +143,7 @@ export function playPresentationSound(
   // clicks must not stack gain or leave old melodies waiting to play later.
   stopCurrentCue(context);
   if (context.state !== 'running' || volume <= 0) return false;
-  const amplitude =
-    Math.min(1, volume) * (cue === 'warning' ? WARNING_VOICE_GAIN : VOICE_GAIN);
+  const amplitude = Math.min(1, volume) * voiceGain(cue);
   const voices = new Set<SoundVoice>();
   currentVoices.set(context, voices);
   for (const note of presentationSoundNotes(cue)) {
@@ -109,8 +157,8 @@ export function playPresentationSound(
       amplitude,
       at + (cue === 'warning' ? 0.02 : 0.012),
     );
-    // Warning tones never overlap. Other cues retain their softer gain and
-    // at most two overlapping notes; both keep headroom at maximum volume.
+    // Warning and release phrases never overlap. Countdown melodies retain
+    // their softer gain and at most two voices, keeping full-scale headroom.
     gain.gain.setValueAtTime(
       amplitude,
       at + note.duration - Math.max(0.03, note.duration * 0.35),

@@ -28,6 +28,7 @@ import PresentationDisplaySettings from '@/components/operator/PresentationDispl
 import { usePresentationDisplayPreferences } from '@/domains/submissionScoreboard/presentationDisplayPreferences';
 import { usePresentationAnnouncements } from '@/domains/submissionScoreboard/usePresentationAnnouncements';
 import { usePresentationSound } from '@/domains/submissionScoreboard/presentationSound';
+import { usePresentationReleaseSounds } from '@/domains/submissionScoreboard/usePresentationReleaseSounds';
 
 function useNow(intervalMs = 250) {
   const [now, setNow] = useState(() => Date.now());
@@ -483,6 +484,16 @@ export function OperatorScoreboardPresentationContent({
         new Date(contest.end_at).getTime() <= now)),
   );
   const isBeforeContestStart = !isEnded && Boolean(startsAt && startsAt > now);
+  usePresentationReleaseSounds({
+    contestId,
+    sections: visibleSections,
+    ended: isEnded,
+    updatedAt: presentationQuery.dataUpdatedAt,
+    onCue: sound.play,
+    suppressed: Boolean(
+      timerState?.showPresentationCountdown || activeAnnouncement,
+    ),
+  });
   const shellClassName = isBeforeContestStart
     ? 'mx-auto grid min-h-[calc(100vh-clamp(1.5rem,2.8vw,2.8rem))] w-full max-w-[118rem] content-center gap-[clamp(1rem,2vw,2rem)]'
     : 'mx-auto grid w-full max-w-[118rem] gap-[clamp(0.75rem,1.3vw,1.35rem)]';

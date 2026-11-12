@@ -5,6 +5,37 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import './AboutPage.css';
 
+const operatingHistory = [
+  {
+    title: '2026 ZOAC',
+    name: 'Zero One Algorithm Contest',
+    badge: '최근 실운영',
+    date: '2026-11-12',
+    dateLabel: '2026. 11. 12',
+    hours: 3,
+    stats: [
+      ['16', '참가팀', '팀', '참가자 16명'],
+      ['77', '코드 제출', '건', '대회 중 참가자 제출'],
+      ['10', '문제', '개', '출제 문제 수'],
+      ['569', '테스트케이스', '개', '운영 테스트 수'],
+    ],
+  },
+  {
+    title: 'HEPC 2026',
+    name: 'Hanyang ERICA Programming Contest',
+    badge: '첫 실운영',
+    date: '2026-05-28',
+    dateLabel: '2026. 05. 28',
+    hours: 2,
+    stats: [
+      ['30', '참가팀', '팀', '참가자 51명'],
+      ['350', '코드 제출', '건', '전체 제출 건수'],
+      ['15', '문제', '개', '출제 문제 수'],
+      ['728', '테스트케이스', '개', '등록된 테스트 수'],
+    ],
+  },
+];
+
 const stages = [
   {
     label: '문제 준비',
@@ -336,100 +367,37 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
-          <article
-            className="about-zoac-case"
-            aria-labelledby="about-zoac-heading"
-            data-reveal
-          >
-            <header className="about-zoac-case__header">
-              <span className="about-event-badge">최신 운영 사례</span>
-              <time dateTime="2026-11-12">2026. 11. 12</time>
-            </header>
-            <div className="about-zoac-case__body">
-              <div className="about-zoac-case__copy">
-                <h3 id="about-zoac-heading">2026 ZOAC</h3>
-                <p className="about-zoac-case__name">
-                  Zero One Algorithm Contest
+          {operatingHistory.map((event) => (
+            <article
+              className="about-event-history"
+              aria-label={event.title}
+              key={event.title}
+            >
+              <div className="about-event-banner" data-reveal>
+                <div>
+                  <span className="about-event-badge">{event.badge}</span>
+                  <strong>{event.title}</strong>
+                  <span>{event.name}</span>
+                </div>
+                <p>
+                  <time dateTime={event.date}>{event.dateLabel}</time>
+                  <span>·</span> 진행 시간 {event.hours}시간
                 </p>
-                <p className="about-zoac-case__lead">
-                  16개 팀의 경쟁을 하나의 플랫폼에서.
-                </p>
-                <p className="about-zoac-case__description">
-                  16개 팀이 참여한 3시간의 알고리즘 경연. 참가자 관리와 문제
-                  공개부터 코드 제출·자동 채점, 스코어보드까지 대회 전반의
-                  운영을 ZOJ 한곳에 모았습니다. 스코어보드 프리즈와 리졸버
-                  방식의 순위 공개를 갖춰, 대회 진행부터 결과 발표까지 이어지는
-                  운영 흐름을 지원했습니다.
-                </p>
-                <ul
-                  className="about-zoac-case__features"
-                  aria-label="운영 범위"
-                >
-                  <li>참가자 관리·문제 공개</li>
-                  <li>코드 제출·자동 채점</li>
-                  <li>프리즈·리졸버</li>
-                </ul>
               </div>
-              <dl className="about-zoac-case__stats">
-                <div>
-                  <dt>참가팀</dt>
-                  <dd>
-                    16<span>팀</span>
-                  </dd>
-                  <p>실제 대회에 함께한 팀</p>
-                </div>
-                <div>
-                  <dt>대회 진행</dt>
-                  <dd>
-                    3<span>시간</span>
-                  </dd>
-                  <p>알고리즘 경연 운영</p>
-                </div>
+              <dl className="about-stats" data-reveal>
+                {event.stats.map(([value, label, unit, text]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>
+                      {value}
+                      <span>{unit}</span>
+                    </dd>
+                    <p>{text}</p>
+                  </div>
+                ))}
               </dl>
-            </div>
-            <footer className="about-zoac-case__footer">
-              <p>한양대학교 ERICA 알고리즘 학회 영과일</p>
-              <Link
-                className="about-text-link"
-                to="/contests/755cab93-4cab-4926-9f71-09a237bde73f"
-              >
-                대회 개요 보기 <Arrow />
-              </Link>
-            </footer>
-          </article>
-          <div className="about-event-banner" data-reveal>
-            <div>
-              <span className="about-event-badge">첫 실운영</span>
-              <strong>HEPC 2026</strong>
-              <span>Hanyang ERICA Programming Contest</span>
-            </div>
-            <p>
-              2026. 05. 28 <span>·</span> 진행 시간 2시간
-            </p>
-          </div>
-          <dl className="about-stats" data-reveal>
-            {[
-              ['30', '참가팀', '참가자 51명'],
-              ['350', '코드 제출', '전체 제출 건수'],
-              ['15', '문제', '출제 문제 수'],
-              ['728', '테스트케이스', '등록된 테스트 수'],
-            ].map(([value, label, text]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>
-                  {value}
-                  <span>
-                    {label === '참가팀'
-                      ? '팀'
-                      : label === '코드 제출'
-                        ? '건'
-                        : '개'}
-                  </span>
-                </dd>
-                <p>{text}</p>
-              </div>
-            ))}
-          </dl>
+            </article>
+          ))}
         </div>
       </section>
 

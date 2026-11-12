@@ -291,7 +291,7 @@ function ProblemStatsBlock({
           accepted_submissions: 0,
           accepted_team_count: 0,
           attempted_team_count: 0,
-          total_team_count: 0,
+          total_team_count: undefined,
           acceptance_rate: null,
           team_acceptance_rate: null,
           first_accepted_team_id: null,
@@ -323,8 +323,9 @@ function ProblemStatsBlock({
           </h3>
         </div>
         <div className="grid gap-1 text-xs font-medium text-slate-500">
-          <p>제출: 정답 제출 / 전체 제출 · 팀: 정답 팀 / 시도한 팀</p>
-          <p>같은 팀이 여러 번 제출해도 팀 정답률에서는 한 팀으로 셉니다.</p>
+          <p>제출: 정답 제출 / 전체 제출 · 시도 팀: 풀이 성공 팀 / 시도 팀</p>
+          <p>문제: 풀이 성공 팀 / 전체 팀</p>
+          <p>팀은 선택한 유형 기준이며, 중복 집계하지 않습니다.</p>
         </div>
       </div>
 
@@ -335,7 +336,9 @@ function ProblemStatsBlock({
         tabIndex={0}
       >
         <table className="w-full min-w-[960px] border-collapse text-left text-sm">
-          <caption className="sr-only">문제별 제출 정답률과 팀 정답률</caption>
+          <caption className="sr-only">
+            문제별 제출 정답률, 시도 팀 정답률과 문제 정답률
+          </caption>
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
             <tr>
               <th className="border-r border-slate-200 px-4 py-3">문제</th>
@@ -343,10 +346,10 @@ function ProblemStatsBlock({
                 제출 정답률
               </th>
               <th className="min-w-40 border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
-                팀 정답률
+                시도 팀 정답률
               </th>
-              <th className="border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
-                전체 팀 중 정답
+              <th className="min-w-40 border-r border-slate-200 px-4 py-3 text-right whitespace-nowrap">
+                문제 정답률
               </th>
               <th className="border-r border-slate-200 px-4 py-3">
                 첫 정답 팀
@@ -384,12 +387,24 @@ function ProblemStatsBlock({
                         : `정답 ${stat.accepted_team_count.toLocaleString('ko-KR')} / 시도 ${stat.attempted_team_count.toLocaleString('ko-KR')}팀`}
                   </span>
                 </td>
-                <td className="border-r border-slate-100 px-4 py-3 text-right font-medium whitespace-nowrap text-slate-700">
-                  {stat.accepted_team_count.toLocaleString('ko-KR')}
-                  <span className="ml-1 text-xs font-medium text-slate-400">
+                <td className="border-r border-slate-100 px-4 py-3 text-right whitespace-nowrap">
+                  <span className="block font-semibold text-indigo-700">
+                    {formatAcceptanceRate(
+                      stat.total_team_count !== undefined &&
+                        stat.total_team_count > 0
+                        ? Math.round(
+                            (stat.accepted_team_count / stat.total_team_count) *
+                              1000,
+                          ) / 10
+                        : null,
+                    )}
+                  </span>
+                  <span className="mt-1 block text-xs font-medium text-slate-500">
                     {stat.total_team_count === undefined
-                      ? '팀'
-                      : `/ ${stat.total_team_count.toLocaleString('ko-KR')}팀`}
+                      ? `풀이 성공 ${stat.accepted_team_count.toLocaleString('ko-KR')}팀 · 전체 팀 집계 없음`
+                      : stat.total_team_count === 0
+                        ? '등록 팀 없음'
+                        : `풀이 성공 ${stat.accepted_team_count.toLocaleString('ko-KR')} / 전체 ${stat.total_team_count.toLocaleString('ko-KR')}팀`}
                   </span>
                 </td>
                 <td className="zoj-break-anywhere border-r border-slate-100 px-4 py-3 font-medium text-slate-700">
@@ -1034,7 +1049,7 @@ function OperatorScoreboardContent({
             rows={rows}
           />
         ) : null}
-        {canViewSelectedBoard && scoreboardQuery.data ? (
+        {liveView && canViewSelectedBoard && scoreboardQuery.data ? (
           <ProblemStatsBlock problemStats={problemStats} problems={problems} />
         ) : null}
         {canViewSelectedBoard &&

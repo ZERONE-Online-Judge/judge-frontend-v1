@@ -26,7 +26,9 @@ let session,
   viewReads,
   participantGate,
   wrongProjection,
-  problemStatsOverride;
+  problemStatsOverride,
+  availableDivisions,
+  problemStatsByDivision;
 const division = { division_id: 'division', name: '일반부' };
 const row = {
   rank: 1,
@@ -74,7 +76,7 @@ const mocks = {
   '@/domains/contestAdministration/api': {
     getOperatorContestDashboard: async () => {
       reads.dashboard += 1;
-      return { contest, divisions: [division] };
+      return { contest, divisions: availableDivisions };
     },
     updateContestSettings: async (contestId, token, body) => {
       changes.push({ kind: 'settings', contestId, token, body });
@@ -119,7 +121,8 @@ const mocks = {
         operator_live_view: live,
         frozen_public_view: true,
         problem_stats: live
-          ? (problemStatsOverride ?? [
+          ? (problemStatsByDivision?.[_divisionId] ??
+            problemStatsOverride ?? [
               {
                 problem_id: 'problem',
                 problem_code: 'A',
@@ -261,6 +264,8 @@ beforeEach(() => {
   participantGate = null;
   wrongProjection = false;
   problemStatsOverride = null;
+  availableDivisions = [division];
+  problemStatsByDivision = null;
   release = {
     mode: 'not_started',
     ranks: [],
@@ -791,6 +796,7 @@ test('operators toggle the participant projection without changing contest setti
 
 test('participant loading never displays cached internal results or an old penalty dialog', async () => {
   await render();
+  assert.ok(problemStatsRegion());
   await click(container.querySelector('table tbody tr td:last-child button'));
   assert.ok(document.querySelector('dialog'));
   let finish;
@@ -800,6 +806,7 @@ test('participant loading never displays cached internal results or an old penal
   await click(button('참가자 기준'));
   assert.equal(document.querySelector('dialog'), null);
   assert.doesNotMatch(container.textContent, /확인할 팀/);
+  assert.equal(problemStatsRegion(), null);
   await act(async () => finish());
   await flush();
   assert.match(container.textContent, /참가자 표시 팀/);
@@ -856,7 +863,7 @@ function problemStatsRegion() {
   );
 }
 
-test('problem statistics distinguish submission and team rates with explicit denominators', async () => {
+test('problem statistics distinguish submission, attempted-team and overall-team rates with explicit denominators', async () => {
   problemStatsOverride = [
     {
       problem_id: 'problem',
@@ -865,7 +872,7 @@ test('problem statistics distinguish submission and team rates with explicit den
       accepted_submissions: 6,
       accepted_team_count: 2,
       attempted_team_count: 5,
-      total_team_count: 17,
+      total_team_count: 10,
       acceptance_rate: 60,
       team_acceptance_rate: 40,
     },
@@ -879,8 +886,8 @@ test('problem statistics distinguish submission and team rates with explicit den
   assert.deepEqual(headers, [
     '문제',
     '제출 정답률',
-    '팀 정답률',
-    '전체 팀 중 정답',
+    '시도 팀 정답률',
+    '문제 정답률',
     '첫 정답 팀',
     '첫 정답 시간',
   ]);
@@ -889,10 +896,12 @@ test('problem statistics distinguish submission and team rates with explicit den
   assert.match(cells[1].textContent, /정답 6 \/ 제출 10건/);
   assert.match(cells[2].textContent, /40%/);
   assert.match(cells[2].textContent, /정답 2 \/ 시도 5팀/);
-  assert.equal(cells[3].textContent.replace(/\s/g, ''), '2/17팀');
+  assert.equal(cells[3].querySelector('span').textContent, '20%');
+  assert.match(cells[3].textContent, /풀이 성공 2 \/ 전체 10팀/);
+  assert.match(container.textContent, /문제: 풀이 성공 팀 \/ 전체 팀/);
   assert.match(
     container.textContent,
-    /같은 팀이 여러 번 제출해도 팀 정답률에서는 한 팀/,
+    /팀은 선택한 유형 기준.*중복 집계하지 않습니다/,
   );
 });
 
@@ -928,9 +937,13 @@ test('statistics distinguish no attempts from attempts with no accepted teams', 
   assert.match(empty[1].textContent, /제출 없음/);
   assert.equal(empty[2].querySelector('span').textContent, '-');
   assert.match(empty[2].textContent, /시도 없음/);
+  assert.equal(empty[3].querySelector('span').textContent, '0%');
+  assert.match(empty[3].textContent, /풀이 성공 0 \/ 전체 17팀/);
   const attempted = rows[1].querySelectorAll('td');
   assert.equal(attempted[2].querySelector('span').textContent, '0%');
   assert.match(attempted[2].textContent, /정답 0 \/ 시도 3팀/);
+  assert.equal(attempted[3].querySelector('span').textContent, '0%');
+  assert.match(attempted[3].textContent, /풀이 성공 0 \/ 전체 17팀/);
 });
 
 test('missing historical team metrics are not inferred from all contest teams', async () => {
@@ -948,7 +961,110 @@ test('missing historical team metrics are not inferred from all contest teams', 
   const cells = problemStatsRegion().querySelectorAll('tbody td');
   assert.equal(cells[2].querySelector('span').textContent, '-');
   assert.match(cells[2].textContent, /집계 정보 없음/);
-  assert.equal(cells[3].textContent.replace(/\s/g, ''), '2팀');
+  assert.equal(cells[3].querySelector('span').textContent, '-');
+  assert.match(cells[3].textContent, /풀이 성공 2팀 · 전체 팀 집계 없음/);
+});
+
+test('overall problem rates show no denominator when a division has no registered teams', async () => {
+  problemStatsOverride = [
+    {
+      problem_id: 'problem',
+      problem_code: 'A',
+      total_submissions: 0,
+      accepted_submissions: 0,
+      accepted_team_count: 0,
+      attempted_team_count: 0,
+      total_team_count: 0,
+      acceptance_rate: null,
+      team_acceptance_rate: null,
+    },
+  ];
+  await render();
+  const cells = problemStatsRegion().querySelectorAll('tbody td');
+  assert.equal(cells[3].querySelector('span').textContent, '-');
+  assert.match(cells[3].textContent, /등록 팀 없음/);
+  assert.doesNotMatch(cells[3].textContent, /0%|NaN|Infinity/);
+});
+
+test('a problem missing from aggregate results does not claim that its division has no teams', async () => {
+  session.operatorSession.staff.contest_scopes.contest.push(
+    'contest.problem.view',
+  );
+  problemStatsOverride = [
+    {
+      problem_id: 'other-problem',
+      problem_code: 'B',
+      total_submissions: 4,
+      accepted_submissions: 2,
+      accepted_team_count: 1,
+      attempted_team_count: 2,
+      total_team_count: 10,
+      acceptance_rate: 50,
+      team_acceptance_rate: 50,
+    },
+  ];
+  await render();
+  const cells = problemStatsRegion()
+    .querySelector('tbody tr')
+    .querySelectorAll('td');
+  assert.match(cells[0].textContent, /A\. 두 수의 합/);
+  assert.equal(cells[3].querySelector('span').textContent, '-');
+  assert.match(cells[3].textContent, /전체 팀 집계 없음/);
+  assert.doesNotMatch(cells[3].textContent, /등록 팀 없음|0%/);
+});
+
+test('overall problem rates use the selected division counts and round repeating percentages once', async () => {
+  availableDivisions = [
+    division,
+    { division_id: 'other-division', name: '특별부' },
+  ];
+  const statistics = {
+    problem_id: 'problem',
+    problem_code: 'A',
+    total_submissions: 10,
+    accepted_submissions: 6,
+    accepted_team_count: 2,
+    attempted_team_count: 5,
+    total_team_count: 10,
+    acceptance_rate: 60,
+    team_acceptance_rate: 40,
+  };
+  problemStatsByDivision = {
+    division: [statistics],
+    'other-division': [
+      {
+        ...statistics,
+        accepted_team_count: 1,
+        attempted_team_count: 2,
+        total_team_count: 3,
+        team_acceptance_rate: 50,
+      },
+    ],
+  };
+  await render();
+  let cells = problemStatsRegion().querySelectorAll('tbody td');
+  assert.equal(cells[2].querySelector('span').textContent, '40%');
+  assert.equal(cells[3].querySelector('span').textContent, '20%');
+  const divisionSelect = container.querySelector('select');
+  assert.ok(divisionSelect);
+  await act(async () => {
+    divisionSelect.value = 'other-division';
+    divisionSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  await flush();
+  cells = problemStatsRegion().querySelectorAll('tbody td');
+  assert.equal(cells[2].querySelector('span').textContent, '50%');
+  assert.equal(cells[3].querySelector('span').textContent, '33.3%');
+  assert.match(cells[3].textContent, /풀이 성공 1 \/ 전체 3팀/);
+  await act(async () => {
+    divisionSelect.value = 'division';
+    divisionSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  await flush();
+  cells = problemStatsRegion().querySelectorAll('tbody td');
+  assert.equal(cells[3].querySelector('span').textContent, '20%');
+  assert.match(cells[3].textContent, /풀이 성공 2 \/ 전체 10팀/);
+  assert.deepEqual(changes, []);
 });
 
 test('a public projection without aggregate statistics does not fabricate zero-rate rows', async () => {

@@ -13,8 +13,9 @@ import {
   storedPresentationDivisions,
 } from '@/domains/submissionScoreboard/presentationOptions';
 import ModalDialog from '@/shared/ui/ModalDialog';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   keepPreviousData,
   useMutation,
@@ -852,19 +853,15 @@ function OperatorScoreboardContent({
           <p className="text-sm leading-6 text-slate-600">
             {releaseOption.description}
           </p>
-          <ol className="flex flex-wrap gap-2" aria-label="공개 진행 순서">
-            {releaseOption.flow.map((step, index) => (
-              <li
-                key={step}
-                className="rounded-lg border border-indigo-100 bg-white px-3 py-2 text-xs font-medium text-slate-700"
-              >
-                <span className="mr-2 font-semibold text-indigo-600">
-                  {index + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
+          <div className="py-1">
+            <Link
+              to={`/operator/contests/${contestId}/guide?section=scoreboard&article=scoreboard-practice#guide-scoreboard-practice`}
+              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-fit"
+            >
+              미리 체험해보기
+              <InterfaceIcon name="arrowRight" size={20} />
+            </Link>
+          </div>
           <p className="text-xs leading-5 text-slate-500">
             {releaseMode === 'immediate'
               ? ended

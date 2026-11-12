@@ -448,7 +448,7 @@ test('revoking live permission cannot reuse the cached internal board', async ()
   assert.equal(button('프레젠테이션 팝업'), undefined);
 });
 
-test('viewers see the selected release flow before and after end without management requests', async () => {
+test('viewers can open the release practice guide before and after end without management requests', async () => {
   contest.scoreboard_release_mode = 'resolver';
   await render();
   const summary = container.querySelector(
@@ -456,13 +456,20 @@ test('viewers see the selected release flow before and after end without managem
   );
   assert.match(summary.textContent, /결과 순차 공개 \(리졸버\)/);
   assert.match(summary.textContent, /대회가 종료되면/);
-  assert.equal(summary.querySelectorAll('li').length, 3);
+  assert.equal(summary.querySelector('[aria-label="공개 진행 순서"]'), null);
+  const practiceLink = summary.querySelector('a');
+  assert.match(practiceLink.textContent, /미리 체험해보기/);
+  assert.equal(
+    practiceLink.getAttribute('href'),
+    '/operator/contests/contest/guide?section=scoreboard&article=scoreboard-practice#guide-scoreboard-practice',
+  );
   contest = { ...contest, status: 'ended' };
   await act(async () =>
     client.invalidateQueries({ queryKey: ['operator', 'dashboard'] }),
   );
   await flush();
   assert.match(summary.textContent, /관리 권한이 있는 운영자/);
+  assert.equal(summary.querySelector('a'), practiceLink);
   assert.equal(button('결과 순차 공개 시작'), undefined);
   assert.equal(reads.release, 0);
 });

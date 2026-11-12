@@ -6,7 +6,7 @@ import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { getPresentationScoreboard } from '@/domains/presentationAccess/api';
 import { usePresentationSession } from '@/domains/presentationAccess/session';
 import { isSessionAuthError } from '@/shared/api/errors';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OperatorAccessGate } from '@/components/operator/OperatorShell';
@@ -24,6 +24,10 @@ import type {
 } from '@/domains/submissionScoreboard/types';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import { formatApiError } from '@/shared/api/errors';
+import PresentationDisplaySettings from '@/components/operator/PresentationDisplaySettings';
+import { usePresentationDisplayPreferences } from '@/domains/submissionScoreboard/presentationDisplayPreferences';
+import { usePresentationAnnouncements } from '@/domains/submissionScoreboard/usePresentationAnnouncements';
+import { usePresentationSound } from '@/domains/submissionScoreboard/presentationSound';
 
 function useNow(intervalMs = 250) {
   const [now, setNow] = useState(() => Date.now());
@@ -101,7 +105,7 @@ function PresentationScoreCell({ score }: { score?: ScoreboardProblemScore }) {
   if (score?.pending_attempts && !score.solved) {
     return (
       <span
-        className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950"
+        className="presentation-score is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950"
         title={`미공개 제출 ${score.pending_attempts}건`}
         aria-label={`미공개 제출 ${score.pending_attempts}건`}
       >
@@ -111,7 +115,7 @@ function PresentationScoreCell({ score }: { score?: ScoreboardProblemScore }) {
   }
   const label = solvedLabel(score);
   if (!label) {
-    return <span className="text-white/20">-</span>;
+    return <span className="presentation-score is-empty text-white/20">-</span>;
   }
 
   return (
@@ -119,8 +123,8 @@ function PresentationScoreCell({ score }: { score?: ScoreboardProblemScore }) {
       className={[
         'inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black',
         score?.solved
-          ? 'bg-emerald-300 text-slate-950'
-          : 'bg-rose-300 text-slate-950 ring-1 ring-rose-100/35',
+          ? 'presentation-score is-solved bg-emerald-300 text-slate-950'
+          : 'presentation-score is-wrong bg-rose-300 text-slate-950 ring-1 ring-rose-100/35',
       ].join(' ')}
     >
       {label}
@@ -140,21 +144,21 @@ function PresentationDivisionBoard({
   const lastEvent = section.release?.resolver?.last_event;
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-[0.85rem] border border-indigo-300/15 bg-slate-950/55 p-[clamp(0.8rem,1.4vw,1.2rem)] shadow-[0_1.25rem_4rem_rgba(0,0,0,0.28)] backdrop-blur">
-      <header className="flex items-end justify-between gap-3 pb-3">
+    <section className="presentation-board min-w-0 overflow-hidden rounded-[0.85rem] border border-indigo-300/15 bg-slate-950/55 p-[clamp(0.8rem,1.4vw,1.2rem)] shadow-[0_1.25rem_4rem_rgba(0,0,0,0.28)] backdrop-blur">
+      <header className="presentation-board-header flex items-end justify-between gap-3 pb-3">
         <div className="min-w-0">
-          <p className="text-[0.6rem] font-black tracking-[0.28em] text-violet-300 uppercase">
+          <p className="presentation-board-meta text-[0.6rem] font-black tracking-[0.28em] text-violet-300 uppercase">
             Division
           </p>
-          <h2 className="truncate text-[clamp(1.35rem,2.4vw,2.45rem)] leading-none font-black tracking-normal text-white">
+          <h2 className="presentation-board-title truncate text-[clamp(1.35rem,2.4vw,2.45rem)] leading-none font-black tracking-normal text-white">
             {section.division.name}
           </h2>
         </div>
         <span
           className={[
-            'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black',
+            'presentation-board-status inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black',
             section.frozen
-              ? 'border-amber-300/40 bg-amber-300/10 text-amber-100'
+              ? 'is-frozen border-amber-300/40 bg-amber-300/10 text-amber-100'
               : 'border-violet-300/25 bg-violet-300/10 text-violet-100',
           ].join(' ')}
         >
@@ -173,7 +177,7 @@ function PresentationDivisionBoard({
       </header>
 
       {section.release?.resolver && section.release.mode !== 'not_started' ? (
-        <p className="mb-3 text-xs font-semibold text-violet-200/80">
+        <p className="presentation-reveal-progress mb-3 text-xs font-semibold text-violet-200/80">
           팀·문제 공개 {section.release.resolver.step} /{' '}
           {section.release.resolver.total_steps}
           <span className="ml-3">
@@ -181,9 +185,9 @@ function PresentationDivisionBoard({
           </span>
         </p>
       ) : null}
-      <div className="overflow-x-auto">
+      <div className="presentation-board-scroll overflow-x-auto">
         <table
-          className="w-full border-collapse text-left"
+          className="presentation-board-table w-full border-collapse text-left"
           style={{ minWidth: `${gridMinWidth}px` }}
         >
           <thead>
@@ -220,10 +224,10 @@ function PresentationDivisionBoard({
                     <tr
                       key={row.team_id}
                       data-scoreboard-row={row.team_id}
-                      className="border-b border-white/10 bg-white/[0.03]"
+                      className="presentation-board-row is-waiting border-b border-white/10 bg-white/[0.03]"
                     >
                       <td
-                        className="px-3 py-4 text-lg font-black text-violet-300"
+                        className="presentation-board-rank px-3 py-4 text-lg font-black text-violet-300"
                         aria-label={
                           row.rank_is_final === false
                             ? `프리즈 ${row.rank}위`
@@ -231,7 +235,7 @@ function PresentationDivisionBoard({
                         }
                       >
                         {row.rank_is_final === false ? (
-                          <span className="mb-1 block text-[0.6rem] font-medium text-white/60">
+                          <span className="presentation-board-rank-label mb-1 block text-[0.6rem] font-medium text-white/60">
                             프리즈
                           </span>
                         ) : null}
@@ -239,7 +243,7 @@ function PresentationDivisionBoard({
                       </td>
                       <td
                         colSpan={3 + problemCodes.length}
-                        className="px-3 py-4 text-sm font-bold text-white/35"
+                        className="presentation-board-meta px-3 py-4 text-sm font-bold text-white/35"
                       >
                         공개 대기
                       </td>
@@ -249,12 +253,12 @@ function PresentationDivisionBoard({
 
                 return (
                   <tr
-                    className={`border-b border-white/5 last:border-b-0 ${lastEvent?.team_id === row.team_id ? 'bg-violet-500/25' : row.is_revealed ? 'bg-violet-500/15' : 'odd:bg-white/[0.035]'}`}
+                    className={`presentation-board-row border-b border-white/5 last:border-b-0 ${lastEvent?.team_id === row.team_id ? 'is-active bg-violet-500/25' : row.is_revealed ? 'is-revealed bg-violet-500/15' : 'odd:bg-white/[0.035]'}`}
                     key={`${section.division.division_id}-${row.team_id ?? row.team_name}`}
                     data-scoreboard-row={row.team_id ?? row.team_name}
                   >
                     <td
-                      className="px-3 py-2.5 text-[clamp(0.9rem,1.3vw,1.15rem)] font-black text-violet-300"
+                      className="presentation-board-rank px-3 py-2.5 text-[clamp(0.9rem,1.3vw,1.15rem)] font-black text-violet-300"
                       aria-label={
                         row.rank_is_final === undefined
                           ? undefined
@@ -262,7 +266,7 @@ function PresentationDivisionBoard({
                       }
                     >
                       {row.rank_is_final === false ? (
-                        <span className="mb-1 block text-[0.6rem] font-medium text-white/60">
+                        <span className="presentation-board-rank-label mb-1 block text-[0.6rem] font-medium text-white/60">
                           프리즈
                         </span>
                       ) : null}
@@ -270,7 +274,7 @@ function PresentationDivisionBoard({
                     </td>
                     <td className="max-w-64 px-3 py-2.5">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-[clamp(0.8rem,1vw,0.92rem)] font-semibold text-white">
+                        <span className="presentation-board-team truncate text-[clamp(0.8rem,1vw,0.92rem)] font-semibold text-white">
                           {row.team_name}
                         </span>
                         <ScoreboardMedal release={section.release} row={row} />
@@ -278,12 +282,12 @@ function PresentationDivisionBoard({
                       {row.rank_is_final === undefined &&
                       row.is_finalized &&
                       section.release?.mode !== 'all' ? (
-                        <span className="mt-0.5 block text-[0.6rem] font-medium text-emerald-300">
+                        <span className="presentation-board-meta mt-0.5 block text-[0.6rem] font-medium text-emerald-300">
                           결과 공개 완료
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
+                    <td className="presentation-board-solved px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
                       {row.solved}
                     </td>
                     {problemCodes.map((code) => (
@@ -291,7 +295,7 @@ function PresentationDivisionBoard({
                         <PresentationScoreCell score={scores.get(code)} />
                       </td>
                     ))}
-                    <td className="px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
+                    <td className="presentation-board-penalty px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
                       {penaltyLabel(row.penalty)}
                     </td>
                   </tr>
@@ -303,7 +307,7 @@ function PresentationDivisionBoard({
       </div>
 
       {section.rows.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm font-bold text-white/50">
+        <p className="presentation-board-meta px-5 py-8 text-center text-sm font-bold text-white/50">
           표시할 팀이 없습니다.
         </p>
       ) : null}
@@ -344,7 +348,10 @@ export function OperatorScoreboardPresentationContent({
   now: number;
   token: string;
 }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { theme, fontScale, setTheme, setFontScale } =
+    usePresentationDisplayPreferences();
+  const sound = usePresentationSound();
   const divisionIds = useMemo(
     () => [...new Set(searchParams.getAll('divisionId').filter(Boolean))],
     [searchParams],
@@ -365,6 +372,12 @@ export function OperatorScoreboardPresentationContent({
   );
   const presentationQuery = useQuery({
     queryKey,
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[0] === queryKey[0] &&
+      previousQuery?.queryKey[3] === contestId &&
+      previousQuery?.queryKey[4] === queryIdentity
+        ? previous
+        : undefined,
     queryFn: () =>
       displayOnly
         ? getPresentationScoreboard(
@@ -414,6 +427,48 @@ export function OperatorScoreboardPresentationContent({
     : sections;
   const titleParts = splitContestTitle(contest?.title);
   const timerState = contest ? contestTimerState(contest, now, true) : null;
+  const { activeAnnouncement, dismiss } = usePresentationAnnouncements({
+    contest,
+    now,
+    onCue: sound.play,
+    suppressed: Boolean(timerState?.showPresentationCountdown),
+  });
+  const availableDivisions =
+    presentationQuery.data?.available_divisions ??
+    sections.map((section) => section.division);
+  const frameProperties = {
+    'data-presentation-theme': theme,
+    style: { '--presentation-font-scale': fontScale } as CSSProperties,
+  };
+  const displaySettings = (
+    <PresentationDisplaySettings
+      theme={theme}
+      fontScale={fontScale}
+      onThemeChange={setTheme}
+      onFontScaleChange={setFontScale}
+      availableDivisions={availableDivisions}
+      selectedDivisionIds={divisionIds}
+      onDivisionIdsChange={(ids) => {
+        const next = new URLSearchParams(searchParams);
+        next.delete('divisionId');
+        ids.forEach((id) => next.append('divisionId', id));
+        setSearchParams(next, { replace: true });
+      }}
+      soundEnabled={sound.enabled && sound.unlocked}
+      onSoundEnabledChange={(enabled) => {
+        if (enabled) void sound.enable();
+        else sound.disable();
+      }}
+      onTestSound={() => void sound.test()}
+      soundStatus={
+        !sound.supported
+          ? '이 브라우저는 효과음을 지원하지 않습니다.'
+          : sound.enabled && sound.unlocked
+            ? '효과음 사용 중'
+            : '효과음을 켜면 일정 알림과 카운트다운에 소리가 납니다.'
+      }
+    />
+  );
   const startsAt = contest?.start_at ? new Date(contest.start_at).getTime() : 0;
   const isEnded = Boolean(
     contest &&
@@ -434,8 +489,12 @@ export function OperatorScoreboardPresentationContent({
 
   if (!contest && presentationQuery.isLoading) {
     return (
-      <section className="fixed inset-0 z-[100] grid place-items-center bg-[#090b14] px-6 py-6 text-white">
-        <div className="rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
+      <section
+        {...frameProperties}
+        className="presentation-display fixed inset-0 z-[100] grid place-items-center bg-[#090b14] px-6 py-6 text-white"
+      >
+        {displaySettings}
+        <div className="presentation-message rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
           스코어보드를 불러오는 중입니다.
         </div>
       </section>
@@ -444,8 +503,12 @@ export function OperatorScoreboardPresentationContent({
 
   if (presentationQuery.error && (!contest || displayOnly)) {
     return (
-      <section className="fixed inset-0 z-[100] grid place-items-center bg-[#090b14] px-6 py-6 text-white">
-        <div className="rounded border border-rose-400/40 bg-rose-500/15 px-5 py-4 text-sm font-black text-rose-100">
+      <section
+        {...frameProperties}
+        className="presentation-display fixed inset-0 z-[100] grid place-items-center bg-[#090b14] px-6 py-6 text-white"
+      >
+        {displaySettings}
+        <div className="presentation-message is-error rounded border border-rose-400/40 bg-rose-500/15 px-5 py-4 text-sm font-black text-rose-100">
           {formatApiError(
             presentationQuery.error,
             '프레젠테이션 스코어보드를 불러오지 못했습니다',
@@ -458,9 +521,11 @@ export function OperatorScoreboardPresentationContent({
   if (contest && timerState?.showPresentationCountdown) {
     return (
       <section
-        className="presentation-contest-countdown"
+        {...frameProperties}
+        className="presentation-display presentation-countdown presentation-contest-countdown"
         aria-label="프레젠테이션 카운트다운"
       >
+        {displaySettings}
         <header>
           <p>ZOJ · PRESENTATION SCOREBOARD</p>
           <h1>{contest.title}</h1>
@@ -472,17 +537,48 @@ export function OperatorScoreboardPresentationContent({
   }
 
   return (
-    <section className="fixed inset-0 z-[100] overflow-auto bg-[#090b14] px-[clamp(0.75rem,1.4vw,1.4rem)] py-[clamp(0.75rem,1.4vw,1.4rem)] text-white">
+    <section
+      {...frameProperties}
+      className="presentation-display fixed inset-0 z-[100] overflow-auto bg-[#090b14] px-[clamp(0.75rem,1.4vw,1.4rem)] py-[clamp(0.75rem,1.4vw,1.4rem)] text-white"
+    >
+      {displaySettings}
+      {activeAnnouncement ? (
+        <div
+          className="presentation-announcement"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="presentation-announcement-card">
+            <p className="presentation-announcement-kicker">대회 일정 안내</p>
+            <h2 className="presentation-announcement-title">
+              {activeAnnouncement.title}
+            </h2>
+            <p className="presentation-announcement-caption">
+              {contest?.title}
+            </p>
+            <p className="presentation-announcement-caption">
+              잠시 후 순위표로 돌아갑니다.
+            </p>
+            <button
+              className="presentation-announcement-close"
+              type="button"
+              onClick={dismiss}
+            >
+              순위표로 돌아가기
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className={shellClassName}>
         <header
           className={[
-            'relative isolate overflow-hidden rounded-[1.25rem] border border-indigo-300/10 bg-[radial-gradient(circle_at_50%_100%,rgba(59,56,255,0.42),transparent_42%),linear-gradient(115deg,#070914_0%,#11154b_54%,#0d1848_100%)] shadow-[0_1.5rem_5rem_rgba(0,0,0,0.38)]',
+            'presentation-hero relative isolate overflow-hidden rounded-[1.25rem] border border-indigo-300/10 bg-[radial-gradient(circle_at_50%_100%,rgba(59,56,255,0.42),transparent_42%),linear-gradient(115deg,#070914_0%,#11154b_54%,#0d1848_100%)] shadow-[0_1.5rem_5rem_rgba(0,0,0,0.38)]',
             isBeforeContestStart
-              ? 'px-[clamp(1.5rem,4vw,5rem)] py-[clamp(2rem,5vw,6rem)]'
+              ? 'is-before-start px-[clamp(1.5rem,4vw,5rem)] py-[clamp(2rem,5vw,6rem)]'
               : 'px-[clamp(1rem,2vw,2rem)] py-[clamp(1rem,1.8vw,2rem)]',
           ].join(' ')}
         >
-          <div className="pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(30deg,transparent_48%,rgba(255,255,255,0.18)_49%,rgba(255,255,255,0.18)_51%,transparent_52%),linear-gradient(150deg,transparent_48%,rgba(255,255,255,0.14)_49%,rgba(255,255,255,0.14)_51%,transparent_52%)] [background-size:6.5rem_3.75rem] opacity-20" />
+          <div className="presentation-hero-decoration pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(30deg,transparent_48%,rgba(255,255,255,0.18)_49%,rgba(255,255,255,0.18)_51%,transparent_52%),linear-gradient(150deg,transparent_48%,rgba(255,255,255,0.14)_49%,rgba(255,255,255,0.14)_51%,transparent_52%)] [background-size:6.5rem_3.75rem] opacity-20" />
           <div
             className={
               isBeforeContestStart
@@ -493,7 +589,7 @@ export function OperatorScoreboardPresentationContent({
             <div className="min-w-0">
               <p
                 className={[
-                  'font-black text-violet-300 uppercase',
+                  'presentation-hero-kicker font-black text-violet-300 uppercase',
                   isBeforeContestStart
                     ? 'text-[clamp(0.8rem,1.3vw,1.2rem)] tracking-[0.34em]'
                     : 'text-[clamp(0.58rem,0.65vw,0.72rem)] tracking-[0.28em]',
@@ -503,7 +599,7 @@ export function OperatorScoreboardPresentationContent({
               </p>
               <h1
                 className={[
-                  'grid gap-1 leading-[0.92] font-black tracking-normal text-white uppercase',
+                  'presentation-hero-title grid gap-1 leading-[0.92] font-black tracking-normal text-white uppercase',
                   isBeforeContestStart
                     ? 'mt-5 text-[clamp(4rem,11vw,12rem)]'
                     : 'mt-2 text-[clamp(2.15rem,4.8vw,5rem)]',
@@ -515,7 +611,7 @@ export function OperatorScoreboardPresentationContent({
                 {titleParts.secondary ? (
                   <span
                     className={[
-                      'zoj-truncate-safe bg-gradient-to-r from-white via-violet-100 to-violet-500 bg-clip-text whitespace-nowrap text-transparent',
+                      'presentation-hero-secondary zoj-truncate-safe bg-gradient-to-r from-white via-violet-100 to-violet-500 bg-clip-text whitespace-nowrap text-transparent',
                       isBeforeContestStart
                         ? 'pl-0'
                         : 'pl-[clamp(0.75rem,2.8vw,2.25rem)]',
@@ -558,7 +654,7 @@ export function OperatorScoreboardPresentationContent({
         </header>
 
         {presentationQuery.error && contest ? (
-          <div className="rounded border border-rose-400/40 bg-rose-500/15 px-5 py-4 text-sm font-black text-rose-100">
+          <div className="presentation-message is-error rounded border border-rose-400/40 bg-rose-500/15 px-5 py-4 text-sm font-black text-rose-100">
             {formatApiError(
               presentationQuery.error,
               '프레젠테이션 스코어보드를 불러오지 못했습니다',
@@ -567,7 +663,7 @@ export function OperatorScoreboardPresentationContent({
         ) : null}
 
         {presentationQuery.isLoading && !isBeforeContestStart ? (
-          <div className="rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
+          <div className="presentation-message rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
             스코어보드를 불러오는 중입니다.
           </div>
         ) : null}
@@ -586,7 +682,7 @@ export function OperatorScoreboardPresentationContent({
         {!presentationQuery.isLoading &&
         !isBeforeContestStart &&
         visibleSections.length === 0 ? (
-          <div className="rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
+          <div className="presentation-message rounded border border-white/10 bg-white/[0.06] px-5 py-16 text-center text-lg font-black text-white/70">
             표시할 유형이 없습니다.
           </div>
         ) : null}
@@ -605,14 +701,14 @@ function TimePanel({
   value: string;
 }) {
   return (
-    <div className="grid min-h-[clamp(5.4rem,8vw,7.25rem)] content-center border border-white/10 bg-white/[0.07] px-[clamp(0.8rem,1.5vw,1.15rem)] py-[clamp(0.8rem,1.5vw,1.15rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <p className="text-center text-[clamp(0.7rem,0.85vw,0.9rem)] font-black tracking-normal text-white/55">
+    <div className="presentation-time-panel grid min-h-[clamp(5.4rem,8vw,7.25rem)] content-center border border-white/10 bg-white/[0.07] px-[clamp(0.8rem,1.5vw,1.15rem)] py-[clamp(0.8rem,1.5vw,1.15rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <p className="presentation-time-label text-center text-[clamp(0.7rem,0.85vw,0.9rem)] font-black tracking-normal text-white/55">
         {label}
       </p>
-      <p className="mt-1.5 text-center text-[clamp(0.68rem,0.78vw,0.82rem)] font-bold text-white/75">
+      <p className="presentation-time-time mt-1.5 text-center text-[clamp(0.68rem,0.78vw,0.82rem)] font-bold text-white/75">
         {time}
       </p>
-      <p className="mt-1.5 text-center text-[clamp(1.4rem,2.65vw,2.8rem)] leading-none font-black tracking-normal text-violet-500">
+      <p className="presentation-time-value mt-1.5 text-center text-[clamp(1.4rem,2.65vw,2.8rem)] leading-none font-black tracking-normal text-violet-500">
         {value}
       </p>
     </div>

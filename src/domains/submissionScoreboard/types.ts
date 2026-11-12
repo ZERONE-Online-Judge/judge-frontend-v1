@@ -166,6 +166,7 @@ export type OperatorPresentationScoreboardSection = {
 };
 
 export type OperatorPresentationScoreboardResponse = {
+  available_divisions?: Pick<Division, 'division_id' | 'code' | 'name'>[];
   contest: {
     status?: string;
     contest_id: string;

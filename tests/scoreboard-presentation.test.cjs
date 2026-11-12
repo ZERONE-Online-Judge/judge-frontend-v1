@@ -11,6 +11,7 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
 });
 global.window = dom.window;
 global.document = dom.window.document;
+global.Node = dom.window.Node;
 global.IS_REACT_ACT_ENVIRONMENT = true;
 dom.window.HTMLDialogElement.prototype.showModal = function () {
   this.open = true;
@@ -43,7 +44,8 @@ let releases,
   releaseReads,
   rejectUpdate,
   customBoards,
-  undoHistory;
+  undoHistory,
+  pendingPresentationRead;
 
 function board(divisionId) {
   if (customBoards[divisionId]) return customBoards[divisionId];
@@ -70,7 +72,11 @@ const mocks = {
     getPresentationAccount: async () => null,
     getPresentationScoreboard: async () => {
       displayReads++;
-      return { contest, sections: divisions.map((d) => board(d.division_id)) };
+      return {
+        contest,
+        sections: divisions.map((d) => board(d.division_id)),
+        available_divisions: divisions,
+      };
     },
   },
   '@/domains/identityAccess/queryIdentity': {
@@ -108,9 +114,11 @@ const mocks = {
     }),
     getOperatorPresentationScoreboard: async () => {
       presentationReads += 1;
+      if (pendingPresentationRead) await pendingPresentationRead;
       return global.structuredClone({
         contest,
         sections: divisions.map(({ division_id }) => board(division_id)),
+        available_divisions: divisions,
       });
     },
     getScoreboardRelease: async (_contestId, divisionId) => {
@@ -162,6 +170,15 @@ function source(relative) {
   loaded.require = (id) => {
     if (id.endsWith('.css')) return {};
     if (mocks[id]) return mocks[id];
+    if (id.startsWith('.')) {
+      const resolved = ['.ts', '.tsx']
+        .map((ext) => path.resolve(path.dirname(filename), id + ext))
+        .find((file) => fs.existsSync(file));
+      if (resolved)
+        return source(
+          path.relative(path.resolve(__dirname, '../src'), resolved),
+        );
+    }
     if (!id.startsWith('@/')) return nativeRequire(id);
     return source(
       ['.ts', '.tsx']
@@ -212,9 +229,11 @@ beforeEach(() => {
   displayReads = 0;
   releaseReads = 0;
   rejectUpdate = false;
+  pendingPresentationRead = null;
   customBoards = {};
   undoHistory = { a: [], b: [] };
   window.localStorage.clear();
+  window.sessionStorage.clear();
   document.body.innerHTML = '';
 });
 afterEach(async () => {
@@ -266,6 +285,17 @@ function button(container, text) {
     (item) => item.textContent === text,
   );
 }
+function assertDisplayPreferencesOnly(container) {
+  const controls = [...container.querySelectorAll('button, select, input')];
+  assert.ok(container.querySelector('.presentation-settings-trigger'));
+  assert.ok(
+    controls.every((control) =>
+      control.closest('.presentation-display-settings'),
+    ),
+    'Presentation controls may change display preferences, never contest results',
+  );
+}
+
 async function dispatchUpdate(contestId = 'contest') {
   const key = `zoj.scoreboard.updated.${contestId}`;
   await act(async () =>
@@ -315,7 +345,7 @@ test('ended presentation displays the selected division without any release cont
     display.textContent,
     /B 유형|공개할 유형|공개 컨트롤|개별 순위 공개 시작/,
   );
-  assert.equal(display.querySelectorAll('button, select, input').length, 0);
+  assertDisplayPreferencesOnly(display);
   assert.equal(releaseReads, 0);
   assert.equal(updateCalls.length, 0);
   assert.match(display.textContent, /공개 대기/);
@@ -352,7 +382,7 @@ test('operator rank release refreshes a separate presentation client and leaves 
   assert.doesNotMatch(display.textContent, /a-team-1|b-team/);
   assert.match(display.textContent, /공개 대기/);
   assert.equal(display.querySelector('h1'), displayTitle);
-  assert.equal(display.querySelectorAll('button, select, input').length, 0);
+  assertDisplayPreferencesOnly(display);
   assert.equal(releases.b.revealed_count, 0);
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
 });
@@ -369,7 +399,7 @@ test('presentation without a division filter displays all divisions and ignores 
   const readsBeforeUpdate = presentationReads;
   await dispatchUpdate('another-contest');
   assert.equal(presentationReads, readsBeforeUpdate);
-  assert.equal(display.querySelectorAll('button, select, input').length, 0);
+  assertDisplayPreferencesOnly(display);
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
 });
 
@@ -577,7 +607,7 @@ test('resolver presentation retains team names and moves existing rows as result
   assert.equal(display.querySelector('[role="status"]'), null);
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
   assert.doesNotMatch(display.textContent, /공개 대기|아직 공개되지 않은 순위/);
-  assert.equal(display.querySelectorAll('button, input, select').length, 0);
+  assertDisplayPreferencesOnly(display);
   const beta = display.querySelector('[data-scoreboard-row="beta"]');
   customBoards.a.rows = [
     {
@@ -639,7 +669,7 @@ test('resolver presentation retains team names and moves existing rows as result
     '2위 은메달',
   );
   assert.doesNotMatch(display.textContent, /\?1/);
-  assert.equal(display.querySelectorAll('button, input, select').length, 0);
+  assertDisplayPreferencesOnly(display);
   assert.equal(updateCalls.length, 0);
 });
 
@@ -759,7 +789,7 @@ test('display-only session reads only the scoped presentation API and exposes no
   await flush();
   assert.ok(displayReads > 0);
   assert.equal(presentationReads, 0);
-  assert.equal(container.querySelectorAll('button, input, select').length, 0);
+  assertDisplayPreferencesOnly(container);
   assert.equal(releaseReads, 0);
 });
 
@@ -800,7 +830,7 @@ test('undo confirms the selected rank then restores a separate presentation with
   assert.equal(button(operator, '2위 공개').disabled, false);
   assert.equal(button(operator, '되돌리기').disabled, true);
   assert.equal(releases.b.revealed_count, 0);
-  assert.equal(display.querySelectorAll('button, select, input').length, 0);
+  assertDisplayPreferencesOnly(display);
 });
 
 test('failed undo keeps the published scoreboard and refreshes the operator state', async () => {
@@ -908,7 +938,7 @@ test('immediate undo presentation keeps the frozen table without medals or relea
     /순위 공개 중|결과 공개 중|최종 순위/,
   );
   assert.equal(display.querySelector('svg[role="img"]'), null);
-  assert.equal(display.querySelectorAll('button, select, input').length, 0);
+  assertDisplayPreferencesOnly(display);
 });
 
 test('presentation replaces tables with start and final-minute countdowns then resumes selected rankings', async () => {
@@ -981,9 +1011,57 @@ test('presentation replaces tables with start and final-minute countdowns then r
     assert.match(display.textContent, /대회가 종료되었습니다/);
     await tick(end + 2000);
     assert.equal(display.querySelectorAll('table').length, 1);
-    assert.equal(display.querySelectorAll('button, input, select').length, 0);
+    assertDisplayPreferencesOnly(display);
     assert.equal(presentationReads, 0);
   } finally {
     Object.assign(contest, original);
   }
+});
+
+test('display settings change local appearance and selected divisions without publishing results', async () => {
+  const display = await renderPage(
+    Presentation,
+    '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+  );
+  assert.equal(display.querySelector('[role="dialog"]'), null);
+  await act(async () => button(display, '화면 설정').click());
+  const settings = display.querySelector('[role="dialog"]');
+  assert.ok(settings);
+  await act(async () =>
+    settings.querySelector('[data-swatch="light"]').click(),
+  );
+  assert.equal(
+    display.querySelector('.presentation-display').dataset.presentationTheme,
+    'light',
+  );
+  const inputs = settings.querySelectorAll('input[type="checkbox"]');
+  assert.equal(inputs.length, 2);
+  let completeRead;
+  pendingPresentationRead = new Promise((resolve) => {
+    completeRead = resolve;
+  });
+  try {
+    await act(async () => inputs[1].click());
+    await flush();
+    assert.equal(settings.querySelectorAll('input[type="checkbox"]').length, 2);
+    assert.equal(settings.querySelectorAll('input:checked').length, 2);
+    assert.ok(display.contains(settings));
+  } finally {
+    completeRead();
+    pendingPresentationRead = null;
+    await flush();
+  }
+  assert.equal(display.querySelectorAll('.presentation-board').length, 2);
+  await act(async () =>
+    settings.querySelectorAll('input[type="checkbox"]')[0].click(),
+  );
+  await flush();
+  assert.equal(display.querySelectorAll('.presentation-board').length, 1);
+  assert.match(
+    display.querySelector('.presentation-board-title').textContent,
+    /B 유형/,
+  );
+  assert.equal(updateCalls.length, 0);
+  assert.equal(releaseReads, 0);
+  assertDisplayPreferencesOnly(display);
 });

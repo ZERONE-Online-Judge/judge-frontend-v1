@@ -118,7 +118,7 @@ export default function ProblemSubmitPanel({
   function requestSubmission() {
     if (submitDisabled || submitLock.current) return;
     const check = inspectSubmissionEntryPoint(language, sourceCode);
-    if (check) {
+    if (check && check.issues.length > 0) {
       setConfirmation({ language, sourceCode, context, allowed, check });
     } else {
       sendSubmission();
@@ -171,9 +171,9 @@ export default function ProblemSubmitPanel({
           <strong className="font-mono">{entryPointGuidance.filename}</strong>로
           저장합니다.{' '}
           {language === 'java8'
-            ? 'package 선언 없이 Main 클래스와 public static void main(String[] args)를 작성해 주세요.'
-            : '실행 가능한 JAR로 실행합니다. 일반적인 진입점은 파일 최상위의 fun main() 또는 fun main(args: Array<String>)입니다.'}{' '}
-          제출 전에 실행 형식을 한 번 더 확인합니다.
+            ? '기본 패키지의 Main 클래스에 main 메서드를 작성해 주세요.'
+            : '실행 가능한 JAR로 실행합니다.'}{' '}
+          확인이 필요한 경우에만 제출 전에 안내합니다.
         </p>
       ) : null}
 

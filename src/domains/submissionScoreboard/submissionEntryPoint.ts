@@ -104,9 +104,8 @@ function javaIssues(tokens: Token[]): SubmissionEntryPointCheck['issues'] {
   if (tokens.some((token) => token.depth === 0 && token.value === 'package'))
     issues.push({
       code: 'java-package',
-      title: 'package 선언을 확인하세요',
-      description:
-        '채점기는 기본 패키지의 Main을 실행합니다. package 선언이 있으면 실행할 Main을 찾지 못하므로 선언을 제거하세요.',
+      title: 'package 선언을 제거해 주세요',
+      description: '채점기는 기본 패키지의 Main을 실행합니다.',
     });
 
   const types = tokens.flatMap((token, index) =>
@@ -121,17 +120,19 @@ function javaIssues(tokens: Token[]): SubmissionEntryPointCheck['issues'] {
   if (otherPublicTypes.length)
     issues.push({
       code: 'java-public-type',
-      title: 'public 클래스 이름과 저장 파일명이 다릅니다',
-      description: `이 코드는 Main.java로 저장됩니다. 최상위 public 타입 ${otherPublicTypes.map(({ name }) => name).join(', ')}의 이름을 Main으로 맞추거나, 보조 타입이라면 public을 제거하세요.`,
+      title: 'Main.java와 클래스 이름을 맞춰 주세요',
+      description: `public 타입 ${otherPublicTypes.map(({ name }) => name).join(', ')}의 이름을 Main으로 바꾸세요. 보조 타입이면 public을 제거하세요.`,
     });
   const mainType = types.find(({ name }) => name === 'Main');
   if (!mainType) {
-    issues.push({
-      code: 'java-main-type',
-      title: '실행할 Main 타입을 확인하지 못했습니다',
-      description:
-        '기본 패키지에 Main 클래스를 선언하고 그 안에 public static void main(String[] args)을 작성하세요. Main 클래스 자체는 public이 아니어도 됩니다.',
-    });
+    // A filename warning already explains the missing Main name.
+    if (!otherPublicTypes.length)
+      issues.push({
+        code: 'java-main-type',
+        title: 'Main 클래스를 확인해 주세요',
+        description:
+          '실행할 클래스 이름은 Main이어야 합니다. 기본 제출 예시를 확인해 주세요.',
+      });
     return issues;
   }
 
@@ -176,9 +177,9 @@ function javaIssues(tokens: Token[]): SubmissionEntryPointCheck['issues'] {
   if (!hasMain)
     issues.push({
       code: 'java-main-method',
-      title: 'main 메서드 형식을 확인하세요',
+      title: 'main 메서드를 확인해 주세요',
       description:
-        'Main 안에서 public static void main(String[] args)을 확인하지 못했습니다. public·static·void와 String 배열 인자를 확인하세요. 상속한 main 등은 자동 확인이 어려우므로 직접 확인한 뒤 제출할 수 있습니다.',
+        'Main 안에 public static void main(String[] args)가 필요합니다. 상속한 main 등은 직접 확인해 주세요.',
     });
   return issues;
 }
@@ -279,36 +280,36 @@ function kotlinIssues(tokens: Token[]): SubmissionEntryPointCheck['issues'] {
     return [
       {
         code: 'kotlin-main',
-        title: 'JAR에서 실행할 main 함수를 확인하지 못했습니다',
+        title: '실행할 main 함수를 확인해 주세요',
         description:
-          '일반적으로 파일 최상위에 fun main() 또는 fun main(args: Array<String>)을 작성합니다. 클래스의 일반 멤버 함수는 진입점이 아닙니다. object·companion 방식은 @JvmStatic main(args: Array<String>)인지 확인하세요. 반환형은 Unit이어야 합니다.',
+          '파일 최상위의 fun main()을 권장합니다. object·companion 방식은 @JvmStatic main(args: Array<String>)과 Unit 반환형을 확인해 주세요.',
       },
     ];
   if (candidates.size > 1)
     return [
       {
         code: 'kotlin-multiple-main',
-        title: '여러 main 함수가 JAR 진입점 후보입니다',
+        title: '실행할 main을 하나로 정해 주세요',
         description:
-          '여러 클래스에 실행 가능한 main이 있으면 JAR의 시작점을 선택하지 못할 수 있습니다. 실제로 실행할 진입점 하나만 남기는지 확인하세요.',
+          '여러 클래스에 main이 있어 JAR 시작점을 정하지 못할 수 있습니다.',
       },
     ];
   if (renamedMain)
     return [
       {
         code: 'kotlin-renamed-main',
-        title: 'main 함수의 JVM 이름을 확인하세요',
+        title: 'main의 @JvmName을 확인해 주세요',
         description:
-          'main 함수에 붙인 @JvmName이 실행 메서드를 다른 이름으로 바꾸면 JAR을 시작할 수 없습니다. 함수의 애너테이션을 제거하거나 JVM 이름이 main인지 확인하세요. 파일에 붙이는 @file:JvmName은 사용할 수 있습니다.',
+          '실행 메서드 이름은 main이어야 합니다. @file:JvmName은 사용할 수 있습니다.',
       },
     ];
   if (inferredReturn)
     return [
       {
         code: 'kotlin-inferred-return',
-        title: '식 본문 main의 반환형을 확인하세요',
+        title: 'main이 Unit을 반환하는지 확인해 주세요',
         description:
-          'fun main() = ... 형식은 식의 결과에 따라 반환형이 달라집니다. Unit을 반환하는지 확인하거나 fun main() { ... } 형식으로 작성하세요. Unit인 식 본문은 그대로 제출할 수 있습니다.',
+          'fun main() = ...의 결과가 Unit인지 확인하거나 fun main() { ... } 형식으로 바꿔 주세요.',
       },
     ];
   return [];

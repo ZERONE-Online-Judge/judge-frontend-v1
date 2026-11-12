@@ -79,6 +79,8 @@ function source(relative) {
 const validJava =
   'public class Main { public static void main(String[] args) { System.out.println(1); } }';
 const validKotlin = 'fun main() { println(1) }';
+const warningJava =
+  'public class Different { public static void main(String[] args) {} }';
 let root, host, props, submissions, requests, sourceChanges, languageChanges;
 async function render(next = {}) {
   props = { ...props, ...next };
@@ -146,34 +148,43 @@ after(() => {
   dom.window.close();
 });
 
-test('Java filename guidance is inline; passing inspection still requires explicit confirmation', async () => {
-  await render();
+test('valid Java keeps filename guidance and submits exact bytes without a modal', async () => {
+  const code = validJava.replaceAll(' ', ' \r\n');
+  await render({ sourceCode: code });
   assert.match(host.textContent, /Main\.java/);
   assert.match(host.textContent, /Main 클래스/);
-  assert.equal(document.querySelector('dialog'), null);
+  assert.match(host.textContent, /필요한 경우에만/);
   await click('제출하기');
-  assert.equal(submissions.length, 0);
-  const dialog = document.querySelector('dialog');
-  assert.equal(dialog.open, true);
-  assert.match(dialog.textContent, /Java 제출 전 확인/);
-  assert.match(dialog.textContent, /기본 실행 형식을 확인/);
-  assert.match(dialog.textContent, /정적 검사/);
-  assert.match(dialog.textContent, /보장하지 않습니다/);
-  await click('확인하고 제출');
+  assert.equal(document.querySelector('dialog'), null);
   assert.deepEqual(submissions, [
     {
       language: 'java8',
-      sourceCode: validJava,
+      sourceCode: code,
       context: props.submissionContextKey,
     },
   ]);
-  assert.equal(document.querySelector('dialog'), null);
 });
 
-test('Kotlin uses its own filename and jar guidance and can cancel without submitting', async () => {
-  await render({ language: 'kotlin', sourceCode: validKotlin });
-  assert.match(host.textContent, /Main\.kt/);
-  assert.match(host.textContent, /JAR/);
+test('valid Kotlin including a packaged object main submits directly with JAR guidance', async () => {
+  for (const code of [
+    validKotlin,
+    'package example\nobject Solution { @JvmStatic fun main(args: Array<String>) {} }',
+  ]) {
+    await render({ language: 'kotlin', sourceCode: code });
+    assert.match(host.textContent, /Main\.kt/);
+    assert.match(host.textContent, /JAR/);
+    await click('제출하기');
+    assert.equal(document.querySelector('dialog'), null);
+    assert.equal(submissions.at(-1).sourceCode, code);
+  }
+  assert.equal(submissions.length, 2);
+});
+
+test('Kotlin warnings can be cancelled without submitting', async () => {
+  await render({
+    language: 'kotlin',
+    sourceCode: 'class Main { fun main() {} }',
+  });
   await click('제출하기');
   assert.match(
     document.querySelector('dialog').textContent,
@@ -192,14 +203,18 @@ test('warning findings allow an explicit override and preserve the exact source 
   await click('제출하기');
   assert.match(
     document.querySelector('dialog').textContent,
-    /확인이 필요한 항목/,
+    /Main.java와 클래스 이름/,
   );
-  assert.match(
-    document.querySelector('dialog').textContent,
-    /주의사항 확인 후 제출/,
-  );
+  assert.match(document.querySelector('dialog').textContent, /그대로 제출/);
   assert.equal(submissions.length, 0);
-  await click('주의사항 확인 후 제출');
+  const dialog = document.querySelector('dialog');
+  assert.equal(dialog.querySelectorAll('li').length, 1);
+  assert.doesNotMatch(
+    dialog.textContent,
+    /실행 방식|기본 실행 형식을 확인|확인이 필요한 항목/,
+  );
+  assert.match(dialog.textContent, /소스 형식만 확인/);
+  await click('그대로 제출');
   assert.equal(submissions.length, 1);
   assert.equal(submissions[0].sourceCode, code);
 });
@@ -215,7 +230,7 @@ test('C++ submits directly and never shows JVM filename or confirmation', async 
 });
 
 test('cancel with Escape restores the submit control without creating a request', async () => {
-  await render();
+  await render({ sourceCode: warningJava });
   button('제출하기').focus();
   await click('제출하기');
   await act(() =>
@@ -229,7 +244,7 @@ test('cancel with Escape restores the submit control without creating a request'
 });
 
 for (const [name, change] of [
-  ['source', { sourceCode: validJava + '\n// changed' }],
+  ['source', { sourceCode: warningJava + '\n// changed' }],
   ['language', { language: 'kotlin', sourceCode: validKotlin }],
   ['problem', { submissionContextKey: 'contest:problem-b:participant' }],
   ['mode', { submissionContextKey: 'contest:problem-a:preview' }],
@@ -238,7 +253,7 @@ for (const [name, change] of [
   ['pending', { isSubmitting: true }],
 ])
   test(`${name} changes permanently discard a checked snapshot`, async () => {
-    await render();
+    await render({ sourceCode: warningJava });
     const original = { ...props };
     await click('제출하기');
     assert.ok(document.querySelector('dialog'));
@@ -282,13 +297,30 @@ test('blank code, pending state, denied permission and disallowed languages cann
 });
 
 test('double confirmation clicks can create only one submission', async () => {
-  await render();
+  await render({ sourceCode: warningJava });
   await click('제출하기');
-  const confirm = button('확인하고 제출');
+  const confirm = button('그대로 제출');
   await act(() => {
     confirm.click();
     confirm.click();
   });
   assert.equal(submissions.length, 1);
   assert.equal(document.querySelector('dialog'), null);
+});
+
+test('valid JVM direct submissions prevent same-batch duplicates but allow an immediate explicit retry', async () => {
+  await render();
+  const submit = button('제출하기');
+  await act(() => {
+    submit.click();
+    submit.click();
+  });
+  assert.equal(submissions.length, 1);
+  assert.equal(document.querySelector('dialog'), null);
+  await click('제출하기');
+  assert.equal(
+    submissions.length,
+    2,
+    'A completed failure must not impose an artificial retry delay',
+  );
 });

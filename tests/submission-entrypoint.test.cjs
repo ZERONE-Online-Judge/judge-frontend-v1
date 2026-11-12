@@ -58,7 +58,7 @@ test('Java public type filename mismatch and package each explain the fix', () =
       'java8',
       'package contest; public class Solution { public static void main(String[] args) {} }',
     ),
-    ['java-package', 'java-public-type', 'java-main-type'],
+    ['java-package', 'java-public-type'],
   );
   assert.deepEqual(
     codes(
@@ -193,4 +193,18 @@ test('large malformed source remains bounded and returns actionable warnings', (
   assert.ok(java.issues.length);
   assert.ok(kotlin.issues.length);
   assert.ok(performance.now() - started < 5000);
+});
+
+test('Java filename guidance explains Main once without a duplicate missing-class warning', () => {
+  const result = inspect(
+    'java8',
+    'public class Solution { public static void main(String[] args) {} }',
+  );
+  assert.deepEqual(
+    result.issues.map((issue) => issue.code),
+    ['java-public-type'],
+  );
+  assert.match(result.issues[0].title, /Main.java/);
+  assert.match(result.issues[0].description, /Solution.*Main/);
+  assert.deepEqual(codes('java8', 'class Solution {}'), ['java-main-type']);
 });

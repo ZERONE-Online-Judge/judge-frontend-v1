@@ -29,17 +29,26 @@ loaded._compile(
   filename,
 );
 const useNavigationViewport = loaded.exports.default;
-let root, top, viewport, frames, observer, observations, disconnected;
+let root,
+  top,
+  parentTop,
+  parentBottom,
+  viewport,
+  frames,
+  observer,
+  observations,
+  disconnected;
 let nextFrame = 0;
 const variable = '--zoj-navigation-available-height';
 function Menu({
   shown = true,
   name = 'first',
   gap = 16,
-  keepTop = false,
+  bounded = false,
   sticky = false,
+  minimumHeight = 0,
 }) {
-  const ref = useNavigationViewport(gap, keepTop);
+  const ref = useNavigationViewport(gap, bounded, minimumHeight);
   return shown
     ? React.createElement('aside', {
         key: name,
@@ -62,6 +71,8 @@ beforeEach(() => {
   document.body.innerHTML =
     '<header class="site-header"></header><main></main>';
   top = 240;
+  parentTop = 240;
+  parentBottom = 1000;
   viewport = new dom.window.EventTarget();
   viewport.height = 600;
   viewport.offsetTop = 0;
@@ -73,7 +84,11 @@ beforeEach(() => {
     configurable: true,
     value: 600,
   });
-  dom.window.HTMLElement.prototype.getBoundingClientRect = () => ({ top });
+  dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+    return this.tagName === 'MAIN'
+      ? { top: parentTop, bottom: parentBottom }
+      : { top };
+  };
   frames = new Map();
   window.requestAnimationFrame = (callback) => {
     frames.set(++nextFrame, callback);
@@ -180,63 +195,91 @@ test('older browsers without VisualViewport or ResizeObserver use the window hei
   assert.equal(menu.style.getPropertyValue(variable), '580px');
 });
 
-test('an opted-in rail retains its sticky top and usable height when the footer pushes its aside upward', async () => {
-  const menu = await render({ keepTop: true, sticky: true });
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '0px',
-  );
-  assert.equal(menu.style.getPropertyValue(variable), '344px');
+test('bounded menus use the stable column anchor instead of their own changing geometry', async () => {
   top = -120;
+  const menu = await render({ bounded: true, sticky: true });
+  assert.equal(menu.style.getPropertyValue(variable), '344px');
+  parentTop = -1000;
+  parentBottom = 420;
   window.dispatchEvent(new dom.window.Event('scroll'));
   flush();
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '208px',
-  );
-  assert.equal(menu.style.getPropertyValue(variable), '496px');
-  top = 88;
-  window.dispatchEvent(new dom.window.Event('scroll'));
+  assert.equal(menu.style.getPropertyValue(variable), '316px');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), false);
+  // A hover can change the menu height and its native sticky position. The
+  // content column still provides the same cap and does not move its toolbar.
+  top = -500;
+  observer();
   flush();
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '0px',
-  );
-  assert.equal(menu.style.getPropertyValue(variable), '496px');
+  assert.equal(menu.style.getPropertyValue(variable), '316px');
 });
 
-test('header offset changes are respected and leaving desktop layout removes footer compensation', async () => {
-  const menu = await render({ keepTop: true, sticky: true });
-  top = -120;
+test('bounded menus shrink before the column end and follow header and viewport changes', async () => {
+  parentTop = -100;
+  parentBottom = 420;
+  const menu = await render({ bounded: true, sticky: true });
+  assert.equal(menu.style.getPropertyValue(variable), '316px');
+  parentBottom = 260;
+  observer();
+  flush();
+  assert.equal(menu.style.getPropertyValue(variable), '156px');
+  viewport.height = 240;
+  viewport.dispatchEvent(new dom.window.Event('resize'));
+  flush();
+  assert.equal(menu.style.getPropertyValue(variable), '136px');
   menu.style.top = '128px';
   observer();
   flush();
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '248px',
-  );
-  assert.equal(menu.style.getPropertyValue(variable), '456px');
+  assert.equal(menu.style.getPropertyValue(variable), '96px');
+});
+
+test('bounded menus disappear with their content instead of overlaying the footer', async () => {
+  parentTop = -1000;
+  parentBottom = 50;
+  const menu = await render({ bounded: true, sticky: true });
+  assert.equal(menu.style.getPropertyValue(variable), '0px');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), true);
+  parentBottom = 400;
+  window.dispatchEvent(new dom.window.Event('scroll'));
+  flush();
+  assert.equal(menu.style.getPropertyValue(variable), '296px');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), false);
+});
+
+test('bounded menus hide partial toolbar fragments and restore when space returns', async () => {
+  parentTop = -1000;
+  parentBottom = 140;
+  const menu = await render({
+    bounded: true,
+    sticky: true,
+    minimumHeight: 64,
+  });
+  assert.equal(menu.style.getPropertyValue(variable), '36px');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), true);
+  parentBottom = 180;
+  window.dispatchEvent(new dom.window.Event('scroll'));
+  flush();
+  assert.equal(menu.style.getPropertyValue(variable), '76px');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), false);
+});
+
+test('mobile layout and other sidebars retain ordinary viewport bounds', async () => {
+  top = -120;
+  parentTop = -1000;
+  parentBottom = 50;
+  let menu = await render({ sticky: true });
+  assert.equal(menu.style.getPropertyValue(variable), '584px');
+  menu = await render({ bounded: true, sticky: true });
+  assert.equal(menu.hasAttribute('data-navigation-empty'), true);
   menu.style.position = 'static';
   window.dispatchEvent(new dom.window.Event('resize'));
   flush();
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '0px',
-  );
   assert.equal(menu.style.getPropertyValue(variable), '584px');
-});
-
-test('other sidebars keep their existing containing-block behavior and opting out clears the visual offset', async () => {
-  top = -120;
-  let menu = await render({ sticky: true });
-  assert.equal(menu.style.getPropertyValue('--zoj-navigation-top-offset'), '');
-  assert.equal(menu.style.getPropertyValue(variable), '584px');
-  menu = await render({ keepTop: true, sticky: true });
-  assert.equal(
-    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
-    '208px',
-  );
-  menu = await render({ keepTop: false, sticky: true });
-  assert.equal(menu.style.getPropertyValue('--zoj-navigation-top-offset'), '');
+  assert.equal(menu.hasAttribute('data-navigation-empty'), false);
+  menu.style.position = 'sticky';
+  observer();
+  flush();
+  assert.equal(menu.hasAttribute('data-navigation-empty'), true);
+  menu = await render({ bounded: false, sticky: true });
+  assert.equal(menu.hasAttribute('data-navigation-empty'), false);
   assert.equal(menu.style.getPropertyValue(variable), '584px');
 });

@@ -94,7 +94,7 @@ export default function PageLayout({
   width = '7xl',
   variant = 'page',
 }: PageLayoutProps) {
-  const navigationRef = useNavigationViewport<HTMLElement>(16, true);
+  const navigationRef = useNavigationViewport<HTMLElement>(16, true, 64);
   const content = (
     <>
       {navigation && title ? (
@@ -132,8 +132,10 @@ export default function PageLayout({
     >
       {navigation ? (
         <>
-          <aside ref={navigationRef} className="operator-layout__navigation">
-            {navigation}
+          <aside className="operator-layout__navigation">
+            <div ref={navigationRef} className="operator-navigation-viewport">
+              {navigation}
+            </div>
           </aside>
           <div className="operator-layout__content">{content}</div>
         </>

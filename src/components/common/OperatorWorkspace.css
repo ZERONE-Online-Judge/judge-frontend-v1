@@ -20,6 +20,12 @@
 .operator-layout__navigation {
   min-height: 0;
 }
+.operator-navigation-viewport {
+  min-width: 0;
+}
+.operator-navigation-viewport[data-navigation-empty] {
+  visibility: hidden;
+}
 .operator-layout__content {
   display: grid;
   align-content: start;
@@ -614,25 +620,26 @@
     grid-template-columns: 64px minmax(0, 1fr);
   }
   .operator-layout__navigation {
-    position: sticky;
-    top: calc(var(--zoj-sticky-header-height, 72px) + 16px);
+    position: relative;
+    align-self: stretch;
+    contain: size;
     z-index: 20;
     overflow: visible;
   }
-  .operator-layout__navigation > .operator-navigation {
-    position: relative;
-    top: var(--zoj-navigation-top-offset, 0px);
+  .operator-navigation-viewport {
+    position: sticky;
+    top: calc(var(--zoj-sticky-header-height, 72px) + 16px);
   }
   .operator-rail {
     display: flex;
     flex-direction: column;
     width: 240px;
     min-height: 0;
-    height: min(
+    max-height: min(
       calc(100dvh - var(--zoj-sticky-header-height, 72px) - 36px),
       var(--zoj-navigation-available-height, 100dvh)
     );
-    overflow: hidden auto;
+    overflow: hidden;
     overscroll-behavior: contain;
     border: 1px solid #e2e6ed;
     border-radius: 12px;
@@ -718,7 +725,7 @@
   }
   .operator-menu-collapse {
     flex: 1 1 auto;
-    min-height: 44px;
+    min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;

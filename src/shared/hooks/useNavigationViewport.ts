@@ -1,9 +1,10 @@
 import { useCallback, useLayoutEffect, useState } from 'react';
 
-/** A sticky menu may start below its sticky top before the page is scrolled. */
+/** Bound menus to the visible viewport and optionally their content column. */
 export default function useNavigationViewport<T extends HTMLElement>(
   bottomGap = 16,
-  keepStickyTop = false,
+  containWithinParent = false,
+  minimumVisibleHeight = 0,
 ) {
   const [element, setElement] = useState<T | null>(null);
   const ref = useCallback((node: T | null) => setElement(node), []);
@@ -19,28 +20,34 @@ export default function useNavigationViewport<T extends HTMLElement>(
     const measure = () => {
       frame = undefined;
       const viewport = window.visualViewport;
-      const bottom = viewport
+      const viewportBottom = viewport
         ? viewport.offsetTop + viewport.height
         : window.innerHeight;
-      const actualTop = element.getBoundingClientRect().top;
-      const styles = keepStickyTop ? window.getComputedStyle(element) : null;
+      const styles = containWithinParent
+        ? window.getComputedStyle(element)
+        : null;
       const stickyTop = Number.parseFloat(styles?.top || '');
-      // A sticky aside is pushed up at the end of its layout, before the
-      // footer. Let its visible menu retain the header offset in that case.
-      const offset =
+      const parent =
         styles?.position === 'sticky' && Number.isFinite(stickyTop)
-          ? Math.max(0, stickyTop - actualTop)
-          : 0;
-      if (keepStickyTop) {
-        const value = `${offset}px`;
-        if (
-          element.style.getPropertyValue('--zoj-navigation-top-offset') !==
-          value
-        )
-          element.style.setProperty('--zoj-navigation-top-offset', value);
-      }
-      const top = Math.max(0, actualTop + offset);
-      const height = `${Math.max(0, Math.floor(bottom - top - bottomGap))}px`;
+          ? element.parentElement?.getBoundingClientRect()
+          : null;
+      // Use the column, not the menu's current height or footer-pushed top.
+      // Hover expansion must not change its own available space or anchor.
+      const top = parent
+        ? Math.max(parent.top, stickyTop)
+        : Math.max(0, element.getBoundingClientRect().top);
+      const bottom = parent
+        ? Math.min(viewportBottom, parent.bottom)
+        : viewportBottom;
+      const availableHeight = Math.max(0, Math.floor(bottom - top - bottomGap));
+      const height = `${availableHeight}px`;
+      if (containWithinParent)
+        element.toggleAttribute(
+          'data-navigation-empty',
+          Boolean(
+            parent && availableHeight < Math.max(1, minimumVisibleHeight),
+          ),
+        );
       if (
         element.style.getPropertyValue('--zoj-navigation-available-height') !==
         height
@@ -72,9 +79,8 @@ export default function useNavigationViewport<T extends HTMLElement>(
       window.removeEventListener('resize', schedule);
       window.visualViewport?.removeEventListener('scroll', schedule);
       window.visualViewport?.removeEventListener('resize', schedule);
-      if (keepStickyTop)
-        element.style.removeProperty('--zoj-navigation-top-offset');
+      if (containWithinParent) element.removeAttribute('data-navigation-empty');
     };
-  }, [bottomGap, element, keepStickyTop]);
+  }, [bottomGap, element, containWithinParent, minimumVisibleHeight]);
   return ref;
 }

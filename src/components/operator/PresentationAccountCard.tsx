@@ -133,8 +133,9 @@ export default function PresentationAccountCard({
           </div>
           <p className="text-xs leading-5 text-slate-500">
             발급 후 7일 동안 유효합니다. 이 주소를 아는 사람은 발표 화면을 볼 수
-            있으므로 발표 담당자에게만 전달해 주세요. 다른 기기에서 다시
-            로그인하면 이전 연결은 종료됩니다.
+            있으므로 발표 담당자에게만 전달해 주세요. 여러 기기에서 동시에
+            사용할 수 있습니다. 재발급하거나 사용 중지하면 모든 연결이
+            종료됩니다.
           </p>
           {accountQuery.error || mutation.error ? (
             <p role="alert" className="text-sm text-rose-700">

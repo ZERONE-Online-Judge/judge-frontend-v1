@@ -39,6 +39,9 @@
 .presentation-display:not(.presentation-contest-countdown) {
   padding-top: max(62px, calc(env(safe-area-inset-top) + 58px));
 }
+.presentation-display:fullscreen:not(.presentation-contest-countdown) {
+  padding-top: max(clamp(0.75rem, 1.4vw, 1.4rem), env(safe-area-inset-top));
+}
 
 .presentation-display[data-presentation-theme='light'] {
   --presentation-bg: #f0f3fa;
@@ -320,6 +323,10 @@
   color: var(--presentation-text);
   text-align: center;
 }
+.presentation-contest-countdown:fullscreen {
+  padding-top: max(clamp(20px, 4vw, 64px), env(safe-area-inset-top));
+  padding-bottom: max(clamp(20px, 4vw, 64px), env(safe-area-inset-bottom));
+}
 .presentation-contest-countdown header {
   width: 100%;
 }
@@ -440,6 +447,10 @@
   color: var(--presentation-text);
   text-align: center;
   animation: presentation-notice-enter 240ms ease-out;
+}
+.presentation-display:fullscreen .presentation-announcement {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
 }
 .presentation-announcement-card {
   flex: 0 0 auto;

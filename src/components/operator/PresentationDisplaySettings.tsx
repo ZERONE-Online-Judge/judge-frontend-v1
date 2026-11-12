@@ -328,7 +328,8 @@ export default function PresentationDisplaySettings({
               <i aria-hidden="true" />
             </button>
             <p className="presentation-settings-hint">
-              처음에는 효과음을 켜거나 소리 테스트를 눌러 주세요.
+              소리가 들리지 않으면 화면을 한 번 클릭하거나 소리 테스트를 눌러
+              주세요.
             </p>
           </div>
           <fieldset className="presentation-settings-group">

@@ -211,7 +211,11 @@ export default function ContestScheduleClock({
               label="시작"
               value={contest.start_at}
               kind="start"
-              compact={state.hasFreeze && state.afterFreeze}
+              compact={
+                state.phase === 'running' &&
+                state.hasFreeze &&
+                state.afterFreeze
+              }
             />
             {state.hasFreeze ? (
               <ScheduleMoment
@@ -229,7 +233,7 @@ export default function ContestScheduleClock({
               value={contest.end_at}
               kind="end"
               compact={
-                state.phase !== 'before' &&
+                state.phase === 'running' &&
                 state.hasFreeze &&
                 !state.afterFreeze
               }

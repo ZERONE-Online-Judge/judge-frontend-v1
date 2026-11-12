@@ -138,7 +138,7 @@
   min-width: 0;
   height: 280px;
 }
-.contest-schedule-clock[data-phase='before']
+.contest-schedule-clock:is([data-phase='before'], [data-phase='ended'])
   .contest-clock-timeline[data-has-freeze='true'] {
   height: 320px;
 }

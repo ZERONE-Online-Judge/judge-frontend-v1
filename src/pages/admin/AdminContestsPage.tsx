@@ -226,7 +226,7 @@ function AdminContestsContent({ token }: { token: string }) {
 
   return (
     <AdminLayout
-      description="서비스 마스터가 대회를 만들고 모든 권한을 가진 대회 마스터를 배정합니다."
+      description="서비스 마스터가 대회를 만들고 대회 마스터를 배정하거나 총괄을 변경합니다."
       title="대회 관리"
     >
       <AdminViewTabs
@@ -374,7 +374,7 @@ function AdminContestsContent({ token }: { token: string }) {
 
         {view === 'masters' && (
           <AdminPanel
-            description="처음 배정하는 계정은 대회 총괄, 이후 배정하는 계정은 대회 마스터가 됩니다. 두 역할 모두 대회의 모든 권한을 가집니다. 총괄 변경은 현재 총괄의 위임으로만 가능합니다."
+            description="처음 배정하는 계정은 대회 총괄, 이후 배정하는 계정은 대회 마스터가 됩니다. 두 역할 모두 대회의 모든 권한을 가집니다. 총괄 변경은 대회 선택 후 운영자 관리에서 진행할 수 있습니다."
             title="대회 마스터 배정"
           >
             <form
@@ -447,7 +447,19 @@ function AdminContestsContent({ token }: { token: string }) {
                 </p>
               ) : null}
 
-              <div className="flex justify-end lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 lg:col-span-3">
+                {operatorForm.contestId ? (
+                  <Link
+                    className="inline-flex h-11 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                    to={`/operator/contests/${operatorForm.contestId}/operators`}
+                  >
+                    총괄 변경
+                  </Link>
+                ) : (
+                  <span className="text-sm text-slate-500">
+                    대회를 선택하면 총괄을 변경할 수 있습니다.
+                  </span>
+                )}
                 <button
                   className="h-11 rounded-lg border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:text-slate-400"
                   disabled={
@@ -749,6 +761,13 @@ function ContestRow({
             to={`/operator/contests/${contest.contest_id}/settings`}
           >
             운영 설정
+          </Link>
+          <Link
+            className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold whitespace-nowrap text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+            to={`/operator/contests/${contest.contest_id}/operators`}
+            aria-label={`${contest.title} 총괄 변경`}
+          >
+            총괄 변경
           </Link>
           <button
             type="button"

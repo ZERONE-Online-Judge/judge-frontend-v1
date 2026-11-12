@@ -5,7 +5,7 @@ export const CONTEST_ROLES = [
     value: 'owner',
     label: '대회 총괄',
     description:
-      '대회의 모든 권한을 가지며, 대회마다 한 명만 맡습니다. 위임으로만 변경할 수 있습니다.',
+      '대회의 모든 권한을 가지며, 대회마다 한 명만 맡습니다. 현재 총괄이 위임하거나 서비스 마스터가 변경할 수 있습니다.',
   },
   {
     value: 'master',

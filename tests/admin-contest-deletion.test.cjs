@@ -163,6 +163,19 @@ function confirm() {
   );
 }
 
+test('each contest links owner changes to the existing operator management screen', () => {
+  for (const contest of rows) {
+    const link = host.querySelector(
+      `a[aria-label="${contest.title} 총괄 변경"]`,
+    );
+    assert.equal(
+      link.getAttribute('href'),
+      `/operator/contests/${contest.contest_id}/operators`,
+    );
+  }
+  assert.deepEqual(calls, []);
+});
+
 test('deletion requires the exact name and cancel never sends a request', async () => {
   await open();
   assert.equal(

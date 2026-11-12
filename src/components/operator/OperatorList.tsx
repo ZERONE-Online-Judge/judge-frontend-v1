@@ -66,7 +66,7 @@ export default function OperatorList({
             {protectedOperator ? (
               <p className="text-xs leading-5 text-slate-600">
                 {assignedMaster
-                  ? '총괄은 강등하거나 제거할 수 없습니다. 위임 영역에서 다른 운영자에게 넘길 수 있습니다.'
+                  ? '총괄은 강등하거나 제거할 수 없습니다. 대회 총괄 영역에서 현재 총괄이 위임하거나 서비스 마스터가 변경할 수 있습니다.'
                   : '대회 마스터만 이 운영자의 권한을 관리할 수 있습니다.'}
               </p>
             ) : null}

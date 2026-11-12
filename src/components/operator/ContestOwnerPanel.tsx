@@ -11,6 +11,7 @@ import { formatApiError } from '@/shared/api/errors';
 export default function ContestOwnerPanel({
   contestId,
   actorEmail,
+  isServiceMaster = false,
   operators,
   loading,
   busy,
@@ -19,6 +20,7 @@ export default function ContestOwnerPanel({
 }: {
   contestId: string;
   actorEmail: string;
+  isServiceMaster?: boolean;
   operators: StaffAccount[];
   loading: boolean;
   busy: boolean;
@@ -26,21 +28,39 @@ export default function ContestOwnerPanel({
   onTransfer: (email: string) => void;
 }) {
   const helpId = useId();
-  const [email, setEmail] = useState('');
-  const [confirmedEmail, setConfirmedEmail] = useState('');
   const owner = operators.find((operator) =>
     isContestOwner(operator, contestId),
   );
   const candidates = operators.filter(
-    (operator) => !operator.is_service_master && operator !== owner,
+    (operator) =>
+      !operator.is_service_master && !isContestOwner(operator, contestId),
   );
+  const context = JSON.stringify([
+    contestId,
+    owner?.email.toLowerCase(),
+    actorEmail.toLowerCase(),
+    isServiceMaster,
+  ]);
+  const [selection, setSelection] = useState({
+    context,
+    email: '',
+    confirmedEmail: '',
+  });
+  if (selection.context !== context) {
+    setSelection({ context, email: '', confirmedEmail: '' });
+  }
+  const email = selection.context === context ? selection.email : '';
+  const confirmedEmail =
+    selection.context === context ? selection.confirmedEmail : '';
   const selected = candidates.find((operator) => operator.email === email);
-  const canTransfer = owner?.email.toLowerCase() === actorEmail.toLowerCase();
+  const canTransfer =
+    isServiceMaster || owner?.email.toLowerCase() === actorEmail.toLowerCase();
+  const action = isServiceMaster ? '변경' : '위임';
 
   return (
     <OperatorPanel
       title="대회 총괄"
-      description="총괄은 대회마다 한 명이며, 모든 운영 권한을 가집니다. 현재 총괄만 다른 운영자에게 위임할 수 있습니다."
+      description="총괄은 대회마다 한 명이며, 모든 운영 권한을 가집니다. 현재 총괄이 위임하거나 서비스 마스터가 변경할 수 있습니다."
     >
       {loading ? (
         <p className="text-sm text-slate-600">총괄 정보를 불러오는 중입니다.</p>
@@ -64,15 +84,18 @@ export default function ContestOwnerPanel({
           {canTransfer ? (
             <div className="grid content-start gap-3">
               <label className="grid gap-2 text-sm font-semibold text-slate-800">
-                총괄을 위임할 운영자
+                {isServiceMaster ? '새 총괄' : '총괄을 위임할 운영자'}
                 <Select
                   aria-describedby={helpId}
                   className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:opacity-50"
                   value={email}
                   disabled={busy || candidates.length === 0}
                   onChange={(event) => {
-                    setEmail(event.target.value);
-                    setConfirmedEmail('');
+                    setSelection({
+                      context,
+                      email: event.target.value,
+                      confirmedEmail: '',
+                    });
                   }}
                 >
                   <option value="">운영자 선택</option>
@@ -87,36 +110,46 @@ export default function ContestOwnerPanel({
               </label>
               <p id={helpId} className="text-sm leading-6 text-slate-600">
                 {candidates.length
-                  ? '선택한 운영자는 기존 담당 권한 대신 총괄 권한을 갖습니다. 위임한 본인은 대회 마스터로 남습니다.'
-                  : '먼저 아래에서 위임할 운영자를 추가해 주세요.'}
+                  ? isServiceMaster
+                    ? '선택한 운영자는 총괄이 되고, 기존 총괄은 대회 마스터로 남습니다. 서비스 마스터의 권한은 유지됩니다.'
+                    : '선택한 운영자는 기존 담당 권한 대신 총괄 권한을 갖습니다. 위임한 본인은 대회 마스터로 남습니다.'
+                  : `먼저 아래에서 총괄을 ${action}할 운영자를 추가해 주세요.`}
               </p>
               {selected && confirmedEmail === email ? (
                 <div
                   className="grid gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4"
                   role="region"
-                  aria-label="총괄 위임 확인"
+                  aria-label={`총괄 ${action} 확인`}
                 >
                   <p className="zoj-break-anywhere text-sm leading-6 text-indigo-950">
                     <strong>
                       {selected.display_name} ({selected.email})
                     </strong>
-                    님에게 총괄을 위임합니다. 이후 총괄 변경은 새 총괄만 할 수
-                    있습니다.
+                    {isServiceMaster
+                      ? '님을 새 총괄로 지정합니다.'
+                      : '님에게 총괄을 위임합니다.'}
+                    {isServiceMaster
+                      ? ` 기존 총괄 ${owner.display_name} (${owner.email})님은 대회 마스터로 남습니다.`
+                      : ' 이후 새 총괄이 위임하거나 서비스 마스터가 변경할 수 있습니다.'}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                       type="button"
                       disabled={busy}
-                      onClick={() => onTransfer(email)}
+                      onClick={() => {
+                        if (!busy && canTransfer && selected) onTransfer(email);
+                      }}
                     >
-                      {busy ? '위임 중…' : '총괄 위임 확정'}
+                      {busy ? `${action} 중…` : `총괄 ${action} 확정`}
                     </button>
                     <button
                       className="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
                       type="button"
                       disabled={busy}
-                      onClick={() => setConfirmedEmail('')}
+                      onClick={() =>
+                        setSelection({ context, email, confirmedEmail: '' })
+                      }
                     >
                       취소
                     </button>
@@ -127,16 +160,18 @@ export default function ContestOwnerPanel({
                   className="w-fit rounded-lg border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 disabled:opacity-50"
                   disabled={!selected || busy}
                   type="button"
-                  onClick={() => setConfirmedEmail(email)}
+                  onClick={() =>
+                    setSelection({ context, email, confirmedEmail: email })
+                  }
                 >
-                  위임 내용 확인
+                  {action} 내용 확인
                 </button>
               )}
             </div>
           ) : (
             <p className="self-center text-sm leading-6 text-slate-600">
-              총괄 위임은 현재 총괄 계정으로 로그인해 진행할 수 있습니다. 대회
-              마스터의 일반 운영 권한은 동일하게 유지됩니다.
+              총괄 변경은 현재 총괄 또는 서비스 마스터가 진행할 수 있습니다.
+              대회 마스터의 일반 운영 권한은 동일하게 유지됩니다.
             </p>
           )}
         </div>
@@ -151,7 +186,7 @@ export default function ContestOwnerPanel({
           className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
           role="alert"
         >
-          {formatApiError(error, '총괄 위임에 실패했습니다')}
+          {formatApiError(error, `총괄 ${action}에 실패했습니다`)}
         </p>
       ) : null}
     </OperatorPanel>

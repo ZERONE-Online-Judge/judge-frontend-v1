@@ -34,7 +34,8 @@ let session,
   invalidations,
   visible,
   userFailure,
-  detailFailure;
+  detailFailure,
+  adminContests;
 const cache = new Map();
 const serviceApi = {
   listAdminServiceNotices: async () => {
@@ -126,7 +127,7 @@ function source(relative) {
       };
     if (id === '@/domains/contestAdministration/api')
       return {
-        getAdminContests: async () => [],
+        getAdminContests: async () => adminContests,
         getAdminContestDivisions: async () => [],
       };
     if (id === '@/domains/usageAnalytics/api')
@@ -267,6 +268,7 @@ beforeEach(() => {
   session = admin();
   userFailure = null;
   detailFailure = null;
+  adminContests = [];
   visible = true;
   calls = [];
   invalidations = [];
@@ -398,6 +400,35 @@ test('contest tasks are separate and selected tabs survive browser back navigati
   await act(() => navigate(-1));
   assert.equal(sectionTab('대회 생성').getAttribute('aria-pressed'), 'true');
 });
+test('master assignment links only the selected contest to the shared owner change flow', async () => {
+  adminContests = ['first', 'second'].map((id) => ({
+    contest_id: id,
+    title: `대회 ${id}`,
+    organization_name: 'ZOJ',
+    status: 'ended',
+    start_at: '2026-11-11T04:00:00Z',
+    end_at: '2026-11-11T11:00:00Z',
+    visibility: 'public',
+    visibility_after_end: 'public',
+  }));
+  await render(Contests, '/admin/contests?view=masters');
+  assert.equal(host.querySelector('a[href$="/operators"]'), null);
+  await fill(host.querySelector('select'), 'first');
+  await flush();
+  assert.equal(
+    host.querySelector('a[href$="/operators"]').getAttribute('href'),
+    '/operator/contests/first/operators',
+  );
+  await fill(host.querySelector('select'), 'second');
+  await flush();
+  assert.equal(
+    host.querySelector('a[href$="/operators"]').getAttribute('href'),
+    '/operator/contests/second/operators',
+  );
+  assert.doesNotMatch(host.textContent, /현재 총괄의 위임으로만/);
+  assert.equal(calls.length, 0);
+});
+
 test('judge nodes, queue and submissions are distinct and inactive submissions do not poll', async () => {
   await render(Judge, '/admin/judge');
   assert.equal(calls.filter((c) => c.type === 'submissions').length, 0);

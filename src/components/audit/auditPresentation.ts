@@ -95,7 +95,7 @@ export function actionLabel(log: OperationalAuditLog) {
   const rules: Array<[RegExp, Record<string, string>]> = [
     [/\/settings$/, { PATCH: '대회 설정 변경' }],
     [/\/share-link$/, { POST: '대회 공유 링크 발급' }],
-    [/\/owner:transfer$/, { POST: '대회 총괄 위임' }],
+    [/\/owner:transfer$/, { POST: '대회 총괄 변경' }],
     [/\/scoreboard\/release$/, { POST: '순위 발표 조작' }],
     [/\/storage\/presign-upload$/, { POST: '파일 업로드 주소 발급' }],
     [/\/participants:bulk-create$/, { POST: '참가팀 일괄 등록' }],

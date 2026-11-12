@@ -210,6 +210,7 @@ function OperatorOperatorsContent({
       );
       if (
         current?.operatorSession &&
+        !current.operatorSession.staff.is_service_master &&
         ownAccount &&
         current.operatorSession.accessToken === token
       ) {
@@ -244,9 +245,13 @@ function OperatorOperatorsContent({
         });
       }
       setSavedMessage(
-        '총괄을 위임했습니다. 기존 총괄은 대회 마스터로 남습니다.',
+        session.staff.is_service_master
+          ? '총괄을 변경했습니다. 기존 총괄은 대회 마스터로 남습니다.'
+          : '총괄을 위임했습니다. 기존 총괄은 대회 마스터로 남습니다.',
       );
       void queryClient.invalidateQueries({ queryKey: ['operator'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'contests'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
     },
     onError: () => {
       void queryClient.invalidateQueries({
@@ -315,6 +320,7 @@ function OperatorOperatorsContent({
       <ContestOwnerPanel
         contestId={contestId}
         actorEmail={session.staff.email}
+        isServiceMaster={session.staff.is_service_master}
         operators={operators}
         loading={operatorsQuery.isPending}
         busy={
@@ -335,7 +341,7 @@ function OperatorOperatorsContent({
             operatorForm.displayName ||
             operatorForm.roles.length,
           )}
-          description="운영자와 담당 권한을 관리합니다. 이메일을 바꾸면 이 대회의 운영자 권한을 다른 계정으로 옮깁니다. 대회 총괄은 별도의 위임 기능을 사용하세요."
+          description="운영자와 담당 권한을 관리합니다. 이메일을 바꾸면 이 대회의 운영자 권한을 다른 계정으로 옮깁니다. 대회 총괄은 위의 총괄 변경 영역을 사용하세요."
           title={
             operatorForm.nameOnly
               ? '총괄 이름 수정'
@@ -390,8 +396,8 @@ function OperatorOperatorsContent({
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <p className="font-semibold">대회 총괄 · 권한 유지</p>
                 <p className="mt-1 text-xs leading-5">
-                  이름을 바꿔도 총괄 권한은 유지됩니다. 총괄 변경은 위임
-                  영역에서만 할 수 있습니다.
+                  이름을 바꿔도 총괄 권한은 유지됩니다. 총괄 변경은 위의 대회
+                  총괄 영역에서만 할 수 있습니다.
                 </p>
               </div>
             ) : (

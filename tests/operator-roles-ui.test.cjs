@@ -33,7 +33,7 @@ const h = React.createElement;
 let session, operators, reads, creates, updates, removals, replacements;
 let updateError, sessionClears, currentLocation, apiCalls;
 let contestOverrides, settingsChanges, transfers, transferError;
-let divisionCreates;
+let divisionCreates, transferWait;
 const mocks = {
   '@/shared/unsaved/useUnsavedForm': {
     default: () => ({ formProps: {}, confirm: (callback) => callback() }),
@@ -123,6 +123,7 @@ const mocks = {
     },
     transferContestOwner: async (contestId, token, email) => {
       transfers.push({ contestId, token, email });
+      if (transferWait) await transferWait;
       if (transferError) throw transferError;
       const changed = operators
         .filter(
@@ -273,6 +274,7 @@ beforeEach(() => {
   divisionCreates = [];
   transfers = [];
   transferError = null;
+  transferWait = null;
   window.localStorage.removeItem('zoj.scoreboard.updated.contest');
   container = document.createElement('div');
   document.body.append(container);
@@ -949,6 +951,178 @@ test('ordinary masters can see the owner but have no delegation control', async 
   assert.match(container.textContent, /owner \/ 총괄/);
   assert.equal(container.querySelector('select'), null);
   assert.equal(button('위임 내용 확인'), undefined);
+});
+
+function serviceMasterSetup() {
+  session.operatorSession.staff.is_service_master = true;
+  session.operatorSession.staff.contest_scopes = {};
+  session.operatorSession.staff.contest_roles = {};
+  session.operatorSession.staff.protected_master_contests = [];
+  operators = [
+    staff('owner@example.test', ['owner'], true),
+    staff('reviewer@example.test', ['problem_reviewer']),
+    {
+      ...staff('global@example.test', ['master']),
+      is_service_master: true,
+    },
+  ];
+}
+
+test('service master reviews and changes the owner without acquiring or losing contest roles', async () => {
+  serviceMasterSetup();
+  const beforeSession = JSON.parse(JSON.stringify(session));
+  const invalidations = [];
+  const invalidate = client.invalidateQueries.bind(client);
+  client.invalidateQueries = (options) => {
+    invalidations.push(options.queryKey);
+    return invalidate(options);
+  };
+  await render();
+  assert.ok(button('변경 내용 확인'));
+  assert.equal(button('변경 내용 확인').disabled, true);
+  assert.deepEqual(
+    [...container.querySelector('select').options].map(
+      (option) => option.value,
+    ),
+    ['', 'reviewer@example.test'],
+  );
+  await selectOwner('reviewer@example.test');
+  assert.equal(transfers.length, 0);
+  await click(button('변경 내용 확인'));
+  const confirmation = container.querySelector('[aria-label="총괄 변경 확인"]');
+  assert.match(confirmation.textContent, /reviewer@example.test/);
+  assert.match(confirmation.textContent, /owner@example.test/);
+  assert.match(confirmation.textContent, /대회 마스터로 남습니다/);
+  await click(button('취소'));
+  assert.equal(transfers.length, 0);
+  await click(button('변경 내용 확인'));
+  await click(button('총괄 변경 확정'));
+  assert.deepEqual(transfers, [
+    {
+      contestId: 'contest',
+      token: 'staff-token',
+      email: 'reviewer@example.test',
+    },
+  ]);
+  assert.match(
+    operatorCard('reviewer@example.test').textContent,
+    /reviewer \/ 총괄/,
+  );
+  assert.match(
+    operatorCard('owner@example.test').textContent,
+    /owner \/ 마스터/,
+  );
+  assert.deepEqual(session, beforeSession);
+  assert.ok(invalidations.some((key) => key.join('.') === 'operator'));
+  assert.ok(invalidations.some((key) => key.join('.') === 'admin.contests'));
+  assert.ok(invalidations.some((key) => key.join('.') === 'admin.dashboard'));
+  assert.equal(container.querySelector('select').value, '');
+  assert.equal(container.querySelector('[aria-label="총괄 변경 확인"]'), null);
+});
+
+test('service master session stays global when the transfer response includes their former owner account', async () => {
+  serviceMasterSetup();
+  session.account.email = 'owner@example.test';
+  session.operatorSession.staff.email = 'owner@example.test';
+  session.operatorSession.staff.contest_scopes = { unrelated: ['contest.*'] };
+  session.operatorSession.staff.contest_roles = { unrelated: ['master'] };
+  const beforeSession = JSON.parse(JSON.stringify(session));
+  await render();
+  await selectOwner('reviewer@example.test');
+  await click(button('변경 내용 확인'));
+  await click(button('총괄 변경 확정'));
+  assert.equal(transfers.length, 1);
+  assert.deepEqual(session, beforeSession);
+  assert.match(
+    operatorCard('owner@example.test').textContent,
+    /owner \/ 마스터/,
+  );
+});
+
+test('pending service master owner change blocks repeated submission and preserves failed selection', async () => {
+  serviceMasterSetup();
+  let complete;
+  transferWait = new Promise((resolve) => {
+    complete = resolve;
+  });
+  transferError = new ApiClientError(
+    409,
+    'conflict',
+    '총괄이 변경되었습니다. 다시 확인하세요.',
+  );
+  await render();
+  await selectOwner('reviewer@example.test');
+  await click(button('변경 내용 확인'));
+  await click(button('총괄 변경 확정'));
+  assert.equal(button('변경 중…').disabled, true);
+  assert.equal(button('취소').disabled, true);
+  assert.equal(container.querySelector('select').disabled, true);
+  await click(button('변경 중…'));
+  assert.equal(transfers.length, 1);
+  await act(async () => complete());
+  await flush();
+  assert.equal(
+    container.querySelector('select').value,
+    'reviewer@example.test',
+  );
+  assert.ok(button('총괄 변경 확정'));
+  assert.match(
+    container.querySelector('[role="alert"]').textContent,
+    /현재 상태와 충돌/,
+  );
+  assert.match(operatorCard('owner@example.test').textContent, /owner \/ 총괄/);
+  assert.equal(session.operatorSession.staff.is_service_master, true);
+});
+
+test('owner and contest changes discard a reviewed recipient even if the original owner returns', async () => {
+  const Panel = source('components/operator/ContestOwnerPanel.tsx').default;
+  const original = [
+    staff('owner@example.test', ['owner']),
+    staff('next@example.test', ['master']),
+  ];
+  let props = {
+    contestId: 'contest',
+    actorEmail: 'global@example.test',
+    isServiceMaster: true,
+    operators: original,
+    loading: false,
+    busy: false,
+    error: null,
+    onTransfer: (email) => transfers.push(email),
+  };
+  const renderPanel = async () => {
+    await act(async () => root.render(h(Panel, props)));
+    await flush();
+  };
+  await renderPanel();
+  await selectOwner('next@example.test');
+  await click(button('변경 내용 확인'));
+  assert.ok(button('총괄 변경 확정'));
+  props = {
+    ...props,
+    operators: [staff('other@example.test', ['owner']), original[1]],
+  };
+  await renderPanel();
+  assert.equal(container.querySelector('select').value, '');
+  assert.equal(button('총괄 변경 확정'), undefined);
+  props = { ...props, operators: original };
+  await renderPanel();
+  assert.equal(container.querySelector('select').value, '');
+  await selectOwner('next@example.test');
+  await click(button('변경 내용 확인'));
+  props = {
+    ...props,
+    contestId: 'other',
+    operators: original.map((item) => ({
+      ...item,
+      contest_roles: { other: item.contest_roles.contest },
+      contest_scopes: { other: item.contest_scopes.contest },
+    })),
+  };
+  await renderPanel();
+  assert.equal(container.querySelector('select').value, '');
+  assert.equal(button('총괄 변경 확정'), undefined);
+  assert.equal(transfers.length, 0);
 });
 
 test('owner can edit their name while email and role stay fixed and the current session updates immediately', async () => {

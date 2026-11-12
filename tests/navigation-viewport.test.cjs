@@ -32,10 +32,21 @@ const useNavigationViewport = loaded.exports.default;
 let root, top, viewport, frames, observer, observations, disconnected;
 let nextFrame = 0;
 const variable = '--zoj-navigation-available-height';
-function Menu({ shown = true, name = 'first', gap = 16 }) {
-  const ref = useNavigationViewport(gap);
+function Menu({
+  shown = true,
+  name = 'first',
+  gap = 16,
+  keepTop = false,
+  sticky = false,
+}) {
+  const ref = useNavigationViewport(gap, keepTop);
   return shown
-    ? React.createElement('aside', { key: name, ref, 'data-name': name })
+    ? React.createElement('aside', {
+        key: name,
+        ref,
+        'data-name': name,
+        style: sticky ? { position: 'sticky', top: '88px' } : undefined,
+      })
     : null;
 }
 async function render(props = {}) {
@@ -167,4 +178,65 @@ test('older browsers without VisualViewport or ResizeObserver use the window hei
   top = -10;
   const menu = await render({ gap: 20 });
   assert.equal(menu.style.getPropertyValue(variable), '580px');
+});
+
+test('an opted-in rail retains its sticky top and usable height when the footer pushes its aside upward', async () => {
+  const menu = await render({ keepTop: true, sticky: true });
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '0px',
+  );
+  assert.equal(menu.style.getPropertyValue(variable), '344px');
+  top = -120;
+  window.dispatchEvent(new dom.window.Event('scroll'));
+  flush();
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '208px',
+  );
+  assert.equal(menu.style.getPropertyValue(variable), '496px');
+  top = 88;
+  window.dispatchEvent(new dom.window.Event('scroll'));
+  flush();
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '0px',
+  );
+  assert.equal(menu.style.getPropertyValue(variable), '496px');
+});
+
+test('header offset changes are respected and leaving desktop layout removes footer compensation', async () => {
+  const menu = await render({ keepTop: true, sticky: true });
+  top = -120;
+  menu.style.top = '128px';
+  observer();
+  flush();
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '248px',
+  );
+  assert.equal(menu.style.getPropertyValue(variable), '456px');
+  menu.style.position = 'static';
+  window.dispatchEvent(new dom.window.Event('resize'));
+  flush();
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '0px',
+  );
+  assert.equal(menu.style.getPropertyValue(variable), '584px');
+});
+
+test('other sidebars keep their existing containing-block behavior and opting out clears the visual offset', async () => {
+  top = -120;
+  let menu = await render({ sticky: true });
+  assert.equal(menu.style.getPropertyValue('--zoj-navigation-top-offset'), '');
+  assert.equal(menu.style.getPropertyValue(variable), '584px');
+  menu = await render({ keepTop: true, sticky: true });
+  assert.equal(
+    menu.style.getPropertyValue('--zoj-navigation-top-offset'),
+    '208px',
+  );
+  menu = await render({ keepTop: false, sticky: true });
+  assert.equal(menu.style.getPropertyValue('--zoj-navigation-top-offset'), '');
+  assert.equal(menu.style.getPropertyValue(variable), '584px');
 });

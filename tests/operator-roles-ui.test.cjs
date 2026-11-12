@@ -33,7 +33,7 @@ const h = React.createElement;
 let session, operators, reads, creates, updates, removals, replacements;
 let updateError, sessionClears, currentLocation, apiCalls;
 let contestOverrides, settingsChanges, transfers, transferError;
-let divisionCreates, transferWait;
+let divisionCreates, transferWait, problemReads;
 const mocks = {
   '@/shared/unsaved/useUnsavedForm': {
     default: () => ({ formProps: {}, confirm: (callback) => callback() }),
@@ -160,7 +160,12 @@ const mocks = {
     listOperatorContestNotices: async () => [],
     listOperatorContestQuestions: async () => [],
   },
-  '@/domains/problemManagement/api': { getOperatorProblems: async () => [] },
+  '@/domains/problemManagement/api': {
+    getOperatorProblems: async () => {
+      problemReads++;
+      return [];
+    },
+  },
   '@/domains/teamParticipation/api': { listParticipantTeams: async () => [] },
 };
 mocks['@/domains/identityAccess/sessionStore'].useSessionStore.getState =
@@ -275,6 +280,7 @@ beforeEach(() => {
   transfers = [];
   transferError = null;
   transferWait = null;
+  problemReads = 0;
   window.localStorage.removeItem('zoj.scoreboard.updated.contest');
   container = document.createElement('div');
   document.body.append(container);
@@ -563,6 +569,28 @@ test('master settings page keeps staff management on its separate tab without fe
   assert.equal(button('운영자 추가'), undefined);
   assert.equal(reads, 0);
   assert.equal(container.textContent.includes('assigned@example.test'), false);
+});
+
+test('contest settings leave per-problem language editing to the problem tab and still save normal settings', async () => {
+  await render(SettingsPage, 'settings');
+  assert.doesNotMatch(container.textContent, /문제별 제출 언어|언어 설정 저장/);
+  // Navigation loads problem counts once; the removed editor must not fetch a
+  // second independent copy of every problem just to open contest settings.
+  assert.equal(problemReads, 1);
+  assert.ok(
+    container.querySelector('a[href="/operator/contests/contest/problems"]'),
+  );
+  await input(inputByLabel('대회명'), '언어 설정과 분리된 대회 설정');
+  await click(button('변경사항 저장'));
+  assert.deepEqual(settingsChanges, [
+    {
+      contestId: 'contest',
+      token: 'staff-token',
+      body: { title: '언어 설정과 분리된 대회 설정' },
+    },
+  ]);
+  assert.match(container.textContent, /설정이 저장되었습니다/);
+  assert.equal(problemReads, 1);
 });
 
 test('legacy contest settings preserve manual release and save the chosen resolver mode', async () => {

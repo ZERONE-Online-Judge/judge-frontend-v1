@@ -11,6 +11,7 @@ import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
 import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
+import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import ProblemArchivePanel from '@/components/operator/ProblemArchivePanel';
 import PackageUpdateHistory from '@/components/operator/PackageUpdateHistory';
@@ -700,7 +701,7 @@ function OperatorProblemsContent({
   const [editorMode, setEditorMode] = useState<ProblemEditorMode>('idle');
   const editorRef = useRef<HTMLDivElement>(null);
   const problemIndexRef = useNavigationViewport<HTMLElement>();
-  const initialFormRef = useRef(emptyProblemForm);
+  const [initialForm, setInitialForm] = useState(emptyProblemForm);
   const [problemSearch, setProblemSearch] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
   const [exampleStructureVersion, setExampleStructureVersion] = useState(0);
@@ -772,10 +773,19 @@ function OperatorProblemsContent({
   const selectedProblem = problems.find(
     (problem) => problem.problem_id === effectiveSelectedProblemId,
   );
+  const changedProblemFieldCount = (
+    Object.keys(form) as (keyof ProblemForm)[]
+  ).filter((key) => {
+    const current = form[key];
+    const initial = initialForm[key];
+    // Toggling a language off and on does not change the allowed set.
+    return key === 'allowedLanguages'
+      ? JSON.stringify([...form.allowedLanguages].sort()) !==
+          JSON.stringify([...initialForm.allowedLanguages].sort())
+      : JSON.stringify(current) !== JSON.stringify(initial);
+  }).length;
   const hasUnsavedProblem = Boolean(
-    selectedProblem &&
-    JSON.stringify(form) !==
-      JSON.stringify(problemFormFromProblem(selectedProblem)),
+    selectedProblem && changedProblemFieldCount,
   );
   const testDraftScope = `operator:${contestId}`;
   const testDraftKey = effectiveSelectedProblemId
@@ -998,7 +1008,7 @@ function OperatorProblemsContent({
       setEditorMode('edit');
       setSelectedProblemId(problem.problem_id);
       setForm(problemFormFromProblem(problem));
-      initialFormRef.current = problemFormFromProblem(problem);
+      setInitialForm(problemFormFromProblem(problem));
       setSavedMessage(
         `${problem.problem_code}. ${problem.title} 문제가 저장되었습니다.`,
       );
@@ -1079,7 +1089,7 @@ function OperatorProblemsContent({
       setAuthoringTab('statement');
       setSelectedProblemId(problem.problem_id);
       setForm(problemFormFromProblem(problem));
-      initialFormRef.current = problemFormFromProblem(problem);
+      setInitialForm(problemFormFromProblem(problem));
       setFormNotice('');
       setSavedMessage(
         `${problem.problem_code}. ${problem.title} 문제를 현재 유형으로 복사했습니다.`,
@@ -1437,7 +1447,7 @@ function OperatorProblemsContent({
     setAuthoringTab('statement');
     setSelectedProblemId(problem.problem_id);
     setForm(problemFormFromProblem(problem));
-    initialFormRef.current = problemFormFromProblem(problem);
+    setInitialForm(problemFormFromProblem(problem));
     setTestSubmission(null);
     setFormError('');
     focusEditor();
@@ -1458,7 +1468,7 @@ function OperatorProblemsContent({
       divisionId,
     };
     setForm(nextForm);
-    initialFormRef.current = nextForm;
+    setInitialForm(nextForm);
     setTestSubmission(null);
     setFormError('');
     focusEditor();
@@ -1478,7 +1488,7 @@ function OperatorProblemsContent({
       return false;
     return (
       editorMode === 'idle' ||
-      JSON.stringify(form) === JSON.stringify(initialFormRef.current) ||
+      changedProblemFieldCount === 0 ||
       window.confirm(
         '저장하지 않은 문제 변경사항이 있습니다. 변경사항을 버리고 이동할까요?',
       )
@@ -2471,22 +2481,6 @@ function OperatorProblemsContent({
                     ) : null}
                     {authoringTab !== 'tests' ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white disabled:bg-slate-300"
-                          disabled={
-                            (editorMode === 'edit' && !form.problemId) ||
-                            saveProblemMutation.isPending ||
-                            deleteProblemMutation.isPending
-                          }
-                          type="submit"
-                        >
-                          <ProblemIcon />
-                          {saveProblemMutation.isPending
-                            ? '저장 중…'
-                            : editorMode === 'edit'
-                              ? '변경사항 저장'
-                              : '새 문제 저장'}
-                        </button>
                         {editorMode === 'edit' && selectedProblem ? (
                           <>
                             <button
@@ -2547,6 +2541,56 @@ function OperatorProblemsContent({
                       </>
                     ) : null}
                   </fieldset>
+                  {authoringTab !== 'tests' ? (
+                    <SettingsSaveBar
+                      label="문제 저장"
+                      changedCount={changedProblemFieldCount}
+                      pending={saveProblemMutation.isPending}
+                      disabled={
+                        (editorMode === 'edit' && !form.problemId) ||
+                        deleteProblemMutation.isPending ||
+                        copyProblemMutation.isPending
+                      }
+                      savedMessage={savedMessage}
+                      pristineMessage={
+                        editorMode === 'create'
+                          ? '새 문제를 작성 중입니다'
+                          : '저장된 설정과 같습니다'
+                      }
+                      saveLabel={
+                        editorMode === 'create'
+                          ? '새 문제 저장'
+                          : '변경사항 저장'
+                      }
+                      description="기본 정보·문제/예제·해설을 함께 저장합니다. 파일·테스트 변경은 개별 저장됩니다."
+                      error={
+                        formError ||
+                        (saveProblemMutation.error
+                          ? formatApiError(
+                              saveProblemMutation.error,
+                              '문제 저장에 실패했습니다',
+                            )
+                          : '')
+                      }
+                      onReset={async () => {
+                        if (
+                          await confirmAction(
+                            '저장하지 않은 문제 변경사항을 모두 되돌릴까요?',
+                            {
+                              title: '문제 변경 취소',
+                              confirmLabel: '되돌리기',
+                            },
+                          )
+                        ) {
+                          setForm(initialForm);
+                          setFormError('');
+                          setFormNotice('');
+                          setSavedMessage('');
+                          saveProblemMutation.reset();
+                        }
+                      }}
+                    />
+                  ) : null}
                 </form>
               </>
             )}

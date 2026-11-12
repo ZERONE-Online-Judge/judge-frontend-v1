@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useState } from 'react';
 /** A sticky menu may start below its sticky top before the page is scrolled. */
 export default function useNavigationViewport<T extends HTMLElement>(
   bottomGap = 16,
+  keepStickyTop = false,
 ) {
   const [element, setElement] = useState<T | null>(null);
   const ref = useCallback((node: T | null) => setElement(node), []);
@@ -21,7 +22,24 @@ export default function useNavigationViewport<T extends HTMLElement>(
       const bottom = viewport
         ? viewport.offsetTop + viewport.height
         : window.innerHeight;
-      const top = Math.max(0, element.getBoundingClientRect().top);
+      const actualTop = element.getBoundingClientRect().top;
+      const styles = keepStickyTop ? window.getComputedStyle(element) : null;
+      const stickyTop = Number.parseFloat(styles?.top || '');
+      // A sticky aside is pushed up at the end of its layout, before the
+      // footer. Let its visible menu retain the header offset in that case.
+      const offset =
+        styles?.position === 'sticky' && Number.isFinite(stickyTop)
+          ? Math.max(0, stickyTop - actualTop)
+          : 0;
+      if (keepStickyTop) {
+        const value = `${offset}px`;
+        if (
+          element.style.getPropertyValue('--zoj-navigation-top-offset') !==
+          value
+        )
+          element.style.setProperty('--zoj-navigation-top-offset', value);
+      }
+      const top = Math.max(0, actualTop + offset);
       const height = `${Math.max(0, Math.floor(bottom - top - bottomGap))}px`;
       if (
         element.style.getPropertyValue('--zoj-navigation-available-height') !==
@@ -54,7 +72,9 @@ export default function useNavigationViewport<T extends HTMLElement>(
       window.removeEventListener('resize', schedule);
       window.visualViewport?.removeEventListener('scroll', schedule);
       window.visualViewport?.removeEventListener('resize', schedule);
+      if (keepStickyTop)
+        element.style.removeProperty('--zoj-navigation-top-offset');
     };
-  }, [bottomGap, element]);
+  }, [bottomGap, element, keepStickyTop]);
   return ref;
 }

@@ -5,7 +5,6 @@ import {
   type BoardWritingPolicy,
 } from '@/domains/serviceCommunication/boardPolicy';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
-import ProblemLanguageSettings from '@/components/operator/ProblemLanguageSettings';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
 import './OperatorSettingsPage.css';
@@ -977,13 +976,6 @@ function OperatorSettingsContent({
               </p>
             )}
           </OperatorPanel>
-          {hasContestPermission(
-            session,
-            contestId,
-            'contest.problem.manage',
-          ) ? (
-            <ProblemLanguageSettings contestId={contestId} token={token} />
-          ) : null}
         </div>
       ) : null}
     </PageLayout>

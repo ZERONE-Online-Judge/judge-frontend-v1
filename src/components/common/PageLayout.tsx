@@ -94,7 +94,7 @@ export default function PageLayout({
   width = '7xl',
   variant = 'page',
 }: PageLayoutProps) {
-  const navigationRef = useNavigationViewport<HTMLElement>();
+  const navigationRef = useNavigationViewport<HTMLElement>(16, true);
   const content = (
     <>
       {navigation && title ? (

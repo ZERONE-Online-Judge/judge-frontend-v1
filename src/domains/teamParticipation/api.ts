@@ -290,3 +290,30 @@ export function revokeParticipantMemberSessions(
     { method: 'POST' },
   );
 }
+
+export function updateParticipantTeamAccess(
+  contestId: string,
+  participantTeamId: string,
+  token: string,
+  body: { blocked: boolean; reason?: string },
+) {
+  return apiRequest<ParticipantTeam>(
+    `/operator/contests/${contestId}/participants/${participantTeamId}/access`,
+    token,
+    { method: 'PATCH', body: JSON.stringify(body) },
+  );
+}
+
+export function updateParticipantMemberAccess(
+  contestId: string,
+  participantTeamId: string,
+  teamMemberId: string,
+  token: string,
+  body: { blocked: boolean; reason?: string },
+) {
+  return apiRequest<TeamMember>(
+    `/operator/contests/${contestId}/participants/${participantTeamId}/members/${teamMemberId}/access`,
+    token,
+    { method: 'PATCH', body: JSON.stringify(body) },
+  );
+}

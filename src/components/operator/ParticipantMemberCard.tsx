@@ -10,11 +10,17 @@ export default function ParticipantMemberCard({
   pending,
   onRevoke,
   canRevoke = true,
+  teamBlocked = false,
+  canManageAccess = false,
+  onAccess,
 }: {
   member: TeamMember;
   pending: boolean;
   onRevoke: () => void;
   canRevoke?: boolean;
+  teamBlocked?: boolean;
+  canManageAccess?: boolean;
+  onAccess?: () => void;
 }) {
   const active = (member.active_sessions ?? 0) > 0;
   const sessions = active
@@ -40,6 +46,18 @@ export default function ParticipantMemberCard({
         >
           {member.role === 'leader' ? '팀장' : '팀원'}
         </span>
+        {member.access_blocked || teamBlocked ? (
+          <span
+            className="participant-access-badge is-blocked"
+            title={member.access_block_reason || undefined}
+          >
+            {member.access_blocked
+              ? teamBlocked
+                ? '개인·팀 차단'
+                : '개인 차단'
+              : '팀 차단 적용'}
+          </span>
+        ) : null}
       </div>
       <span className="participant-member-email">{member.email}</span>
       <div className="participant-member-session">
@@ -69,54 +87,69 @@ export default function ParticipantMemberCard({
 
   return (
     <li className="participant-member">
-      {active ? (
-        <details className="participant-member-disclosure" key={sessionKey}>
-          <summary
-            className="participant-member-row"
-            title={`${member.name} 세션 상세`}
-          >
-            {fields}
-            <span className="participant-member-chevron" aria-hidden="true">
-              <InterfaceIcon name="chevronDown" size={18} />
-            </span>
-          </summary>
-          <div className="participant-member-detail">
-            <div className="participant-member-environments">
-              {sessions.length ? (
-                sessions.map((session, index) => (
-                  <div
-                    className="participant-member-environment"
-                    key={`${session.scope}/${session.issued_at}/${index}`}
-                  >
-                    <SessionEnvironment environment={session.environment} />
-                    <span className="participant-member-login-time">
-                      로그인 {formatDateTime(session.issued_at)}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <span>환경 정보 없음</span>
-              )}
+      <div className="participant-member-body">
+        {active ? (
+          <details className="participant-member-disclosure" key={sessionKey}>
+            <summary
+              className="participant-member-row"
+              title={`${member.name} 세션 상세`}
+            >
+              {fields}
+              <span className="participant-member-chevron" aria-hidden="true">
+                <InterfaceIcon name="chevronDown" size={18} />
+              </span>
+            </summary>
+            <div className="participant-member-detail">
+              <div className="participant-member-environments">
+                {sessions.length ? (
+                  sessions.map((session, index) => (
+                    <div
+                      className="participant-member-environment"
+                      key={`${session.scope}/${session.issued_at}/${index}`}
+                    >
+                      <SessionEnvironment environment={session.environment} />
+                      <span className="participant-member-login-time">
+                        로그인 {formatDateTime(session.issued_at)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <span>환경 정보 없음</span>
+                )}
+              </div>
+              {canRevoke && member.team_member_id ? (
+                <button
+                  className="participant-member-logout"
+                  disabled={pending}
+                  title="이 계정의 모든 기기에서 로그아웃합니다"
+                  onClick={onRevoke}
+                  type="button"
+                >
+                  {pending ? '로그아웃 중…' : '계정 로그아웃'}
+                </button>
+              ) : null}
             </div>
-            {canRevoke && member.team_member_id ? (
-              <button
-                className="participant-member-logout"
-                disabled={pending}
-                title="이 계정의 모든 기기에서 로그아웃합니다"
-                onClick={onRevoke}
-                type="button"
-              >
-                {pending ? '로그아웃 중…' : '계정 로그아웃'}
-              </button>
-            ) : null}
+          </details>
+        ) : (
+          <div className="participant-member-row">
+            {fields}
+            <span aria-hidden="true" />
           </div>
-        </details>
-      ) : (
-        <div className="participant-member-row">
-          {fields}
-          <span aria-hidden="true" />
+        )}
+      </div>
+      {canManageAccess && member.team_member_id && onAccess ? (
+        <div className="participant-member-access-actions">
+          <button
+            type="button"
+            className={member.access_blocked ? 'is-restore' : ''}
+            disabled={pending}
+            onClick={onAccess}
+            aria-label={`${member.name} 개인 ${member.access_blocked ? '차단 해제' : '접근 차단'}`}
+          >
+            {member.access_blocked ? '개인 차단 해제' : '개인 차단'}
+          </button>
         </div>
-      )}
+      ) : null}
     </li>
   );
 }

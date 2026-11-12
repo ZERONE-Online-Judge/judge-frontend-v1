@@ -1,4 +1,9 @@
-import { ApiClientError, toApiError } from '@/shared/api/errors';
+import {
+  ApiClientError,
+  isParticipantAccessBlockedError,
+  toApiError,
+} from '@/shared/api/errors';
+import { reportParticipantAccessBlocked } from '@/shared/api/participantAccess';
 import {
   changeNoticeRequestInit,
   recordSavedChangeNotice,
@@ -439,6 +444,14 @@ async function refreshParticipantAccessToken(
       }
 
       if (!sessionResponse.response.ok) {
+        const error = toApiError(
+          sessionResponse.response,
+          sessionResponse.payload,
+        );
+        if (isParticipantAccessBlockedError(error)) {
+          reportParticipantAccessBlocked(path, error);
+          throw error;
+        }
         if (
           sessionResponse.response.status === 401 ||
           sessionResponse.response.status === 403
@@ -449,7 +462,7 @@ async function refreshParticipantAccessToken(
           );
           return null;
         }
-        throw toApiError(sessionResponse.response, sessionResponse.payload);
+        throw error;
       }
 
       const data = (
@@ -629,7 +642,7 @@ export async function apiRequest<T>(
     ) {
       clearStoredSessionForFailedToken(currentToken, path);
     }
-    throw toApiError(result.response, result.payload);
+    throwResponseError(result.response, result.payload, path);
   }
 
   const payload = result.payload as DataEnvelope<T> & {
@@ -671,7 +684,7 @@ export async function apiBlobRequest(
     ) {
       clearStoredSessionForFailedToken(currentToken, path);
     }
-    throw toApiError(response, await response.json().catch(() => null));
+    throwResponseError(response, await response.json().catch(() => null), path);
   }
   return response.blob();
 }
@@ -705,7 +718,7 @@ export async function apiPageRequest<T>(
     ) {
       clearStoredSessionForFailedToken(currentToken, path);
     }
-    throw toApiError(result.response, result.payload);
+    throwResponseError(result.response, result.payload, path);
   }
 
   const payload = result.payload as DataEnvelope<T>;
@@ -718,4 +731,14 @@ export async function apiPageRequest<T>(
       total_count: 0,
     },
   };
+}
+
+function throwResponseError(
+  response: Response,
+  payload: unknown,
+  path: string,
+): never {
+  const error = toApiError(response, payload);
+  reportParticipantAccessBlocked(path, error);
+  throw error;
 }

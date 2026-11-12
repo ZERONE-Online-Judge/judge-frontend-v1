@@ -51,6 +51,12 @@ function source(relative) {
 const { apiRequest, apiPageRequest, apiBlobRequest } = source(
   'shared/api/client.ts',
 );
+const { PARTICIPANT_ACCESS_BLOCKED_EVENT } = source(
+  'shared/api/participantAccess.ts',
+);
+const { formatUserApiError, isSessionAuthError } = source(
+  'shared/api/errors.ts',
+);
 beforeEach(() => {
   general = {
     accessToken: 'general-current',
@@ -199,4 +205,97 @@ test('ZIP download surfaces access denial without creating a downloadable blob',
     ),
     (error) => error.status === 403,
   );
+});
+
+for (const [label, request] of [
+  ['JSON', apiRequest],
+  ['page', apiPageRequest],
+  ['binary', apiBlobRequest],
+]) {
+  test(`${label} contest access block reports the contest while preserving all login tokens`, async () => {
+    const previousWindow = global.window;
+    const previousCustomEvent = global.CustomEvent;
+    global.window = new global.EventTarget();
+    global.CustomEvent = class extends Event {
+      constructor(type, init) {
+        super(type);
+        this.detail = init.detail;
+      }
+    };
+    try {
+      participant.isPreview = false;
+      participant.accessToken = 'real-participant';
+      const originalParticipant = participant;
+      const originalGeneral = general;
+      const reports = [];
+      window.addEventListener(PARTICIPANT_ACCESS_BLOCKED_EVENT, (event) =>
+        reports.push(event.detail),
+      );
+      global.fetch = async () => ({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          error: {
+            code: 'participant_access_blocked',
+            message: 'blocked',
+            details: { scope: 'team', reason: '운영진 확인 중' },
+          },
+        }),
+      });
+      await assert.rejects(
+        request('/contests/contest/problems', 'real-participant'),
+        (error) => {
+          assert.equal(error.code, 'participant_access_blocked');
+          assert.equal(isSessionAuthError(error), false);
+          assert.match(
+            formatUserApiError(error, '요청 실패'),
+            /소속 팀의 대회 접근.*운영진 확인 중/,
+          );
+          return true;
+        },
+      );
+      assert.equal(reports.length, 1);
+      assert.equal(reports[0].contestId, 'contest');
+      assert.equal(participant, originalParticipant);
+      assert.equal(general, originalGeneral);
+    } finally {
+      global.window = previousWindow;
+      global.CustomEvent = previousCustomEvent;
+    }
+  });
+}
+
+test('an expired participant token followed by a blocked session issuance is not an account logout', async () => {
+  participant.isPreview = false;
+  participant.accessToken = 'real-participant';
+  const originalParticipant = participant;
+  const originalGeneral = general;
+  storage.expireStoredAccountSession = () =>
+    assert.fail('A contest block is not an account revocation');
+  global.fetch = async (url) => {
+    calls.push(url);
+    return {
+      ok: false,
+      status: url.endsWith('/participant-session') ? 403 : 401,
+      json: async () => ({
+        error: {
+          code: url.endsWith('/participant-session')
+            ? 'participant_access_blocked'
+            : 'invalid_token',
+          message: 'blocked',
+          details: { scope: 'member', reason: '확인' },
+        },
+      }),
+    };
+  };
+  await assert.rejects(
+    apiRequest('/contests/contest/problems', 'real-participant'),
+    { code: 'participant_access_blocked' },
+  );
+  assert.deepEqual(calls, [
+    '/api/contests/contest/problems',
+    '/api/auth/general/contests/contest/participant-session',
+  ]);
+  assert.equal(participant, originalParticipant);
+  assert.equal(general, originalGeneral);
 });

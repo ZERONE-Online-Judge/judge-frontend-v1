@@ -36,6 +36,15 @@ export function isSessionAuthError(error: unknown) {
   );
 }
 
+export function isParticipantAccessBlockedError(
+  error: unknown,
+): error is ApiClientError & { code: 'participant_access_blocked' } {
+  return (
+    error instanceof ApiClientError &&
+    error.code === 'participant_access_blocked'
+  );
+}
+
 export function toApiError(response: Response, payload: unknown) {
   const body = payload as ApiErrorBody | null;
 
@@ -83,6 +92,13 @@ export function isChangeNoticeCancelled(error: unknown) {
 }
 
 function apiErrorUserMessage(error: ApiClientError) {
+  if (isParticipantAccessBlockedError(error)) {
+    const reason =
+      typeof error.details?.reason === 'string'
+        ? error.details.reason.trim()
+        : '';
+    return `운영진이 ${error.details?.scope === 'team' ? '소속 팀의 ' : ''}대회 접근을 차단했습니다.${reason ? ` 사유: ${reason}` : ''} 운영진에게 문의해 주세요.`;
+  }
   if (
     error.code === 'testcases_not_ready' ||
     error.code === 'testcase_results_invalid'

@@ -45,6 +45,7 @@ const {
   auditChanges,
   groupAuditLogs,
   valueLabel,
+  fieldLabel,
   targetLabel,
   operationSummary,
   isVerificationAction,
@@ -65,6 +66,31 @@ function log(overrides = {}) {
     ...overrides,
   };
 }
+
+test('contest access audit distinguishes individual and team blocks from session logout', () => {
+  for (const [suffix, target] of [
+    ['/access', '참가팀 전체'],
+    ['/members/m/access', '참가자 개인'],
+  ]) {
+    for (const blocked of [true, false]) {
+      const entry = log({
+        method: 'PATCH',
+        path: '/api/operator/contests/c/participants/t' + suffix,
+        details: { body: { blocked }, target: { name: '대상 참가자' } },
+      });
+      assert.equal(
+        actionLabel(entry),
+        `${target} 대회 접근 ${blocked ? '차단' : '차단 해제'}`,
+      );
+      assert.equal(targetLabel(entry), '대상 참가자');
+      assert.equal(
+        valueLabel(blocked, 'access_blocked'),
+        blocked ? '차단' : '허용',
+      );
+    }
+  }
+  assert.equal(fieldLabel('access_block_reason'), '차단 사유');
+});
 
 test('specific actions never get mislabeled by parent resources', () => {
   for (const [url, method, label] of [

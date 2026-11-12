@@ -10,6 +10,12 @@ const dom = new JSDOM('<body></body>', { url: 'https://judge.test' });
 global.window = dom.window;
 global.document = dom.window.document;
 global.IS_REACT_ACT_ENVIRONMENT = true;
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.open = true;
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.open = false;
+};
 const React = require('react');
 const { act, createElement: h } = React;
 const { createRoot } = require('react-dom/client');
@@ -52,6 +58,9 @@ function source(relative) {
 
 const Member = source('components/operator/ParticipantMemberCard.tsx').default;
 const Roster = source('components/operator/ParticipantTeamRoster.tsx').default;
+const AccessDialog = source(
+  'components/operator/ParticipantAccessDialog.tsx',
+).default;
 let root;
 let host;
 async function render(element) {
@@ -323,4 +332,129 @@ test('pending session revocation disables repeated logout requests', async () =>
   assert.ok(revoke);
   assert.equal(revoke.disabled, true);
   await click(revoke);
+});
+
+test('team and individual access controls remain independent and keep the leader first', async () => {
+  const data = team();
+  data.access_blocked = true;
+  data.access_block_reason = '팀 확인 중';
+  data.members[0].access_blocked = true;
+  data.members[0].access_block_reason = '개인 확인 중';
+  let selected;
+  let teamSelected = 0;
+  await render(
+    h(
+      Roster,
+      rosterProps({
+        team: data,
+        onTeamAccess: () => teamSelected++,
+        onMemberAccess: (value) => (selected = value),
+      }),
+    ),
+  );
+  assert.match(host.textContent, /팀 전체 차단/);
+  assert.match(host.textContent, /팀 확인 중/);
+  const members = [...host.querySelectorAll('li')];
+  assert.match(members[0].textContent, /활성 팀장.*팀 차단 적용/);
+  assert.match(members[1].textContent, /첫 번째 팀원.*개인·팀 차단/);
+  await click(button(/^팀 차단 해제$/));
+  assert.equal(teamSelected, 1);
+  await click(host.querySelector('[aria-label="첫 번째 팀원 개인 차단 해제"]'));
+  assert.equal(selected.team_member_id, 'first-member');
+  assert.equal(host.querySelector('details').open, false);
+});
+
+test('read-only and pending rosters cannot change individual or team access', async () => {
+  const deny = () => assert.fail('Access mutation must not be available');
+  const props = rosterProps({ onTeamAccess: deny, onMemberAccess: deny });
+  await render(h(Roster, { ...props, canManage: false }));
+  assert.equal(host.querySelectorAll('button').length, 0);
+  await render(h(Roster, { ...props, pending: true }));
+  for (const access of host.querySelectorAll(
+    '.participant-member-access-actions button',
+  )) {
+    assert.equal(access.disabled, true);
+    await click(access);
+  }
+  assert.equal(button(/^팀 전체 차단$/).disabled, true);
+  await click(button(/^팀 전체 차단$/));
+});
+
+test('access confirmation identifies the whole team, explains effects and submits a trimmed optional reason', async () => {
+  let submitted;
+  await render(
+    h(AccessDialog, {
+      target: { team: team() },
+      pending: false,
+      onClose: () => {},
+      onConfirm: (value) => (submitted = value),
+    }),
+  );
+  const dialog = document.querySelector('dialog');
+  assert.ok(dialog.open);
+  assert.match(dialog.textContent, /팀 전체 접근 차단/);
+  assert.match(dialog.textContent, /첫 번째 팀원.*활성 팀장.*두 번째 팀원/);
+  assert.match(dialog.textContent, /기존 제출·순위는 유지/);
+  assert.match(dialog.textContent, /다른 대회에는 영향을 주지 않습니다/);
+  const reason = dialog.querySelector('textarea');
+  assert.equal(reason.maxLength, 1000);
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(
+      dom.window.HTMLTextAreaElement.prototype,
+      'value',
+    ).set;
+    setter.call(reason, '  운영진 확인 중  ');
+    reason.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  await act(async () =>
+    dialog
+      .querySelector('form')
+      .dispatchEvent(
+        new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  assert.equal(submitted, '운영진 확인 중');
+});
+
+test('unblocking one scope warns about the other scope and preserves pending/error behavior', async () => {
+  const data = team();
+  data.access_blocked = true;
+  data.members[0].access_blocked = true;
+  await render(
+    h(AccessDialog, {
+      target: { team: data },
+      pending: false,
+      onClose: () => {},
+      onConfirm: () => {},
+    }),
+  );
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /개인 차단된 1명은 계속 차단/,
+  );
+  await render(
+    h(AccessDialog, {
+      target: { team: data, member: data.members[0] },
+      pending: true,
+      error: new Error('다시 시도'),
+      onClose: () => assert.fail('Pending dialog must remain open'),
+      onConfirm: () => assert.fail('Pending access request cannot repeat'),
+    }),
+  );
+  const dialog = document.querySelector('dialog');
+  assert.match(
+    dialog.textContent,
+    /개인 차단을 해제해도 팀 차단을 해제하기 전까지 접근할 수 없습니다/,
+  );
+  assert.ok(dialog.querySelector('[role="alert"]'));
+  assert.equal(dialog.querySelector('textarea'), null);
+  await act(async () =>
+    dialog
+      .querySelector('form')
+      .dispatchEvent(
+        new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  for (const item of dialog.querySelectorAll('footer button'))
+    assert.equal(item.disabled, true);
 });

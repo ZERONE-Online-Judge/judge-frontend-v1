@@ -1,5 +1,8 @@
 import Select from '@/shared/ui/Select';
 import ParticipantTeamRoster from '@/components/operator/ParticipantTeamRoster';
+import ParticipantAccessDialog, {
+  type ParticipantAccessTarget,
+} from '@/components/operator/ParticipantAccessDialog';
 import ParticipantBulkImport from '@/components/operator/ParticipantBulkImport';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import ParticipantDivisionsPanel from '@/components/operator/ParticipantDivisionsPanel';
@@ -27,6 +30,8 @@ import {
   revokeParticipantMemberSessions,
   updateParticipantTeam,
   updateParticipantTeamMember,
+  updateParticipantMemberAccess,
+  updateParticipantTeamAccess,
 } from '@/domains/teamParticipation/api';
 import type {
   ParticipantTeam,
@@ -115,6 +120,9 @@ function OperatorParticipantsContent({
   const [search, setSearch] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [formError, setFormError] = useState('');
+  const [accessTarget, setAccessTarget] =
+    useState<ParticipantAccessTarget | null>(null);
+  const [accessSaved, setAccessSaved] = useState('');
 
   const dashboardQuery = useQuery({
     queryKey: ['operator', 'dashboard', contestId, queryIdentity],
@@ -265,6 +273,51 @@ function OperatorParticipantsContent({
     onSuccess: invalidateParticipants,
   });
 
+  const accessMutation = useMutation({
+    mutationFn: async ({
+      target,
+      reason,
+    }: {
+      target: ParticipantAccessTarget;
+      reason: string;
+    }) => {
+      const { team, member } = target;
+      const body = {
+        blocked: !(member ?? team).access_blocked,
+        ...(reason ? { reason } : {}),
+      };
+      if (member?.team_member_id)
+        return updateParticipantMemberAccess(
+          contestId,
+          team.participant_team_id,
+          member.team_member_id,
+          token,
+          body,
+        );
+      return updateParticipantTeamAccess(
+        contestId,
+        team.participant_team_id,
+        token,
+        body,
+      );
+    },
+    onSuccess: (_, { target }) => {
+      const blocked = Boolean((target.member ?? target.team).access_blocked);
+      setAccessSaved(
+        `${target.member?.name ?? target.team.team_name}${target.member ? ' 개인' : ' 팀 전체'} ${blocked ? '차단을 해제했습니다.' : '접근을 차단했습니다.'}`,
+      );
+      setAccessTarget(null);
+      invalidateParticipants();
+    },
+  });
+
+  function openAccessDialog(target: ParticipantAccessTarget) {
+    if (!canManageParticipants) return;
+    accessMutation.reset();
+    setAccessSaved('');
+    setAccessTarget(target);
+  }
+
   function submitTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!teamForm.teamName.trim() || !teamForm.divisionId) {
@@ -355,12 +408,32 @@ function OperatorParticipantsContent({
     <PageLayout
       navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
-      description="참가 유형, 참가팀, 멤버와 로그인 세션을 관리합니다."
+      description="참가 유형, 참가팀, 멤버와 대회 접근·로그인 세션을 관리합니다."
       eyebrow="Operator"
       title="참가팀 관리"
       width="full"
     >
       {confirmationDialog}
+      {accessTarget && canManageParticipants ? (
+        <ParticipantAccessDialog
+          target={accessTarget}
+          pending={accessMutation.isPending}
+          error={accessMutation.error}
+          onClose={() => setAccessTarget(null)}
+          onConfirm={(reason) => {
+            if (!accessMutation.isPending)
+              accessMutation.mutate({ target: accessTarget, reason });
+          }}
+        />
+      ) : null}
+      {accessSaved ? (
+        <p
+          role="status"
+          className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+        >
+          {accessSaved}
+        </p>
+      ) : null}
 
       {dashboardQuery.error || teamsQuery.error ? (
         <ErrorBox
@@ -650,10 +723,16 @@ function OperatorParticipantsContent({
                     team.division?.name ??
                     '-'
                   }
-                  pending={revokeSessionMutation.isPending}
+                  pending={
+                    revokeSessionMutation.isPending || accessMutation.isPending
+                  }
                   canManage={canManageParticipants}
                   onEdit={() => editTeam(team)}
                   onDelete={() => confirmDeleteTeam(team)}
+                  onTeamAccess={() => openAccessDialog({ team })}
+                  onMemberAccess={(member) =>
+                    openAccessDialog({ team, member })
+                  }
                   onRevoke={(member) => {
                     if (member.team_member_id)
                       revokeSessionMutation.mutate({

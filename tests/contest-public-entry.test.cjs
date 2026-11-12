@@ -1,3 +1,4 @@
+/* global setTimeout, URLSearchParams */
 const { test, beforeEach, afterEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -12,6 +13,7 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
 global.window = dom.window;
 global.document = dom.window.document;
 global.Event = dom.window.Event;
+global.CustomEvent = dom.window.CustomEvent;
 global.IS_REACT_ACT_ENVIRONMENT = true;
 global.ResizeObserver = class {
   observe() {}
@@ -219,6 +221,9 @@ const Navigation = source(
 const ContestListItem = source('components/ui/ContestListItem.tsx').default;
 const { contestAccessPhase } = source('domains/contestAdministration/logic.ts');
 const { ApiClientError } = source('shared/api/errors.ts');
+const { reportParticipantAccessBlocked } = source(
+  'shared/api/participantAccess.ts',
+);
 
 function Observer() {
   currentLocation = useLocation();
@@ -1016,4 +1021,77 @@ test('participant overview restores the roster for a session saved before roster
     host.querySelector('[aria-label="내 팀과 팀원"]').textContent,
     /참가자 이름/,
   );
+});
+
+for (const scope of ['team', 'member']) {
+  test(`a ${scope} access block explains the reason without logging out and can recover in place`, async () => {
+    login(true);
+    const signedIn = state.generalSession;
+    const session = state.participantSession;
+    contestError = new ApiClientError(
+      403,
+      'participant_access_blocked',
+      'blocked',
+      undefined,
+      {
+        scope,
+        reason: '운영진 확인 중',
+        blocked_at: '2026-11-12T00:00:00Z',
+      },
+    );
+    await render();
+    assert.equal(currentPath, '/contests/public-contest');
+    assert.match(host.textContent, /대회 접근이 차단되었습니다/);
+    assert.match(host.textContent, /운영진 확인 중/);
+    assert.equal(host.querySelector('[role="dialog"]'), null);
+    assert.equal(state.generalSession, signedIn);
+    assert.equal(state.participantSession, session);
+    contestError = null;
+    await click(
+      [...host.querySelectorAll('button')].find(
+        (item) => item.textContent === '접근 상태 다시 확인',
+      ),
+    );
+    assert.equal(host.querySelector('h1')?.textContent, contest.title);
+    assert.doesNotMatch(host.textContent, /대회 접근이 차단되었습니다/);
+    assert.equal(state.generalSession, signedIn);
+    assert.equal(state.participantSession, session);
+  });
+}
+
+test('a blocked feature request immediately replaces an already-open cached contest, ignores other contests and recovers after recheck', async () => {
+  login(true);
+  await render();
+  assert.equal(host.querySelector('h1')?.textContent, contest.title);
+  assert.doesNotMatch(host.textContent, /대회 접근이 차단되었습니다/);
+  const blocked = new ApiClientError(
+    403,
+    'participant_access_blocked',
+    'blocked',
+    undefined,
+    { scope: 'member', reason: '추가 확인' },
+  );
+  await act(async () =>
+    reportParticipantAccessBlocked('/contests/another/problems', blocked),
+  );
+  assert.equal(host.querySelector('h1')?.textContent, contest.title);
+  assert.doesNotMatch(host.textContent, /대회 접근이 차단되었습니다/);
+  await act(async () =>
+    reportParticipantAccessBlocked(
+      '/contests/public-contest/problems/problem/submissions',
+      blocked,
+    ),
+  );
+  assert.match(host.textContent, /대회 접근이 차단되었습니다/);
+  assert.doesNotMatch(host.textContent, /함께 생각하고 풀어보는/);
+  await flush();
+  await click(
+    [...host.querySelectorAll('button')].find(
+      (item) => item.textContent === '접근 상태 다시 확인',
+    ),
+  );
+  assert.equal(host.querySelector('h1')?.textContent, contest.title);
+  assert.doesNotMatch(host.textContent, /대회 접근이 차단되었습니다/);
+  assert.ok(state.generalSession);
+  assert.ok(state.participantSession);
 });

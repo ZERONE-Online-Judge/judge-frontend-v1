@@ -16,6 +16,7 @@
 
 .participant-roster-heading {
   justify-content: space-between;
+  flex-wrap: wrap;
   padding-bottom: 18px;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -68,6 +69,7 @@
 
 .participant-roster-actions {
   flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -113,8 +115,76 @@
 }
 
 .participant-member {
+  display: flex;
   min-width: 0;
+  align-items: center;
+  gap: 16px;
   border-bottom: 1px solid #edf0f5;
+}
+
+.participant-member-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.participant-team-roster[data-manage-access] .participant-roster-columns {
+  padding-inline-end: 116px;
+}
+
+.participant-member-access-actions {
+  flex: 0 0 100px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.participant-member-access-actions button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #fecdd3;
+  border-radius: 7px;
+  color: #be123c;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.participant-member-access-actions button:hover {
+  background: #fff1f2;
+}
+
+.participant-roster-actions button.is-restore,
+.participant-member-access-actions button.is-restore {
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.participant-roster-actions button:disabled,
+.participant-member-access-actions button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.participant-access-badge {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.participant-access-badge.is-blocked {
+  color: #be123c;
+  background: #fff1f2;
+}
+
+.participant-access-reason {
+  margin-top: 8px;
+  max-width: 64ch;
+  color: #9f1239;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .participant-member:last-child {
@@ -290,6 +360,7 @@ summary.participant-member-row:hover .participant-member-chevron {
 }
 
 .participant-roster-actions button:focus-visible,
+.participant-member-access-actions button:focus-visible,
 summary.participant-member-row:focus-visible,
 .participant-member-logout:focus-visible {
   border-radius: 6px;
@@ -298,6 +369,13 @@ summary.participant-member-row:focus-visible,
 }
 
 @media (max-width: 639px) {
+  .participant-member {
+    display: block;
+  }
+
+  .participant-member-access-actions {
+    margin-bottom: 14px;
+  }
   .participant-team-roster {
     padding: 18px 16px 4px;
   }
@@ -358,6 +436,7 @@ summary.participant-member-row:focus-visible,
 @media (pointer: coarse) {
   .participant-roster-actions button,
   .participant-member-logout,
+  .participant-member-access-actions button,
   .participant-member-chevron {
     min-width: 44px;
     min-height: 44px;

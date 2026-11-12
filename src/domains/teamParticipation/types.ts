@@ -3,7 +3,14 @@ import type { SessionDescription } from '@/shared/lib/sessionEnvironment';
 
 export type TeamMemberRole = 'leader' | 'member';
 
-export type TeamMember = {
+export type ParticipantAccess = {
+  access_blocked?: boolean;
+  access_block_reason?: string | null;
+  access_blocked_at?: string | null;
+  access_blocked_by?: string | null;
+};
+
+export type TeamMember = ParticipantAccess & {
   team_member_id?: string;
   role: TeamMemberRole;
   name: string;
@@ -21,7 +28,7 @@ export type TeamMemberDraft = {
   email: string;
 };
 
-export type ParticipantTeam = {
+export type ParticipantTeam = ParticipantAccess & {
   participant_team_id: string;
   contest_id: string;
   division_id: string;

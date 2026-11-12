@@ -19,6 +19,10 @@ export function fieldLabel(field: string) {
     team_leader_name: '팀장 이름',
     team_leader_email: '팀장 이메일',
     members: '팀원 목록',
+    access_blocked: '대회 접근 차단',
+    access_block_reason: '차단 사유',
+    access_blocked_at: '차단 시각',
+    access_blocked_by: '차단한 운영자',
     time_limit_ms_override: '테스트케이스 시간 제한',
     memory_limit_mb_override: '테스트케이스 메모리 제한',
     visibility_after_end: '종료 후 대회 공개',
@@ -92,6 +96,16 @@ export function fieldLabel(field: string) {
 export function actionLabel(log: OperationalAuditLog) {
   const path = log.path.replace(/^\/api/, '');
   const method = log.method.toUpperCase();
+  const participantAccess = path.match(
+    /^\/operator\/contests\/[^/]+\/participants\/[^/]+(\/members\/[^/]+)?\/access$/,
+  );
+  if (method === 'PATCH' && participantAccess) {
+    const target = participantAccess[1] ? '참가자 개인' : '참가팀 전체';
+    const blocked = asRecord(log.details?.body).blocked;
+    return `${target} 대회 접근 ${
+      blocked === true ? '차단' : blocked === false ? '차단 해제' : '설정'
+    }`;
+  }
   const rules: Array<[RegExp, Record<string, string>]> = [
     [/\/settings$/, { PATCH: '대회 설정 변경' }],
     [/\/share-link$/, { POST: '대회 공유 링크 발급' }],
@@ -352,6 +366,8 @@ export function auditChanges(log: OperationalAuditLog): AuditChange[] {
 }
 
 export function valueLabel(value: unknown, field = ''): string {
+  if (field === 'access_blocked' && typeof value === 'boolean')
+    return value ? '차단' : '허용';
   if (value === null || value === undefined) return '없음';
   if (typeof value === 'boolean') return value ? '사용' : '사용 안 함';
   if (typeof value === 'number') {

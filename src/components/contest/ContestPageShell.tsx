@@ -17,6 +17,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import ContestAccessDeniedModal from '@/components/contest/ContestAccessDeniedModal';
+import ParticipantAccessBlockedNotice from '@/components/contest/ParticipantAccessBlockedNotice';
 import { getPublicContest } from '@/domains/contestAdministration/api';
 import {
   canViewContestResource,
@@ -28,7 +29,14 @@ import { contestQueryKeys } from '@/domains/contestRuntime/queryKeys';
 import { useContestParticipantSession } from '@/domains/contestRuntime/useContestParticipantSession';
 import PageNotice from '@/shared/ui/PageNotice';
 import { contestLoginPath } from '@/shared/lib/loginRedirect';
-import { isApiClientError } from '@/shared/api/errors';
+import {
+  isApiClientError,
+  isParticipantAccessBlockedError,
+} from '@/shared/api/errors';
+import {
+  PARTICIPANT_ACCESS_BLOCKED_EVENT,
+  type ParticipantAccessBlockedEventDetail,
+} from '@/shared/api/participantAccess';
 
 type ContestPageShellProps = {
   children: (detail: PublicContestDetail) => ReactNode;
@@ -69,6 +77,9 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     `/contests/${encodeURIComponent(resolvedContestId)}`;
   const [checkedParticipantAccessKey, setCheckedParticipantAccessKey] =
     useState('');
+  const [reportedBlock, setReportedBlock] = useState<
+    (ParticipantAccessBlockedEventDetail & { at: number }) | null
+  >(null);
   const {
     activeParticipantSession,
     ensureParticipantSession,
@@ -88,6 +99,27 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
       attempt < 2,
     refetchInterval: 15_000,
   });
+
+  useEffect(() => {
+    function report(event: Event) {
+      const detail = (event as CustomEvent<ParticipantAccessBlockedEventDetail>)
+        .detail;
+      if (detail?.contestId === resolvedContestId)
+        setReportedBlock({ ...detail, at: Date.now() });
+    }
+    window.addEventListener(PARTICIPANT_ACCESS_BLOCKED_EVENT, report);
+    return () =>
+      window.removeEventListener(PARTICIPANT_ACCESS_BLOCKED_EVENT, report);
+  }, [resolvedContestId]);
+
+  const participantBlockedError = isParticipantAccessBlockedError(
+    contestQuery.error,
+  )
+    ? contestQuery.error
+    : reportedBlock?.contestId === resolvedContestId &&
+        contestQuery.dataUpdatedAt <= reportedBlock.at
+      ? reportedBlock.error
+      : null;
 
   const detail = contestQuery.isError ? undefined : contestQuery.data;
   const contest = detail?.contest;
@@ -187,6 +219,18 @@ function StandardContestPageShell({ children }: ContestPageShellProps) {
     return (
       <section className="zoj-contest-shell mx-auto grid w-full max-w-[112rem] min-w-0 gap-5 px-4 py-6 font-sans sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
         <PageNotice message="대회 정보를 찾을 수 없습니다." status="error" />
+      </section>
+    );
+  }
+
+  if (participantBlockedError) {
+    return (
+      <section className="zoj-contest-shell mx-auto grid w-full max-w-[112rem] min-w-0 gap-5 px-4 py-6 font-sans sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
+        <ParticipantAccessBlockedNotice
+          error={participantBlockedError}
+          checking={contestQuery.isFetching}
+          onRetry={() => void contestQuery.refetch()}
+        />
       </section>
     );
   }

@@ -5,6 +5,7 @@ const SOUND_STORAGE_KEY = 'zoj.presentation.sound.v1';
 const VOLUME_STORAGE_KEY = 'zoj.presentation.volume.v1';
 const DEFAULT_VOLUME = 0.75;
 const VOICE_GAIN = 0.36;
+const WARNING_VOICE_GAIN = 0.82;
 const REPLACEMENT_FADE_SECONDS = 0.008;
 type SoundVoice = {
   oscillator: OscillatorNode;
@@ -62,10 +63,10 @@ export function presentationSoundNotes(cue: PresentationSoundCue) {
     case 'tick':
       return [{ frequency: 880, offset: 0, duration: 0.085 }];
     case 'warning':
-      return [660, 880, 1100].map((frequency, index) => ({
+      return [660, 880, 1100, 660, 880, 1100].map((frequency, index) => ({
         frequency,
-        offset: index * 0.13,
-        duration: 0.2,
+        offset: (index >= 3 ? 1.75 : 0) + (index % 3) * 0.42,
+        duration: 0.38,
       }));
     case 'start':
       return [523.25, 659.25, 783.99].map((frequency, index) => ({
@@ -93,7 +94,8 @@ export function playPresentationSound(
   // clicks must not stack gain or leave old melodies waiting to play later.
   stopCurrentCue(context);
   if (context.state !== 'running' || volume <= 0) return false;
-  const amplitude = Math.min(1, volume) * VOICE_GAIN;
+  const amplitude =
+    Math.min(1, volume) * (cue === 'warning' ? WARNING_VOICE_GAIN : VOICE_GAIN);
   const voices = new Set<SoundVoice>();
   currentVoices.set(context, voices);
   for (const note of presentationSoundNotes(cue)) {
@@ -103,9 +105,12 @@ export function playPresentationSound(
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(note.frequency, at);
     gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(amplitude, at + 0.012);
-    // Hold a clear tone before a gentle release. At most two notes overlap,
-    // so even maximum volume stays below a combined gain of 0.72.
+    gain.gain.linearRampToValueAtTime(
+      amplitude,
+      at + (cue === 'warning' ? 0.02 : 0.012),
+    );
+    // Warning tones never overlap. Other cues retain their softer gain and
+    // at most two overlapping notes; both keep headroom at maximum volume.
     gain.gain.setValueAtTime(
       amplitude,
       at + note.duration - Math.max(0.03, note.duration * 0.35),

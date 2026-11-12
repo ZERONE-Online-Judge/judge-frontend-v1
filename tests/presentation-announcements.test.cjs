@@ -397,23 +397,27 @@ function fakeAudioContext() {
 test('generated cues hold an audible tone with headroom, distinct melodies and no suspended playback', () => {
   for (const cue of ['warning', 'tick', 'start', 'end']) {
     const context = fakeAudioContext();
+    const noteCount = presentationSoundNotes(cue).length;
+    const amplitude = 0.75 * (cue === 'warning' ? 0.82 : 0.36);
     assert.equal(playPresentationSound(context, cue), true);
     assert.equal(
       context.trace.filter(([type]) => type === 'start').length,
-      cue === 'tick' ? 1 : 3,
+      noteCount,
     );
     assert.ok(
       context.trace
         .filter(([type]) => type === 'gain')
-        .every(([, gain]) => gain <= 0.27),
+        .every(([, gain]) => gain <= amplitude),
     );
     assert(
-      context.trace.some(([type, gain]) => type === 'gain' && gain === 0.27),
+      context.trace.some(
+        ([type, gain]) => type === 'gain' && gain === amplitude,
+      ),
     );
     const holds = context.trace.filter(
-      ([type, gain]) => type === 'set-gain' && gain === 0.27,
+      ([type, gain]) => type === 'set-gain' && gain === amplitude,
     );
-    assert.equal(holds.length, cue === 'tick' ? 1 : 3);
+    assert.equal(holds.length, noteCount);
     const notes = presentationSoundNotes(cue);
     holds.forEach(([, , at], index) =>
       assert(
@@ -444,11 +448,11 @@ test('new cues replace old active and future notes instead of stacking or playin
   assert.equal(playPresentationSound(context, 'tick', 1), true);
   const replacement = context.trace.slice(before);
   const stops = replacement.filter(([type]) => type === 'stop');
-  assert.equal(stops.length, 4); // Three old voices stop, plus the new tick's end.
+  assert.equal(stops.length, 7); // Six warning voices stop, plus the tick's end.
   assert(
-    stops.slice(0, 3).every(([, at]) => at <= context.currentTime + 0.008),
+    stops.slice(0, 6).every(([, at]) => at <= context.currentTime + 0.008),
   );
-  assert.equal(replacement.filter(([type]) => type === 'cancel').length, 2);
+  assert.equal(replacement.filter(([type]) => type === 'cancel').length, 5);
   assert.equal(replacement.filter(([type]) => type === 'hold').length, 1);
   oldVoices.forEach((voice) => voice.onended());
   const tick = context.oscillators.at(-1);
@@ -502,13 +506,13 @@ test('sound requires a gesture even with a saved preference, and mute/test/volum
   assert.equal(contexts.length, 1);
   assert.equal(
     contexts[0].trace.filter(([type]) => type === 'start').length,
-    3,
+    6,
   );
   await act(() => state.setVolume(0));
   state.play('tick');
   assert.equal(
     contexts[0].trace.filter(([type]) => type === 'start').length,
-    3,
+    6,
   );
   await act(() => state.setVolume(2));
   assert.equal(state.volume, 1);
@@ -518,14 +522,14 @@ test('sound requires a gesture even with a saved preference, and mute/test/volum
   state.play('tick');
   assert.equal(
     contexts[0].trace.filter(([type]) => type === 'start').length,
-    3,
+    6,
   );
   assert.equal(contexts[0].state, 'closed');
   await act(async () => assert.equal(await state.test(), true));
   assert.equal(contexts.length, 2);
   assert.equal(
     contexts[1].trace.filter(([type]) => type === 'start').length,
-    3,
+    6,
   );
   await act(() => root.unmount());
   root = undefined;
@@ -746,7 +750,7 @@ test('zero volume immediately cancels the current cue and persists separately fr
   const before = player.trace.length;
   await act(() => state.setVolume(0));
   const stops = player.trace.slice(before).filter(([type]) => type === 'stop');
-  assert.equal(stops.length, 3);
+  assert.equal(stops.length, 6);
   assert(stops.every(([, at]) => at <= player.currentTime + 0.008));
   assert.equal(state.volume, 0);
   assert.equal(state.enabled, true);
@@ -797,7 +801,7 @@ test('suspending output drops scheduled notes so a later gesture cannot replay a
   assert.equal(state.enabled, true);
   assert.equal(
     player.trace.slice(before).filter(([type]) => type === 'cancel').length,
-    3,
+    6,
   );
   const starts = player.trace.filter(([type]) => type === 'start').length;
   state.play('end');

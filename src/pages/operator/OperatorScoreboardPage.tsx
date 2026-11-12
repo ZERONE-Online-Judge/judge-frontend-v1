@@ -856,7 +856,7 @@ function OperatorScoreboardContent({
           <div className="py-1">
             <Link
               to={`/operator/contests/${contestId}/guide?section=scoreboard&article=scoreboard-practice#guide-scoreboard-practice`}
-              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-fit"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-6 py-2 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-fit"
             >
               미리 체험해보기
               <InterfaceIcon name="arrowRight" size={20} />

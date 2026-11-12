@@ -1059,6 +1059,35 @@ for (const scope of ['team', 'member']) {
   });
 }
 
+test('a withdrawn participant sees the team withdrawal, scoreboard exclusion and recovery guidance without losing login', async () => {
+  login(true);
+  const signedIn = state.generalSession;
+  const session = state.participantSession;
+  contestError = new ApiClientError(
+    403,
+    'participant_access_blocked',
+    '기권 처리된 팀은 이 대회에 접근할 수 없습니다.',
+    undefined,
+    { scope: 'team', withdrawn: true, reason: '현장 기권' },
+  );
+  await render();
+  assert.match(host.textContent, /소속 팀이 기권했습니다/);
+  assert.match(host.textContent, /스코어보드에서 제외/);
+  assert.match(host.textContent, /기권 사유.*현장 기권/);
+  assert.match(host.textContent, /기권을 취소하면 다시 이용/);
+  assert.match(host.textContent, /별도로 설정된 차단이 있다면 함께 해제/);
+  assert.equal(state.generalSession, signedIn);
+  assert.equal(state.participantSession, session);
+  contestError = null;
+  await click(
+    [...host.querySelectorAll('button')].find(
+      (item) => item.textContent === '접근 상태 다시 확인',
+    ),
+  );
+  assert.equal(host.querySelector('h1')?.textContent, contest.title);
+  assert.doesNotMatch(host.textContent, /소속 팀이 기권했습니다/);
+});
+
 test('a blocked feature request immediately replaces an already-open cached contest, ignores other contests and recovers after recheck', async () => {
   login(true);
   await render();

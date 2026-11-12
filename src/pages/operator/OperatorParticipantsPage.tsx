@@ -3,6 +3,7 @@ import ParticipantTeamRoster from '@/components/operator/ParticipantTeamRoster';
 import ParticipantAccessDialog, {
   type ParticipantAccessTarget,
 } from '@/components/operator/ParticipantAccessDialog';
+import ParticipantWithdrawalDialog from '@/components/operator/ParticipantWithdrawalDialog';
 import ParticipantBulkImport from '@/components/operator/ParticipantBulkImport';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import ParticipantDivisionsPanel from '@/components/operator/ParticipantDivisionsPanel';
@@ -32,6 +33,7 @@ import {
   updateParticipantTeamMember,
   updateParticipantMemberAccess,
   updateParticipantTeamAccess,
+  updateParticipantTeamWithdrawal,
 } from '@/domains/teamParticipation/api';
 import type {
   ParticipantTeam,
@@ -123,6 +125,8 @@ function OperatorParticipantsContent({
   const [accessTarget, setAccessTarget] =
     useState<ParticipantAccessTarget | null>(null);
   const [accessSaved, setAccessSaved] = useState('');
+  const [withdrawalTarget, setWithdrawalTarget] =
+    useState<ParticipantTeam | null>(null);
 
   const dashboardQuery = useQuery({
     queryKey: ['operator', 'dashboard', contestId, queryIdentity],
@@ -152,6 +156,7 @@ function OperatorParticipantsContent({
       !keyword ||
       team.team_name.toLowerCase().includes(keyword) ||
       team.status.toLowerCase().includes(keyword) ||
+      (team.withdrawn && '기권'.includes(keyword)) ||
       team.members.some(
         (member) =>
           member.name.toLowerCase().includes(keyword) ||
@@ -311,6 +316,41 @@ function OperatorParticipantsContent({
     },
   });
 
+  const withdrawalMutation = useMutation({
+    mutationFn: ({ team, reason }: { team: ParticipantTeam; reason: string }) =>
+      updateParticipantTeamWithdrawal(
+        contestId,
+        team.participant_team_id,
+        token,
+        {
+          withdrawn: !team.withdrawn,
+          ...(reason ? { reason } : {}),
+        },
+      ),
+    onSuccess: (_, { team }) => {
+      setAccessSaved(
+        team.withdrawn
+          ? `${team.team_name} 팀의 기권을 취소했습니다. 별도로 설정한 차단은 유지됩니다.`
+          : `${team.team_name} 팀을 기권 처리했습니다. 스코어보드에서 제외하고 대회 접근을 차단했습니다.`,
+      );
+      setWithdrawalTarget(null);
+      invalidateParticipants();
+      void queryClient.invalidateQueries({
+        queryKey: ['operator', 'scoreboard', contestId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['contest-scoreboard', contestId],
+      });
+    },
+  });
+
+  function openWithdrawalDialog(team: ParticipantTeam) {
+    if (!canManageParticipants) return;
+    withdrawalMutation.reset();
+    setAccessSaved('');
+    setWithdrawalTarget(team);
+  }
+
   function openAccessDialog(target: ParticipantAccessTarget) {
     if (!canManageParticipants) return;
     accessMutation.reset();
@@ -408,12 +448,25 @@ function OperatorParticipantsContent({
     <PageLayout
       navigation={<OperatorTabs contestId={contestId} />}
       variant="management"
-      description="참가 유형, 참가팀, 멤버와 대회 접근·로그인 세션을 관리합니다."
+      description="참가 유형, 참가팀, 기권·접근 차단과 로그인 세션을 관리합니다."
       eyebrow="Operator"
       title="참가팀 관리"
       width="full"
     >
       {confirmationDialog}
+      {withdrawalTarget && canManageParticipants ? (
+        <ParticipantWithdrawalDialog
+          key={withdrawalTarget.participant_team_id}
+          team={withdrawalTarget}
+          pending={withdrawalMutation.isPending}
+          error={withdrawalMutation.error}
+          onClose={() => setWithdrawalTarget(null)}
+          onConfirm={(reason) => {
+            if (!withdrawalMutation.isPending)
+              withdrawalMutation.mutate({ team: withdrawalTarget, reason });
+          }}
+        />
+      ) : null}
       {accessTarget && canManageParticipants ? (
         <ParticipantAccessDialog
           target={accessTarget}
@@ -724,12 +777,15 @@ function OperatorParticipantsContent({
                     '-'
                   }
                   pending={
-                    revokeSessionMutation.isPending || accessMutation.isPending
+                    revokeSessionMutation.isPending ||
+                    accessMutation.isPending ||
+                    withdrawalMutation.isPending
                   }
                   canManage={canManageParticipants}
                   onEdit={() => editTeam(team)}
                   onDelete={() => confirmDeleteTeam(team)}
                   onTeamAccess={() => openAccessDialog({ team })}
+                  onWithdrawal={() => openWithdrawalDialog(team)}
                   onMemberAccess={(member) =>
                     openAccessDialog({ team, member })
                   }

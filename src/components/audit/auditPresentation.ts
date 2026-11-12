@@ -23,6 +23,10 @@ export function fieldLabel(field: string) {
     access_block_reason: '차단 사유',
     access_blocked_at: '차단 시각',
     access_blocked_by: '차단한 운영자',
+    withdrawn: '팀 기권',
+    withdrawal_reason: '기권 사유',
+    withdrawn_at: '기권 시각',
+    withdrawn_by: '기권 처리한 운영자',
     time_limit_ms_override: '테스트케이스 시간 제한',
     memory_limit_mb_override: '테스트케이스 메모리 제한',
     visibility_after_end: '종료 후 대회 공개',
@@ -96,6 +100,13 @@ export function fieldLabel(field: string) {
 export function actionLabel(log: OperationalAuditLog) {
   const path = log.path.replace(/^\/api/, '');
   const method = log.method.toUpperCase();
+  if (
+    method === 'PATCH' &&
+    /^\/operator\/contests\/[^/]+\/participants\/[^/]+\/withdrawal$/.test(path)
+  ) {
+    const withdrawn = asRecord(log.details?.body).withdrawn;
+    return `참가팀 ${withdrawn === true ? '기권 처리' : withdrawn === false ? '기권 취소' : '기권 설정'}`;
+  }
   const participantAccess = path.match(
     /^\/operator\/contests\/[^/]+\/participants\/[^/]+(\/members\/[^/]+)?\/access$/,
   );
@@ -366,6 +377,8 @@ export function auditChanges(log: OperationalAuditLog): AuditChange[] {
 }
 
 export function valueLabel(value: unknown, field = ''): string {
+  if (field === 'withdrawn' && typeof value === 'boolean')
+    return value ? '기권' : '기권 아님';
   if (field === 'access_blocked' && typeof value === 'boolean')
     return value ? '차단' : '허용';
   if (value === null || value === undefined) return '없음';

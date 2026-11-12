@@ -97,6 +97,8 @@ function apiErrorUserMessage(error: ApiClientError) {
       typeof error.details?.reason === 'string'
         ? error.details.reason.trim()
         : '';
+    if (error.details?.withdrawn === true)
+      return `소속 팀의 기권으로 이 대회 접근이 차단되었습니다.${reason ? ` 기권 사유: ${reason}` : ''} 운영진에게 문의해 주세요.`;
     return `운영진이 ${error.details?.scope === 'team' ? '소속 팀의 ' : ''}대회 접근을 차단했습니다.${reason ? ` 사유: ${reason}` : ''} 운영진에게 문의해 주세요.`;
   }
   if (

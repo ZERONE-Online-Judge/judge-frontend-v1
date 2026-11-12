@@ -21,6 +21,7 @@ export default function ParticipantTeamRoster({
   onRevoke,
   onTeamAccess,
   onMemberAccess,
+  onWithdrawal,
 }: {
   team: ParticipantTeam;
   divisionName: string;
@@ -31,6 +32,7 @@ export default function ParticipantTeamRoster({
   onRevoke: (member: TeamMember) => void;
   onTeamAccess?: () => void;
   onMemberAccess?: (member: TeamMember) => void;
+  onWithdrawal?: () => void;
 }) {
   const members = [...team.members].sort(
     (a, b) => Number(b.role === 'leader') - Number(a.role === 'leader'),
@@ -45,8 +47,12 @@ export default function ParticipantTeamRoster({
         <div className="participant-roster-team">
           <div className="participant-roster-team-title">
             <h3>{team.team_name}</h3>
-            <span className={`participant-team-status is-${team.status}`}>
-              {statusLabels[team.status] ?? team.status}
+            <span
+              className={`participant-team-status is-${team.withdrawn ? 'withdrawn' : team.status}`}
+            >
+              {team.withdrawn
+                ? '기권'
+                : (statusLabels[team.status] ?? team.status)}
             </span>
             {team.access_blocked ? (
               <span className="participant-access-badge is-blocked">
@@ -61,6 +67,14 @@ export default function ParticipantTeamRoster({
               등록 {formatDateTime(team.created_at)}
             </span>
           </p>
+          {team.withdrawn ? (
+            <p className="participant-withdrawal-summary">
+              스코어보드 제외 · 대회 접근 차단
+              {team.withdrawal_reason ? (
+                <span>기권 사유: {team.withdrawal_reason}</span>
+              ) : null}
+            </p>
+          ) : null}
           {team.access_blocked && team.access_block_reason ? (
             <p className="participant-access-reason">
               차단 사유: {team.access_block_reason}
@@ -69,6 +83,16 @@ export default function ParticipantTeamRoster({
         </div>
         {canManage ? (
           <div className="participant-roster-actions">
+            {onWithdrawal ? (
+              <button
+                type="button"
+                className={team.withdrawn ? 'is-restore' : 'is-destructive'}
+                disabled={pending}
+                onClick={onWithdrawal}
+              >
+                {team.withdrawn ? '기권 취소' : '팀 기권'}
+              </button>
+            ) : null}
             {onTeamAccess ? (
               <button
                 type="button"
@@ -81,10 +105,15 @@ export default function ParticipantTeamRoster({
                 {team.access_blocked ? '팀 차단 해제' : '팀 전체 차단'}
               </button>
             ) : null}
-            <button type="button" onClick={onEdit}>
+            <button type="button" disabled={pending} onClick={onEdit}>
               팀/팀원 편집
             </button>
-            <button type="button" className="is-destructive" onClick={onDelete}>
+            <button
+              type="button"
+              disabled={pending}
+              className="is-destructive"
+              onClick={onDelete}
+            >
               삭제
             </button>
           </div>
@@ -105,6 +134,7 @@ export default function ParticipantTeamRoster({
             canRevoke={canManage}
             onRevoke={() => onRevoke(member)}
             teamBlocked={Boolean(team.access_blocked)}
+            teamWithdrawn={Boolean(team.withdrawn)}
             canManageAccess={canManage && Boolean(onMemberAccess)}
             onAccess={() => onMemberAccess?.(member)}
           />

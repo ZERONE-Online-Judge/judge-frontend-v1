@@ -92,6 +92,28 @@ test('contest access audit distinguishes individual and team blocks from session
   assert.equal(fieldLabel('access_block_reason'), '차단 사유');
 });
 
+test('withdrawal audit distinguishes team withdrawal and cancellation from manual access blocks', () => {
+  for (const withdrawn of [true, false]) {
+    const entry = log({
+      method: 'PATCH',
+      path: '/api/operator/contests/c/participants/t/withdrawal',
+      details: { body: { withdrawn }, target: { name: '기권 참가팀' } },
+    });
+    assert.equal(
+      actionLabel(entry),
+      `참가팀 ${withdrawn ? '기권 처리' : '기권 취소'}`,
+    );
+    assert.equal(targetLabel(entry), '기권 참가팀');
+    assert.equal(
+      valueLabel(withdrawn, 'withdrawn'),
+      withdrawn ? '기권' : '기권 아님',
+    );
+  }
+  assert.equal(fieldLabel('withdrawal_reason'), '기권 사유');
+  assert.equal(fieldLabel('withdrawn_at'), '기권 시각');
+  assert.equal(fieldLabel('withdrawn_by'), '기권 처리한 운영자');
+});
+
 test('specific actions never get mislabeled by parent resources', () => {
   for (const [url, method, label] of [
     ['/divisions/d/scoreboard/release', 'POST', '순위 전체 공개'],

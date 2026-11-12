@@ -61,6 +61,9 @@ const Roster = source('components/operator/ParticipantTeamRoster.tsx').default;
 const AccessDialog = source(
   'components/operator/ParticipantAccessDialog.tsx',
 ).default;
+const WithdrawalDialog = source(
+  'components/operator/ParticipantWithdrawalDialog.tsx',
+).default;
 let root;
 let host;
 async function render(element) {
@@ -457,4 +460,167 @@ test('unblocking one scope warns about the other scope and preserves pending/err
   );
   for (const item of dialog.querySelectorAll('footer button'))
     assert.equal(item.disabled, true);
+});
+
+test('withdrawal stays a team action and shows automatic access blocking separately from manual blocks', async () => {
+  const data = team();
+  data.withdrawn = true;
+  data.withdrawal_reason = '현장 참가 포기';
+  data.access_blocked = true;
+  data.members[0].access_blocked = true;
+  let restored = 0;
+  await render(
+    h(
+      Roster,
+      rosterProps({
+        team: data,
+        onWithdrawal: () => restored++,
+        onTeamAccess: () => {},
+        onMemberAccess: () => {},
+      }),
+    ),
+  );
+  assert.equal(
+    host.querySelector('.participant-team-status').textContent,
+    '기권',
+  );
+  assert.match(host.textContent, /스코어보드 제외 · 대회 접근 차단/);
+  assert.match(host.textContent, /기권 사유: 현장 참가 포기/);
+  assert.equal(
+    host.querySelectorAll('.participant-access-badge.is-withdrawn').length,
+    3,
+  );
+  assert.match(
+    host.querySelector('li:first-child').textContent,
+    /활성 팀장.*기권팀/,
+  );
+  assert.match(host.textContent, /팀 전체 차단/);
+  assert.ok(button(/^팀 차단 해제$/));
+  assert.equal(button(/^팀 기권$/), undefined);
+  assert.equal(button(/개인 기권/), undefined);
+  assert.equal(host.querySelector('details').open, false);
+  await click(button(/^기권 취소$/));
+  assert.equal(restored, 1);
+});
+
+test('withdrawal controls are unavailable to read-only operators and disabled while pending', async () => {
+  const deny = () =>
+    assert.fail('Withdrawal cannot run without permission or while pending');
+  const props = rosterProps({ onWithdrawal: deny });
+  await render(h(Roster, { ...props, canManage: false }));
+  assert.equal(button(/기권/), undefined);
+  await render(h(Roster, { ...props, pending: true }));
+  assert.equal(button(/^팀 기권$/).disabled, true);
+  await click(button(/^팀 기권$/));
+});
+
+test('withdrawal confirmation explains scoreboard exclusion, access blocking, preserved records and release reset', async () => {
+  let submitted;
+  await render(
+    h(WithdrawalDialog, {
+      team: team(),
+      pending: false,
+      onClose: () => {},
+      onConfirm: (value) => {
+        submitted = value;
+      },
+    }),
+  );
+  const dialog = document.querySelector('dialog');
+  assert.ok(dialog.open);
+  assert.match(dialog.textContent, /팀 기권 처리/);
+  assert.match(dialog.textContent, /모든 팀원의 대회 접근이 차단/);
+  assert.match(dialog.textContent, /스코어보드에서 제외/);
+  assert.match(dialog.textContent, /기존 제출과 채점 기록은 보존/);
+  assert.match(dialog.textContent, /공개 진행이 초기화/);
+  assert.match(
+    dialog.textContent,
+    /모든 순위를 공개한 경우에는 공개 상태를 유지/,
+  );
+  const reason = dialog.querySelector('textarea');
+  assert.equal(reason.maxLength, 1000);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      dom.window.HTMLTextAreaElement.prototype,
+      'value',
+    ).set.call(reason, '  참가 취소  ');
+    reason.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  await act(async () =>
+    dialog
+      .querySelector('form')
+      .dispatchEvent(
+        new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  assert.equal(submitted, '참가 취소');
+});
+
+test('withdrawal cancellation restores existing results while explicitly preserving manual team and individual blocks', async () => {
+  const data = team();
+  data.withdrawn = true;
+  data.withdrawal_reason = '이전 사유';
+  data.access_blocked = true;
+  data.members[0].access_blocked = true;
+  await render(
+    h(WithdrawalDialog, {
+      team: data,
+      pending: false,
+      onClose: () => {},
+      onConfirm: () => {},
+    }),
+  );
+  const dialog = document.querySelector('dialog');
+  assert.match(dialog.textContent, /팀 기권 취소/);
+  assert.match(dialog.textContent, /팀의 기존 기록이 다시 반영/);
+  assert.match(dialog.textContent, /기권으로 적용된 대회 접근 차단이 해제/);
+  assert.match(dialog.textContent, /팀 전체 차단과 개인 차단 1명은 유지/);
+  assert.match(dialog.textContent, /이전 사유/);
+  assert.equal(dialog.querySelector('textarea'), null);
+});
+
+test('withdrawal pending and failure states preserve entered data and prevent duplicate actions', async () => {
+  const deny = () =>
+    assert.fail('Pending withdrawal must stay open and must not repeat');
+  await render(
+    h(WithdrawalDialog, {
+      team: team(),
+      pending: true,
+      error: new Error('다시 시도해 주세요'),
+      onClose: deny,
+      onConfirm: deny,
+    }),
+  );
+  const dialog = document.querySelector('dialog');
+  assert.ok(dialog.querySelector('[role="alert"]'));
+  assert.equal(dialog.querySelector('textarea').disabled, true);
+  await act(async () =>
+    dialog
+      .querySelector('form')
+      .dispatchEvent(
+        new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+      ),
+  );
+  for (const item of dialog.querySelectorAll('footer button')) {
+    assert.equal(item.disabled, true);
+    await click(item);
+  }
+});
+
+test('manual unblocking clearly warns when withdrawal still blocks contest access', async () => {
+  const data = team();
+  data.withdrawn = true;
+  data.access_blocked = true;
+  await render(
+    h(AccessDialog, {
+      target: { team: data },
+      pending: false,
+      onClose: () => {},
+      onConfirm: () => {},
+    }),
+  );
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /차단을 해제해도 기권을 취소하기 전까지 대회에 접근할 수 없습니다/,
+  );
 });

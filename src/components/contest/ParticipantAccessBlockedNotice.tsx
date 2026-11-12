@@ -15,6 +15,7 @@ export default function ParticipantAccessBlockedNotice({
     typeof error.details?.reason === 'string'
       ? error.details.reason.trim()
       : '';
+  const withdrawn = error.details?.withdrawn === true;
   return (
     <div className="mx-auto grid w-full max-w-xl gap-5 rounded-2xl border border-rose-100 bg-white p-6 sm:p-8">
       <div className="flex items-start gap-3">
@@ -23,27 +24,33 @@ export default function ParticipantAccessBlockedNotice({
         </span>
         <div className="grid min-w-0 gap-2" role="status">
           <h1 className="text-xl font-bold tracking-tight text-slate-950">
-            대회 접근이 차단되었습니다
+            {withdrawn
+              ? '소속 팀이 기권했습니다'
+              : '대회 접근이 차단되었습니다'}
           </h1>
           <p className="text-sm leading-6 text-slate-600">
-            운영진이{' '}
-            {error.details?.scope === 'team' ? '소속 팀의' : '회원님의'} 이 대회
-            접근을 차단했습니다. 문제 열람과 제출 등 대회 기능을 이용할 수
-            없습니다.
+            {withdrawn
+              ? '기권한 팀은 스코어보드에서 제외되며, 모든 팀원의 대회 접근이 차단됩니다. 문제 열람과 제출 등 대회 기능을 이용할 수 없습니다.'
+              : `운영진이 ${error.details?.scope === 'team' ? '소속 팀의' : '회원님의'} 이 대회 접근을 차단했습니다. 문제 열람과 제출 등 대회 기능을 이용할 수 없습니다.`}
           </p>
         </div>
       </div>
       {reason ? (
         <div className="grid min-w-0 gap-1 rounded-xl bg-rose-50 p-4">
-          <p className="text-xs font-semibold text-rose-800">차단 사유</p>
+          <p className="text-xs font-semibold text-rose-800">
+            {withdrawn ? '기권 사유' : '차단 사유'}
+          </p>
           <p className="zoj-break-anywhere text-sm leading-6 whitespace-pre-wrap text-rose-900">
             {reason}
           </p>
         </div>
       ) : null}
       <p className="text-sm leading-6 text-slate-600">
-        자세한 내용은 대회 운영진에게 문의해 주세요. 계정 로그인은 유지되며,
-        운영진이 차단을 해제하면 다시 이용할 수 있습니다.
+        자세한 내용은 대회 운영진에게 문의해 주세요. 계정 로그인과 기존
+        제출·채점 기록은 유지됩니다.{' '}
+        {withdrawn
+          ? '운영진이 기권을 취소하면 다시 이용할 수 있습니다. 별도로 설정된 차단이 있다면 함께 해제해야 합니다.'
+          : '운영진이 차단을 해제하면 다시 이용할 수 있습니다.'}
       </p>
       <div className="flex flex-wrap gap-2">
         <button

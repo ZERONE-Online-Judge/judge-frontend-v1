@@ -11,6 +11,7 @@ export default function ParticipantMemberCard({
   onRevoke,
   canRevoke = true,
   teamBlocked = false,
+  teamWithdrawn = false,
   canManageAccess = false,
   onAccess,
 }: {
@@ -19,6 +20,7 @@ export default function ParticipantMemberCard({
   onRevoke: () => void;
   canRevoke?: boolean;
   teamBlocked?: boolean;
+  teamWithdrawn?: boolean;
   canManageAccess?: boolean;
   onAccess?: () => void;
 }) {
@@ -46,6 +48,14 @@ export default function ParticipantMemberCard({
         >
           {member.role === 'leader' ? '팀장' : '팀원'}
         </span>
+        {teamWithdrawn ? (
+          <span
+            className="participant-access-badge is-withdrawn"
+            title="소속 팀의 기권으로 이 대회 접근이 차단되었습니다."
+          >
+            기권팀
+          </span>
+        ) : null}
         {member.access_blocked || teamBlocked ? (
           <span
             className="participant-access-badge is-blocked"

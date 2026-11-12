@@ -317,3 +317,16 @@ export function updateParticipantMemberAccess(
     { method: 'PATCH', body: JSON.stringify(body) },
   );
 }
+
+export function updateParticipantTeamWithdrawal(
+  contestId: string,
+  participantTeamId: string,
+  token: string,
+  body: { withdrawn: boolean; reason?: string },
+) {
+  return apiRequest<ParticipantTeam>(
+    `/operator/contests/${contestId}/participants/${participantTeamId}/withdrawal`,
+    token,
+    { method: 'PATCH', body: JSON.stringify(body) },
+  );
+}

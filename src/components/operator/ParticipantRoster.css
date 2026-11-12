@@ -58,6 +58,23 @@
   color: #be123c;
 }
 
+.participant-team-status.is-withdrawn,
+.participant-access-badge.is-withdrawn {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.participant-withdrawal-summary {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  max-width: 64ch;
+  color: #9a3412;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .participant-roster-meta {
   display: flex;
   flex-wrap: wrap;
@@ -68,6 +85,8 @@
 }
 
 .participant-roster-actions {
+  min-width: 0;
+  max-width: 100%;
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 8px;

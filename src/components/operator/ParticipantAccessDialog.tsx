@@ -90,6 +90,12 @@ export default function ParticipantAccessDialog({
             : '대회 페이지와 문제, 제출, 스코어보드, 게시판 등 모든 참가 기능을 차단합니다. 다른 대회에는 영향을 주지 않습니다.'}{' '}
           계정 로그인과 기존 제출·순위는 유지됩니다.
         </p>
+        {blocked && team.withdrawn ? (
+          <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+            이 팀은 기권 상태입니다. 선택한 차단을 해제해도 기권을 취소하기
+            전까지 대회에 접근할 수 없습니다.
+          </p>
+        ) : null}
         {blocked && member && team.access_blocked ? (
           <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-800">
             팀 전체 차단이 적용 중입니다. 개인 차단을 해제해도 팀 차단을

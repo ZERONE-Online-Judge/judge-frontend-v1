@@ -34,6 +34,10 @@ export type ParticipantTeam = ParticipantAccess & {
   division_id: string;
   team_name: string;
   status: string;
+  withdrawn?: boolean;
+  withdrawal_reason?: string | null;
+  withdrawn_at?: string | null;
+  withdrawn_by?: string | null;
   members: TeamMember[];
   division?: Division | null;
   created_at: string;

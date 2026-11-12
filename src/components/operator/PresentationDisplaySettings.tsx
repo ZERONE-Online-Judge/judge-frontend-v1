@@ -43,6 +43,7 @@ export default function PresentationDisplaySettings({
     Boolean(document.fullscreenElement),
   );
   const [fullscreenError, setFullscreenError] = useState('');
+  const [showFullscreenHint, setShowFullscreenHint] = useState(false);
   const fullscreenSupported =
     typeof document.documentElement.requestFullscreen === 'function';
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,10 +63,21 @@ export default function PresentationDisplaySettings({
     checkedIds.length === availableDivisions.length;
 
   useEffect(() => {
-    const update = () => setFullscreen(Boolean(document.fullscreenElement));
+    const update = () => {
+      const active = Boolean(document.fullscreenElement);
+      setFullscreen(active);
+      setShowFullscreenHint(active);
+      if (active) setOpen(false);
+    };
     document.addEventListener('fullscreenchange', update);
     return () => document.removeEventListener('fullscreenchange', update);
   }, []);
+
+  useEffect(() => {
+    if (!fullscreen || !showFullscreenHint) return;
+    const timer = window.setTimeout(() => setShowFullscreenHint(false), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [fullscreen, showFullscreenHint]);
 
   async function toggleFullscreen() {
     setFullscreenError('');
@@ -122,6 +134,14 @@ export default function PresentationDisplaySettings({
       : [...checkedIds, divisionId];
     if (next.length === 0) return;
     onDivisionIdsChange(next.length === availableDivisions.length ? [] : next);
+  }
+
+  if (fullscreen) {
+    return showFullscreenHint ? (
+      <div className="presentation-fullscreen-hint" role="status">
+        전체화면 · <kbd>Esc</kbd>를 눌러 종료
+      </div>
+    ) : null;
   }
 
   return (
@@ -266,7 +286,7 @@ export default function PresentationDisplaySettings({
               className="presentation-font-slider"
               type="range"
               min="80"
-              max="150"
+              max="300"
               step="10"
               value={Math.round(fontScale * 100)}
               onChange={(event) =>
@@ -276,7 +296,7 @@ export default function PresentationDisplaySettings({
             />
             <div className="presentation-font-range" aria-hidden="true">
               <span>작게 80%</span>
-              <span>크게 150%</span>
+              <span>크게 300%</span>
             </div>
           </div>
           <div className="presentation-settings-group">

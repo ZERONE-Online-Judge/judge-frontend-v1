@@ -71,9 +71,9 @@ export function playPresentationSound(
 
 function storedEnabled() {
   try {
-    return window.localStorage.getItem(SOUND_STORAGE_KEY) === 'true';
+    return window.localStorage.getItem(SOUND_STORAGE_KEY) !== 'false';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -149,6 +149,18 @@ export function usePresentationSound() {
       return false;
     }
   }, []);
+  useEffect(() => {
+    if (!enabled || unlocked || !supported) return;
+    // Browsers require a gesture before audio can run. Unlock silently when
+    // the operator first uses the display; old scheduled cues stay consumed.
+    const unlock = () => void enable();
+    document.addEventListener('pointerdown', unlock);
+    document.addEventListener('keydown', unlock);
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+  }, [enable, enabled, supported, unlocked]);
   const disable = useCallback(() => {
     enabledRef.current = false;
     setEnabled(false);

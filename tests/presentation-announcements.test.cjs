@@ -473,7 +473,7 @@ test('sound requires a gesture even with a saved preference, and mute/test/volum
   assert.equal(contexts[1].state, 'closed');
 });
 
-test('unsupported or blocked audio never prevents announcements or silently enables sound', async () => {
+test('unsupported or blocked audio never prevents announcements or marks output ready', async () => {
   let state;
   function Harness() {
     state = usePresentationSound();
@@ -485,7 +485,8 @@ test('unsupported or blocked audio never prevents announcements or silently enab
   await act(() => root.render(h(Harness)));
   assert.equal(state.supported, false);
   await act(async () => assert.equal(await state.test(), false));
-  assert.equal(state.enabled, false);
+  assert.equal(state.enabled, true);
+  assert.equal(state.unlocked, false);
   await act(() => root.unmount());
   root = createRoot(host);
   window.AudioContext = class {
@@ -500,5 +501,118 @@ test('unsupported or blocked audio never prevents announcements or silently enab
   await act(() => root.render(h(Harness)));
   await act(async () => assert.equal(await state.enable(), false));
   assert.equal(state.unlocked, false);
-  assert.equal(state.enabled, false);
+  assert.equal(state.enabled, true);
+});
+
+test('sound defaults on but stays silent until the first pointer or keyboard gesture', async () => {
+  const contexts = [];
+  window.AudioContext = class {
+    constructor() {
+      const instance = fakeAudioContext();
+      instance.state = 'suspended';
+      contexts.push(instance);
+      return instance;
+    }
+  };
+  let state;
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  for (const [stored, gesture] of [
+    [null, 'pointerdown'],
+    ['invalid-preference', 'keydown'],
+  ]) {
+    if (stored === null)
+      window.localStorage.removeItem('zoj.presentation.sound.v1');
+    else window.localStorage.setItem('zoj.presentation.sound.v1', stored);
+    root = createRoot(host);
+    await act(() => root.render(h(React.StrictMode, null, h(Harness))));
+    assert.equal(state.enabled, true);
+    assert.equal(state.unlocked, false);
+    const before = contexts.length;
+    state.play('warning');
+    assert.equal(contexts.length, before);
+    await act(async () => {
+      document.dispatchEvent(new window.Event(gesture));
+    });
+    assert.equal(state.unlocked, true);
+    assert.equal(contexts.length, before + 1);
+    const player = contexts.at(-1);
+    assert.deepEqual(player.trace, [['resume']]);
+    await act(async () => {
+      document.dispatchEvent(new window.Event(gesture));
+    });
+    assert.deepEqual(player.trace, [['resume']]);
+    state.play('tick');
+    assert.equal(player.trace.filter(([type]) => type === 'start').length, 1);
+    await act(() => root.unmount());
+    root = undefined;
+    assert.equal(player.state, 'closed');
+    await act(async () => {
+      document.dispatchEvent(new window.Event('pointerdown'));
+      document.dispatchEvent(new window.Event('keydown'));
+    });
+    assert.equal(contexts.length, before + 1);
+  }
+});
+
+test('an explicit saved mute prevents all automatic gesture resumes after reload', async () => {
+  const contexts = [];
+  window.AudioContext = class {
+    constructor() {
+      const instance = fakeAudioContext();
+      instance.state = 'suspended';
+      contexts.push(instance);
+      return instance;
+    }
+  };
+  window.localStorage.setItem('zoj.presentation.sound.v1', 'false');
+  let state;
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  for (let reload = 0; reload < 2; reload++) {
+    root = createRoot(host);
+    await act(() => root.render(h(React.StrictMode, null, h(Harness))));
+    assert.equal(state.enabled, false);
+    await act(async () => {
+      document.dispatchEvent(new window.Event('pointerdown'));
+      document.dispatchEvent(new window.Event('keydown'));
+    });
+    state.play('warning');
+    assert.equal(contexts.length, 0);
+    await act(() => root.unmount());
+    root = undefined;
+  }
+});
+
+test('blocked storage still defaults sound on without attempting autoplay', async () => {
+  const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    get: () => {
+      throw new Error('storage unavailable');
+    },
+  });
+  let state;
+  function Harness() {
+    state = usePresentationSound();
+    return null;
+  }
+  host = document.createElement('div');
+  document.body.append(host);
+  root = createRoot(host);
+  try {
+    await act(() => root.render(h(Harness)));
+    assert.equal(state.enabled, true);
+    assert.equal(state.unlocked, false);
+  } finally {
+    Object.defineProperty(window, 'localStorage', original);
+  }
 });

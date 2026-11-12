@@ -128,7 +128,7 @@ test('display preferences reject corrupt storage, normalize bounds and preserve 
   const normalize = preferences.normalizePresentationDisplayPreferences;
   assert.deepEqual(
     normalize({ theme: 'light', fontScale: 4, token: 'must-not-be-saved' }),
-    { theme: 'light', fontScale: 1.5 },
+    { theme: 'light', fontScale: 3 },
   );
   assert.deepEqual(normalize({ theme: 'contrast', fontScale: 0.21 }), {
     theme: 'contrast',
@@ -272,11 +272,12 @@ test('theme, sound and test actions change display state without contest APIs', 
     Object.getOwnPropertyDescriptor(
       window.HTMLInputElement.prototype,
       'value',
-    ).set.call(slider, '150');
+    ).set.call(slider, '300');
     slider.dispatchEvent(new window.Event('input', { bubbles: true }));
     slider.dispatchEvent(new window.Event('change', { bubbles: true }));
   });
-  assert.equal(state.fontScale, 1.5);
+  assert.equal(slider.max, '300');
+  assert.equal(state.fontScale, 3);
   await click(button('기본 크기'));
   assert.equal(state.fontScale, 1);
   await click(button('효과음'));
@@ -301,15 +302,14 @@ test('fullscreen uses the display container in a user gesture and reports browse
     value: host,
   });
   await act(() => document.dispatchEvent(new window.Event('fullscreenchange')));
-  assert.ok(button('전체화면 해제'));
-  let exits = 0;
-  document.exitFullscreen = async () => {
-    exits++;
-  };
-  await click(button('전체화면 해제'));
-  assert.equal(exits, 1);
+  assert.equal(host.querySelector('.presentation-display-settings'), null);
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(host.querySelectorAll('button').length, 0);
+  assert.match(host.querySelector('[role="status"]').textContent, /Esc/);
   delete document.fullscreenElement;
   await act(() => document.dispatchEvent(new window.Event('fullscreenchange')));
+  assert.ok(button('전체화면'));
+  assert.equal(host.querySelector('[role="status"]'), null);
   host.requestFullscreen = async () => {
     throw new Error('rejected');
   };
@@ -332,4 +332,46 @@ test('outside clicks and keyboard focus dismiss the non-modal settings', async (
   await click(button('화면 설정'));
   await act(() => document.getElementById('outside').focus());
   assert.equal(host.querySelector('[role="dialog"]'), null);
+});
+
+test('fullscreen escape notice disappears after three seconds without leaving any controls', async () => {
+  let clear, timer;
+  const nativeSet = window.setTimeout;
+  const nativeClear = window.clearTimeout;
+  window.setTimeout = (callback, delay) => {
+    assert.equal(delay, 3000);
+    timer = callback;
+    return 12;
+  };
+  window.clearTimeout = (id) => {
+    clear = id;
+  };
+  try {
+    await mount();
+    await click(button('화면 설정'));
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      value: host,
+    });
+    await act(() =>
+      document.dispatchEvent(new window.Event('fullscreenchange')),
+    );
+    assert.ok(host.querySelector('.presentation-fullscreen-hint'));
+    assert.equal(
+      host.querySelectorAll('button, input, [role="dialog"]').length,
+      0,
+    );
+    await act(() => timer());
+    assert.equal(host.textContent, '');
+    assert.equal(clear, 12);
+    delete document.fullscreenElement;
+    await act(() =>
+      document.dispatchEvent(new window.Event('fullscreenchange')),
+    );
+    assert.ok(button('전체화면'));
+    assert.equal(host.querySelector('[role="dialog"]'), null);
+  } finally {
+    window.setTimeout = nativeSet;
+    window.clearTimeout = nativeClear;
+  }
 });

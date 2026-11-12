@@ -454,7 +454,7 @@ export function OperatorScoreboardPresentationContent({
         ids.forEach((id) => next.append('divisionId', id));
         setSearchParams(next, { replace: true });
       }}
-      soundEnabled={sound.enabled && sound.unlocked}
+      soundEnabled={sound.enabled}
       onSoundEnabledChange={(enabled) => {
         if (enabled) void sound.enable();
         else sound.disable();
@@ -463,9 +463,11 @@ export function OperatorScoreboardPresentationContent({
       soundStatus={
         !sound.supported
           ? '이 브라우저는 효과음을 지원하지 않습니다.'
-          : sound.enabled && sound.unlocked
-            ? '효과음 사용 중'
-            : '효과음을 켜면 일정 알림과 카운트다운에 소리가 납니다.'
+          : !sound.enabled
+            ? '효과음이 꺼져 있습니다.'
+            : sound.unlocked
+              ? '효과음 사용 중'
+              : '화면을 한 번 클릭하면 효과음이 활성화됩니다.'
       }
     />
   );
@@ -550,9 +552,25 @@ export function OperatorScoreboardPresentationContent({
         >
           <div className="presentation-announcement-card">
             <p className="presentation-announcement-kicker">대회 일정 안내</p>
-            <h2 className="presentation-announcement-title">
-              {activeAnnouncement.title}
-            </h2>
+            <div
+              className="presentation-announcement-milestones"
+              data-count={activeAnnouncement.milestones.length}
+            >
+              {activeAnnouncement.milestones.map(({ kind, minutes }) => (
+                <h2 className="presentation-announcement-title" key={kind}>
+                  <span className="presentation-announcement-event">
+                    {kind === 'freeze' ? '스코어보드 프리즈' : '제출 마감'}
+                  </span>
+                  <span className="presentation-announcement-time">
+                    <strong>{minutes}</strong>
+                    <span>분</span>
+                  </span>
+                  <span className="presentation-announcement-suffix">
+                    전입니다
+                  </span>
+                </h2>
+              ))}
+            </div>
             <p className="presentation-announcement-caption">
               {contest?.title}
             </p>

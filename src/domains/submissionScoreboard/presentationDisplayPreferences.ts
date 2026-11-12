@@ -23,7 +23,7 @@ export function normalizePresentationDisplayPreferences(
       raw.theme === 'light' || raw.theme === 'contrast' ? raw.theme : 'dark',
     fontScale:
       typeof raw.fontScale === 'number' && Number.isFinite(raw.fontScale)
-        ? Math.round(Math.min(1.5, Math.max(0.8, raw.fontScale)) * 10) / 10
+        ? Math.round(Math.min(3, Math.max(0.8, raw.fontScale)) * 10) / 10
         : 1,
   };
 }

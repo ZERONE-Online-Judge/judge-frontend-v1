@@ -1018,6 +1018,62 @@ test('presentation replaces tables with start and final-minute countdowns then r
   }
 });
 
+for (const simultaneous of [false, true]) {
+  test(`schedule alerts separate the event, emphasized minutes and suffix${simultaneous ? ' for coincident milestones' : ''}`, async () => {
+    const original = { ...contest };
+    const at = Date.now() + 1000;
+    Object.assign(contest, {
+      status: 'open',
+      start_at: new Date(at - 3600000).toISOString(),
+      freeze_at: new Date(at + (simultaneous ? 10 : 30) * 60000).toISOString(),
+      end_at: new Date(at + (simultaneous ? 30 : 90) * 60000).toISOString(),
+    });
+    let setNow;
+    const { OperatorScoreboardPresentationContent: Content } = source(
+      'pages/operator/OperatorScoreboardPresentationPage.tsx',
+    );
+    function TimedPresentation() {
+      const [now, update] = React.useState(at - 250);
+      setNow = update;
+      return h(Content, {
+        contestId: 'contest',
+        token: 'display-token',
+        displayOnly: true,
+        now,
+      });
+    }
+    try {
+      const display = await renderPage(
+        TimedPresentation,
+        '/operator/contests/contest/scoreboard/presentation',
+      );
+      await act(async () => setNow(at + 10));
+      const titles = [
+        ...display.querySelectorAll('.presentation-announcement-title'),
+      ];
+      assert.equal(titles.length, simultaneous ? 2 : 1);
+      assert.deepEqual(
+        titles.map((title) => [
+          title.querySelector('.presentation-announcement-event').textContent,
+          title.querySelector('strong').textContent,
+          title.querySelector('.presentation-announcement-time > span')
+            .textContent,
+          title.querySelector('.presentation-announcement-suffix').textContent,
+        ]),
+        simultaneous
+          ? [
+              ['스코어보드 프리즈', '10', '분', '전입니다'],
+              ['제출 마감', '30', '분', '전입니다'],
+            ]
+          : [['스코어보드 프리즈', '30', '분', '전입니다']],
+      );
+      assert.equal(updateCalls.length, 0);
+    } finally {
+      Object.assign(contest, original);
+    }
+  });
+}
+
 test('display settings change local appearance and selected divisions without publishing results', async () => {
   const display = await renderPage(
     Presentation,

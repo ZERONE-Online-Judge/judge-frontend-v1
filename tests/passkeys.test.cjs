@@ -349,8 +349,9 @@ test('email first prioritizes the password even with a passkey and cancellation 
     throw Object.assign(new Error('cancel'), { name: 'NotAllowedError' });
   };
   await click(v, '패스키로 로그인');
-  assert.equal(calls.length, 0);
-  await submit(v);
+  assert.deepEqual(calls, [['passkey', 'user@example.com']]);
+  assert.equal(v.host.querySelector('#login-password'), null);
+  assert.ok(v.host.textContent.includes('이 계정에 등록한 패스키로 인증'));
   assert.equal(state.generalSession, null);
   assert.ok(v.host.textContent.includes('이메일 인증을 이용하세요'));
   handler = null;
@@ -359,6 +360,53 @@ test('email first prioritizes the password even with a passkey and cancellation 
   assert.ok(navigation.includes('/contests'));
   await v.close();
 });
+
+for (const passwordAvailable of [true, false]) {
+  test(`the passkey shortcut starts once immediately from password=${passwordAvailable} and allows retry after cancellation`, async () => {
+    const v = await mount();
+    options = {
+      password_available: passwordAvailable,
+      passkey_available: true,
+    };
+    await input(v, '#login-email', 'user@example.com');
+    await submit(v);
+    if (passwordAvailable) await input(v, '#login-password', 'Password1!');
+    let reject;
+    handler = () =>
+      new Promise((_, rejectLogin) => {
+        reject = rejectLogin;
+      });
+    const shortcut = button(v, '패스키로 로그인');
+    await click(v, '패스키로 로그인');
+    assert.equal(v.host.querySelector('#login-password'), null);
+    assert.equal(v.host.querySelector('#login-otp'), null);
+    assert.equal(button(v, '기기 인증을 확인해 주세요…').disabled, true);
+    await act(async () => {
+      shortcut.click();
+      v.host
+        .querySelector('form')
+        .dispatchEvent(
+          new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+        );
+    });
+    assert.deepEqual(
+      calls.filter(([name]) => name === 'passkey'),
+      [['passkey', 'user@example.com']],
+    );
+    await act(async () =>
+      reject(Object.assign(new Error('cancel'), { name: 'NotAllowedError' })),
+    );
+    assert.equal(state.generalSession, null);
+    assert.equal(button(v, '패스키로 로그인').disabled, false);
+    assert.ok(v.host.textContent.includes('이메일 인증을 이용하세요'));
+    handler = null;
+    await submit(v);
+    assert.equal(calls.filter(([name]) => name === 'passkey').length, 2);
+    assert.equal(state.generalSession, session);
+    assert.ok(navigation.includes('/contests'));
+    await v.close();
+  });
+}
 test('password login on an unfamiliar environment switches to email or passkey verification', async () => {
   const v = await mount();
   options = { password_available: true };
@@ -464,7 +512,6 @@ test('replacing an existing passkey session authenticates once then consumes the
     return session;
   };
   await click(v, '패스키로 로그인');
-  await submit(v);
   assert.equal(state.generalSession, null);
   assert.deepEqual(
     JSON.parse(window.localStorage.getItem('zoj.login-emails.v1')).emails,
@@ -506,7 +553,6 @@ test('canceling session transfer discards approval without logging in', async ()
     throw error;
   };
   await click(v, '패스키로 로그인');
-  await submit(v);
   assert.ok(
     v.host
       .querySelector('[role="dialog"]')
@@ -591,7 +637,6 @@ test('expired session transfer closes confirmation without another passkey promp
     throw error;
   };
   await click(v, '패스키로 로그인');
-  await submit(v);
   await click(v, '여기서 로그인');
   assert.equal(state.generalSession, null);
   assert.equal(calls.filter(([name]) => name === 'passkey').length, 1);
@@ -869,7 +914,7 @@ for (const method of ['otp', 'password', 'passkey']) {
     if (method === 'password') await input(v, '#login-password', 'Password1!');
     if (method === 'otp') await input(v, '#login-otp', '123456');
     if (method === 'passkey') await click(v, '패스키로 로그인');
-    await submit(v);
+    else await submit(v);
     assert.equal(state.generalSession, session);
     assert.ok(navigation.includes(target));
     await v.close();
@@ -930,7 +975,7 @@ for (const method of ['otp', 'password', 'passkey']) {
     if (method === 'password') await input(v, '#login-password', 'Password1!');
     if (method === 'otp') await input(v, '#login-otp', '123456');
     if (method === 'passkey') await click(v, '패스키로 로그인');
-    await submit(v);
+    else await submit(v);
     assert.equal(state.generalSession, session);
     assert.deepEqual(savedLoginEmails(), ['user@example.com']);
     const stored = window.localStorage.getItem('zoj.login-emails.v1');

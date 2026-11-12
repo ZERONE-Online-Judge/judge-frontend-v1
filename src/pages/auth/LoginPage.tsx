@@ -955,8 +955,7 @@ export default function LoginPage() {
                         return;
                       }
                       setLoginMethod('passkey');
-                      setMessage('');
-                      setMessageStatus('idle');
+                      void submitPasskeyLogin();
                     }}
                   >
                     {additionalVerification

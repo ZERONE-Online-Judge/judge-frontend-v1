@@ -865,6 +865,37 @@ test('submission kind filters reset pagination and persist the selected kind', a
   );
 });
 
+test('submission total counts the entire selected view across pages and empty filters', async () => {
+  submissionItems = Array.from({ length: 47 }, (_, i) => ({
+    ...submission,
+    submission_id: `count-${i}`,
+    submission_kind: i < 31 ? 'participant' : 'operator_test',
+  }));
+  const total = () =>
+    [...container.querySelectorAll('.operator-metric')]
+      .find((card) => card.querySelector('p').textContent === '전체 제출')
+      .querySelector('strong').textContent;
+  await render(SubmissionsPage, '/submissions');
+  assert.equal(total(), '47');
+  assert.equal(container.querySelectorAll('tbody tr').length, 20);
+  await click(button('다음'));
+  assert.equal(total(), '47');
+  assert.equal(container.querySelectorAll('tbody tr').length, 20);
+  await click(button('다음'));
+  assert.equal(total(), '47');
+  assert.equal(container.querySelectorAll('tbody tr').length, 7);
+  await click(button('참가자 제출'));
+  assert.equal(total(), '31');
+  await click(button('다음'));
+  assert.equal(total(), '31');
+  assert.equal(container.querySelectorAll('tbody tr').length, 11);
+  await click(button('검수·테스트 제출'));
+  assert.equal(total(), '16');
+  await click(button('모의채점'));
+  assert.equal(total(), '0');
+  assert.equal(button('다음').disabled, true);
+});
+
 test('saved submission kind restores without requesting other submission kinds', async () => {
   window.localStorage.setItem(
     'zoj.operator.submissions.kind.contest',

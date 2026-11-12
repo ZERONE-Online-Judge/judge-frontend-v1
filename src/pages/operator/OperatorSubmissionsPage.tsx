@@ -450,14 +450,20 @@ function OperatorSubmissionsContent({
 
       <div className="grid gap-4 md:grid-cols-3">
         <OperatorMetricCard
-          description="현재 목록 기준"
+          description="선택한 보기·필터의 전체 제출"
           icon={<JudgeIcon />}
           label="전체 제출"
           tone="indigo"
-          value={<AnimatedNumber value={submissions.length} />}
+          value={
+            page?.total_count == null ? (
+              '—'
+            ) : (
+              <AnimatedNumber value={page.total_count} />
+            )
+          }
         />
         <OperatorMetricCard
-          description="채점 중 또는 대기"
+          description="현재 페이지의 채점 중·대기"
           icon={<JudgeIcon />}
           label="진행 중"
           tone="amber"

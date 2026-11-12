@@ -608,6 +608,14 @@
 }
 
 @media (min-width: 768px) and (min-height: 480px) {
+  .zoj-product > main:has(> .operator-layout.zoj-management) {
+    display: flex;
+    flex-direction: column;
+  }
+  .zoj-product > main > .operator-layout.zoj-management {
+    /* Include the main area's empty space in the sidebar's sticky boundary. */
+    flex: 1;
+  }
   .operator-layout.zoj-management {
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 24px;

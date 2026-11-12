@@ -37,6 +37,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 let staffRefreshInFlight: Promise<string | null> | null = null;
 let generalRefreshInFlight: Promise<string | null> | null = null;
 let participantRefreshInFlight: Promise<string | null> | null = null;
+const participantSessionChecks = new Map<string, Promise<ApiRawResponse>>();
 let activePasskeyCeremonies = 0;
 
 export function isPasskeyCeremonyActive() {
@@ -157,6 +158,13 @@ function storedReplacementTokenForRequest(
   const contestId = parseContestId(path);
   const participant = loadStoredParticipantSession();
   const general = loadStoredGeneralSession();
+  // These endpoints issue contest credentials from the account's login. A
+  // saved (possibly expired) contest credential must never replace its parent.
+  if (path.startsWith('/auth/general/')) {
+    return general?.accessToken && general.accessToken !== token
+      ? general.accessToken
+      : null;
+  }
   if (
     participant?.isPreview &&
     participant.contestId === contestId &&
@@ -192,6 +200,46 @@ function storedReplacementTokenForRequest(
   }
 
   return null;
+}
+
+async function expiredParticipantSessionResponse(
+  path: string,
+  token: string | undefined,
+  status: number,
+): Promise<ApiRawResponse | null> {
+  if (status !== 404 || !token) return null;
+  const contestId = path.match(
+    /^\/(?:public\/)?contests\/([^/?]+)(?:\/|\?|$)/,
+  )?.[1];
+  const participant = loadStoredParticipantSession();
+  if (
+    !contestId ||
+    !participant ||
+    participant.isPreview ||
+    participant.accessToken !== token ||
+    (participant.contestId && participant.contestId !== contestId)
+  )
+    return null;
+
+  // Optional contest authentication deliberately conceals private resources
+  // behind 404. Ask the authenticated session endpoint whether this is expiry
+  // before attempting renewal; a genuine missing resource must remain a 404.
+  const key = `${contestId}:${token}`;
+  let check = participantSessionChecks.get(key);
+  if (!check) {
+    check = apiFetchRaw(
+      `/contests/${contestId}/participant-session/me`,
+      token,
+    ).finally(() => participantSessionChecks.delete(key));
+    participantSessionChecks.set(key, check);
+  }
+  try {
+    const result = await check;
+    return result.response.status === 401 ? result : null;
+  } catch {
+    // An unavailable check does not prove that the login has expired.
+    return null;
+  }
 }
 
 function preferredStoredTokenForRequest(
@@ -590,6 +638,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   let currentToken = preferredStoredTokenForRequest(path, token);
   let result = await apiFetchRaw(path, currentToken, init);
+  result =
+    (await expiredParticipantSessionResponse(
+      path,
+      currentToken,
+      result.response.status,
+    )) ?? result;
 
   if (
     !result.response.ok &&
@@ -669,6 +723,12 @@ export async function apiBlobRequest(
       headers: currentToken ? { authorization: `Bearer ${currentToken}` } : {},
     });
   let response = await send();
+  const expiredSession = await expiredParticipantSessionResponse(
+    path,
+    currentToken,
+    response.status,
+  );
+  if (expiredSession) response = expiredSession.response;
   if (response.status === 401 && currentToken && canAttemptAutoRefresh(path)) {
     const refreshed = await tryRefreshTokenForRequest(currentToken, path);
     if (refreshed) {
@@ -684,7 +744,13 @@ export async function apiBlobRequest(
     ) {
       clearStoredSessionForFailedToken(currentToken, path);
     }
-    throwResponseError(response, await response.json().catch(() => null), path);
+    throwResponseError(
+      response,
+      response === expiredSession?.response
+        ? expiredSession.payload
+        : await response.json().catch(() => null),
+      path,
+    );
   }
   return response.blob();
 }
@@ -696,6 +762,12 @@ export async function apiPageRequest<T>(
 ): Promise<ApiPagePayload<T>> {
   let currentToken = preferredStoredTokenForRequest(path, token);
   let result = await apiFetchRaw(path, currentToken, init);
+  result =
+    (await expiredParticipantSessionResponse(
+      path,
+      currentToken,
+      result.response.status,
+    )) ?? result;
 
   if (
     !result.response.ok &&

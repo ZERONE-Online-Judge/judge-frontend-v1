@@ -233,15 +233,7 @@ function OperatorSubmissionsContent({
         submissionKind: submissionKind === 'all' ? undefined : submissionKind,
       }),
     placeholderData: keepPreviousData,
-    refetchInterval: (query) => {
-      if (!isVisible) return false;
-      const submissions = query.state.data?.data ?? [];
-      return submissions.some((submission) =>
-        isSubmissionPending(submission.status),
-      )
-        ? 3_000
-        : 15_000;
-    },
+    refetchInterval: isVisible ? 20_000 : false,
     refetchIntervalInBackground: false,
   });
   const teamsQuery = useQuery({
@@ -604,31 +596,50 @@ function OperatorSubmissionsContent({
         description="제출 구분을 선택해 참가자, 검수·테스트, 미리보기, 모의채점을 나눠 확인합니다. 유형·문제·팀 필터와 함께 적용됩니다."
         title="제출 목록"
       >
-        <div
-          role="group"
-          aria-label="제출 구분"
-          className="flex flex-wrap gap-2"
-        >
-          {SUBMISSION_KIND_OPTIONS.map((option) => (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div
+            role="group"
+            aria-label="제출 구분"
+            className="flex flex-wrap gap-2"
+          >
+            {SUBMISSION_KIND_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={submissionKind === option.value}
+                className={[
+                  'rounded-lg border px-3 py-2 text-sm font-semibold transition',
+                  submissionKind === option.value
+                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50',
+                ].join(' ')}
+                onClick={() => {
+                  setSubmissionKind(option.value);
+                  writeStoredValue(kindStorageKey, option.value);
+                  setCursorStack([]);
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">
+              20초마다 자동 새로고침
+            </span>
             <button
-              key={option.value}
               type="button"
-              aria-pressed={submissionKind === option.value}
-              className={[
-                'rounded-lg border px-3 py-2 text-sm font-semibold transition',
-                submissionKind === option.value
-                  ? 'border-indigo-600 bg-indigo-600 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50',
-              ].join(' ')}
+              disabled={submissionsQuery.isFetching}
+              aria-busy={submissionsQuery.isFetching}
+              className="h-10 min-w-28 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold whitespace-nowrap text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-wait disabled:opacity-50"
               onClick={() => {
-                setSubmissionKind(option.value);
-                writeStoredValue(kindStorageKey, option.value);
-                setCursorStack([]);
+                void submissionsQuery.refetch({ cancelRefetch: false });
+                void dashboardQuery.refetch({ cancelRefetch: false });
               }}
             >
-              {option.label}
+              {submissionsQuery.isFetching ? '새로고침 중…' : '새로고침'}
             </button>
-          ))}
+          </div>
         </div>
         <OperatorSubmissionsTable
           onRetry={canRejudge ? retry : undefined}

@@ -47,7 +47,10 @@ export default function ContestSubmissionResultBadge({
   status,
 }: ContestSubmissionResultBadgeProps) {
   const tone = submissionStatusTone(status);
-  const label = submissionStatusLabel(status);
+  const label =
+    status === 'judging' && submission?.progress_phase === 'tle_confirmation'
+      ? '시간 초과 재확인 중'
+      : submissionStatusLabel(status);
   const detail = judgeMessage?.trim();
   const targetProgress = useMemo(
     () => progressTarget(submission, status),
@@ -64,7 +67,17 @@ export default function ContestSubmissionResultBadge({
   );
   const visibleProgress =
     status === 'judging' && targetProgress !== null
-      ? Math.max(0, Math.min(99, Math.round(displayProgress)))
+      ? Math.max(
+          0,
+          Math.min(
+            99,
+            Math.round(
+              submission?.progress_phase === 'tle_confirmation'
+                ? targetProgress
+                : displayProgress,
+            ),
+          ),
+        )
       : null;
   const shouldShowElapsed =
     isSubmissionPending(status) && visibleProgress === null;

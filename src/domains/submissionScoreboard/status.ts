@@ -124,6 +124,14 @@ export function submissionProgressText(
   const percent = submissionProgressPercent(submission);
 
   if (!isSubmissionPending(status)) return '';
+  if (
+    status === 'judging' &&
+    submission?.progress_phase === 'tle_confirmation'
+  ) {
+    return percent === null
+      ? '시간 초과 재확인 중'
+      : `시간 초과 재확인 중 · ${percent}%`;
+  }
   if (status === 'waiting' && typeof queuePosition === 'number') {
     return `큐 ${queuePosition}번째`;
   }

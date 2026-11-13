@@ -464,11 +464,16 @@ function VerificationResultSummary({
   const failed = isComplete && !passed;
   const progressText = submissionProgressText(result.submission);
   const progressPercent = submissionProgressPercent(result.submission);
+  const rechecking =
+    actualStatus === 'judging' &&
+    result.submission?.progress_phase === 'tle_confirmation';
   const currentLabel = result.error
     ? '처리 실패'
-    : actualStatus
-      ? submissionStatusLabel(actualStatus)
-      : verificationStageLabel(result.stage);
+    : rechecking
+      ? '시간 초과 재확인 중'
+      : actualStatus
+        ? submissionStatusLabel(actualStatus)
+        : verificationStageLabel(result.stage);
   const testcaseOrder =
     result.submission?.failed_testcase_order ??
     parseVerificationDetails(result.submission?.judge_message).testcaseOrder;
@@ -568,7 +573,7 @@ function VerificationResultSummary({
           </div>
           <p className="text-xs font-normal text-slate-500">
             {result.execution
-              ? `${isWorking ? '전체 테스트 채점 중' : result.execution.full_suite_complete ? '검증 종료' : '검증 중단'} · 판정 확인 ${result.execution.completed} / ${result.execution.total}개 · ${Math.round((100 * result.execution.completed) / Math.max(1, result.execution.total))}%`
+              ? `${isWorking ? (rechecking ? '시간 초과 재확인 중' : '전체 테스트 채점 중') : result.execution.full_suite_complete ? '검증 종료' : '검증 중단'} · 판정 확인 ${result.execution.completed} / ${result.execution.total}개 · ${Math.round((100 * result.execution.completed) / Math.max(1, result.execution.total))}%`
               : progressText ||
                 verificationStageHelp(result.stage, actualStatus)}
           </p>

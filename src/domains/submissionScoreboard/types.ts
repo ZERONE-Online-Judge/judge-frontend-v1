@@ -56,6 +56,7 @@ export type Submission = {
   failed_testcase_order?: number | null;
   progress_current?: number | null;
   progress_total?: number | null;
+  progress_phase?: 'tle_confirmation' | null;
   progress_percent?: number | null;
   queue_position?: number | null;
   participant_team_id?: string;
@@ -91,6 +92,7 @@ export type SubmissionProgressState = Pick<
   | 'status'
   | 'progress_current'
   | 'progress_total'
+  | 'progress_phase'
   | 'progress_percent'
   | 'queue_position'
 > &

@@ -38,7 +38,9 @@ export default function SubmissionStatusBadge({
   const status = submission?.status;
   const tone = submissionStatusTone(status);
   const pending = isSubmissionPending(status);
-  const progressText = submissionProgressText(submission);
+  const progressText = submissionProgressText(
+    submission ? { ...submission, progress_phase: null } : submission,
+  );
   const progressPercent = submissionProgressPercent(submission) ?? 0;
   const scoreLabel = submission ? submissionScoreLabel(submission) : null;
 
@@ -58,7 +60,10 @@ export default function SubmissionStatusBadge({
           toneClasses[tone],
         ].join(' ')}
       >
-        {submissionStatusLabel(status)}
+        {status === 'judging' &&
+        submission?.progress_phase === 'tle_confirmation'
+          ? '시간 초과 재확인 중'
+          : submissionStatusLabel(status)}
       </span>
       {scoreLabel ? (
         <strong className="text-xs font-semibold whitespace-nowrap text-indigo-700 tabular-nums">

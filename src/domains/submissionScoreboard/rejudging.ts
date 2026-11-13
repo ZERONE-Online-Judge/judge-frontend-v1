@@ -20,6 +20,7 @@ export type RejudgingResult = Pick<
   | 'failed_testcase_order'
   | 'progress_current'
   | 'progress_total'
+  | 'progress_phase'
 >;
 export type Rejudging = {
   rejudging_id: string;

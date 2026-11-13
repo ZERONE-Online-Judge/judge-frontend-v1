@@ -75,6 +75,7 @@ type MockResult = Pick<
   | 'max_score'
   | 'subtask_results'
   | 'progress_percent'
+  | 'progress_phase'
   | 'runtime_ms'
   | 'memory_kb'
   | 'queue_position'
@@ -128,11 +129,13 @@ function MockJudgeResult({
       ? `큐 ${result.queue_position}번째`
       : '';
   const done = !judgingStatuses.has(result.status);
+  const pendingLabel =
+    result.status === 'judging' && result.progress_phase === 'tle_confirmation'
+      ? '시간 초과 재확인 중'
+      : (statusLabels[result.status] ?? result.status);
   const pendingText =
     queueText ||
-    (hasProgress
-      ? `${progress}%`
-      : `${statusLabels[result.status] ?? result.status} ${elapsedSeconds}초`);
+    (hasProgress ? `${progress}%` : `${pendingLabel} ${elapsedSeconds}초`);
   return (
     <div className="rounded border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
@@ -147,7 +150,7 @@ function MockJudgeResult({
               : 'bg-amber-100 text-amber-700',
           ].join(' ')}
         >
-          {statusLabels[result.status] ?? result.status}
+          {pendingLabel}
         </span>
       </div>
       <div className="mt-3">

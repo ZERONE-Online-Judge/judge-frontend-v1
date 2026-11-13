@@ -28,6 +28,7 @@ import {
 import {
   contestResourceAccess,
   contestStatusLabel,
+  isContestEnded,
   isContestOperationLocked,
   isScheduleTbd,
 } from '@/domains/contestAdministration/logic';
@@ -218,12 +219,31 @@ function OperatorSettingsContent({
         : null;
   const operationLocked = contest ? isContestOperationLocked(contest) : false;
 
-  const scheduleDisabled = !settingsForm || isScheduleTbd(settingsForm.status);
+  const scheduleLocked = Boolean(
+    (contest && isContestEnded(contest)) ||
+    (settingsForm &&
+      ['ended', 'finalized', 'archived'].includes(settingsForm.status)),
+  );
+  const scheduleDisabled =
+    !settingsForm || scheduleLocked || isScheduleTbd(settingsForm.status);
+  const displayedSchedule = {
+    start_at:
+      scheduleLocked && contest
+        ? dateTimeLocalValue(contest.start_at)
+        : (settingsForm?.start_at ?? ''),
+    freeze_at:
+      scheduleLocked && contest
+        ? dateTimeLocalValue(contest.freeze_at)
+        : (settingsForm?.freeze_at ?? ''),
+    end_at:
+      scheduleLocked && contest
+        ? dateTimeLocalValue(contest.end_at)
+        : (settingsForm?.end_at ?? ''),
+  };
   const quickActionsVisible = Boolean(
     settingsForm &&
-    ['open', 'running', 'ended', 'finalized', 'archived'].includes(
-      settingsForm.status,
-    ),
+    !scheduleDisabled &&
+    ['open', 'running'].includes(settingsForm.status),
   );
 
   function setSettingsForm(
@@ -267,7 +287,7 @@ function OperatorSettingsContent({
         : form.mock_judging_progress_visible,
     };
 
-    if (!isScheduleTbd(form.status)) {
+    if (!scheduleLocked && !isScheduleTbd(form.status)) {
       body.start_at = dateTimeLocalToIso(form.start_at);
       body.freeze_at = dateTimeLocalToIso(form.freeze_at);
       body.end_at = dateTimeLocalToIso(form.end_at);
@@ -493,38 +513,44 @@ function OperatorSettingsContent({
                   <SettingsSection
                     title="대회 일정"
                     summary={
-                      scheduleDisabled
+                      !scheduleLocked && isScheduleTbd(settingsForm.status)
                         ? '초안 · 일정 미설정'
-                        : `${settingsForm.start_at.replace('T', ' ')} ~ ${settingsForm.end_at.replace('T', ' ')}`
+                        : `${displayedSchedule.start_at.replace('T', ' ')} ~ ${displayedSchedule.end_at.replace('T', ' ')}`
                     }
                     disabled={
                       scheduleDisabled || updateSettingsMutation.isPending
                     }
                     description={
-                      scheduleDisabled
-                        ? '초안에서는 일정 입력이 잠깁니다. 기본 정보에서 예정 상태로 변경하세요.'
-                        : `시작·프리즈·종료 시간을 설정합니다. 시간대: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`
+                      scheduleLocked
+                        ? '종료된 대회의 일정은 변경할 수 없습니다.'
+                        : isScheduleTbd(settingsForm.status)
+                          ? '초안에서는 일정 입력이 잠깁니다. 기본 정보에서 예정 상태로 변경하세요.'
+                          : `시작·프리즈·종료 시간을 설정합니다. 시간대: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`
                     }
-                    hint="변경한 일정은 화면 아래 ‘변경사항 저장’을 누르면 반영됩니다."
+                    hint={
+                      scheduleLocked
+                        ? undefined
+                        : '변경한 일정은 화면 아래 ‘변경사항 저장’을 누르면 반영됩니다.'
+                    }
                   >
                     <div className="zoj-settings-fields">
                       <DateInput
                         label="시작"
                         name="start_at"
                         setForm={setSettingsForm}
-                        value={settingsForm.start_at}
+                        value={displayedSchedule.start_at}
                       />
                       <DateInput
                         label="프리즈"
                         name="freeze_at"
                         setForm={setSettingsForm}
-                        value={settingsForm.freeze_at}
+                        value={displayedSchedule.freeze_at}
                       />
                       <DateInput
                         label="종료"
                         name="end_at"
                         setForm={setSettingsForm}
-                        value={settingsForm.end_at}
+                        value={displayedSchedule.end_at}
                       />
                     </div>
                   </SettingsSection>

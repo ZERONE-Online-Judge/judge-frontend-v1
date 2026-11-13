@@ -45,6 +45,7 @@ type OperatorTabsProps = {
 
 type OperatorPanelProps = {
   actions?: ReactNode;
+  className?: string;
   children: ReactNode;
   description?: ReactNode;
   title: string;

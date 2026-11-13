@@ -977,3 +977,16 @@
     animation: none;
   }
 }
+
+/* Keep the submission title and refresh control aligned at narrow widths. */
+.operator-layout .operator-submissions-panel > .zoj-management-panel__header {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.operator-layout .operator-submissions-panel .zoj-management-panel__heading {
+  flex: 1 1 0;
+}
+.operator-layout .operator-submissions-panel .zoj-management-panel__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}

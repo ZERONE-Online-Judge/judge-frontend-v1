@@ -3,10 +3,12 @@ import { useId, type ReactNode } from 'react';
 export function ManagementPanel({
   actions,
   children,
+  className,
   description,
   title,
 }: {
   actions?: ReactNode;
+  className?: string;
   children: ReactNode;
   description?: ReactNode;
   title: string;
@@ -16,7 +18,7 @@ export function ManagementPanel({
   return (
     <section
       aria-labelledby={titleId}
-      className="zoj-management-panel"
+      className={['zoj-management-panel', className].filter(Boolean).join(' ')}
       data-edit-card
     >
       <header className="zoj-management-panel__header">

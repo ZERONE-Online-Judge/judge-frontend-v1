@@ -1,5 +1,6 @@
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import Select from '@/shared/ui/Select';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import SubmissionDetailContent from '@/components/operator/SubmissionDetailContent';
@@ -63,6 +64,7 @@ import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submis
 import '@/components/contest/submissions/SubmissionRecency.css';
 
 const SUBMISSIONS_PAGE_SIZE = 20;
+const SUBMISSIONS_REFRESH_INTERVAL_MS = 20_000;
 const SUBMISSION_KIND_OPTIONS: {
   value: SubmissionKindFilter;
   label: string;
@@ -188,6 +190,7 @@ function OperatorSubmissionsContent({
   const [teamId, setTeamId] = useState(() => readStoredValue(teamStorageKey));
   const [cursorStack, setCursorStack] = useState<string[]>([]);
   const currentCursor = cursorStack.at(-1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState('');
   const [rejudgingTarget, setRejudgingTarget] =
     useState<RejudgingTarget | null>(null);
@@ -230,7 +233,7 @@ function OperatorSubmissionsContent({
         submissionKind: submissionKind === 'all' ? undefined : submissionKind,
       }),
     placeholderData: keepPreviousData,
-    refetchInterval: isVisible ? 20_000 : false,
+    refetchInterval: isVisible ? SUBMISSIONS_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
   const teamsQuery = useQuery({
@@ -294,6 +297,7 @@ function OperatorSubmissionsContent({
   }, [divisionId, divisionStorageKey, divisions]);
 
   useEffect(() => {
+    if (!filtersQuery.isSuccess) return;
     if (
       problemId &&
       !filteredProblems.some((problem) => problem.problem_id === problemId)
@@ -302,9 +306,10 @@ function OperatorSubmissionsContent({
       writeStoredValue(problemStorageKey, '');
       setCursorStack([]);
     }
-  }, [filteredProblems, problemId, problemStorageKey]);
+  }, [filteredProblems, filtersQuery.isSuccess, problemId, problemStorageKey]);
 
   useEffect(() => {
+    if (!filtersQuery.isSuccess) return;
     if (
       teamId &&
       !filteredTeams.some((team) => team.participant_team_id === teamId)
@@ -313,7 +318,7 @@ function OperatorSubmissionsContent({
       writeStoredValue(teamStorageKey, '');
       setCursorStack([]);
     }
-  }, [filteredTeams, teamId, teamStorageKey]);
+  }, [filteredTeams, filtersQuery.isSuccess, teamId, teamStorageKey]);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -479,143 +484,221 @@ function OperatorSubmissionsContent({
       </div>
 
       <OperatorPanel
-        actions={
-          <div className="flex max-w-full min-w-0 flex-wrap gap-3">
-            <button
-              type="button"
-              className="h-10 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
-              onClick={() => {
-                setSubmissionKind('all');
-                writeStoredValue(kindStorageKey, 'all');
-                setDivisionId('');
-                setProblemId('');
-                setTeamId('');
-                setCursorStack([]);
-                writeStoredValue(divisionStorageKey, '');
-                writeStoredValue(problemStorageKey, '');
-                writeStoredValue(teamStorageKey, '');
-              }}
-            >
-              전체 제출 보기
-            </button>
-            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
-              유형
-              <Select
-                className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                onChange={(event) => {
-                  const nextDivisionId = event.target.value;
-                  setDivisionId(nextDivisionId);
-                  setProblemId('');
-                  setTeamId('');
-                  writeStoredValue(divisionStorageKey, nextDivisionId);
-                  writeStoredValue(problemStorageKey, '');
-                  writeStoredValue(teamStorageKey, '');
-                  setCursorStack([]);
-                }}
-                value={divisionId}
-              >
-                <option value="">전체 유형</option>
-                {divisions.map((division) => (
-                  <option
-                    key={division.division_id}
-                    value={division.division_id}
-                  >
-                    {division.name}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
-              문제
-              <Select
-                className="h-10 w-52 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                onChange={(event) => {
-                  const nextProblemId = event.target.value;
-                  setProblemId(nextProblemId);
-                  writeStoredValue(problemStorageKey, nextProblemId);
-                  setCursorStack([]);
-                }}
-                value={problemId}
-              >
-                <option value="">전체</option>
-                {filteredProblems.map((problem) => (
-                  <option key={problem.problem_id} value={problem.problem_id}>
-                    {problem.problem_code}. {problem.title}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="inline-flex max-w-full min-w-0 flex-1 basis-full items-center gap-2 text-sm font-semibold text-slate-700 sm:basis-auto">
-              팀
-              <Select
-                className="h-10 w-52 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                onChange={(event) => {
-                  const nextTeamId = event.target.value;
-                  setTeamId(nextTeamId);
-                  writeStoredValue(teamStorageKey, nextTeamId);
-                  setCursorStack([]);
-                }}
-                value={teamId}
-              >
-                <option value="">전체</option>
-                {filteredTeams.map((team) => (
-                  <option
-                    key={team.participant_team_id}
-                    value={team.participant_team_id}
-                  >
-                    {team.team_name}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          </div>
-        }
-        description="제출 구분을 선택해 참가자, 검수·테스트, 미리보기, 모의채점을 나눠 확인합니다. 유형·문제·팀 필터와 함께 적용됩니다."
+        className="operator-submissions-panel"
         title="제출 목록"
-      >
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div
-            role="group"
-            aria-label="제출 구분"
-            className="flex flex-wrap gap-2"
-          >
-            {SUBMISSION_KIND_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={submissionKind === option.value}
-                className={[
-                  'rounded-lg border px-3 py-2 text-sm font-semibold transition',
-                  submissionKind === option.value
-                    ? 'border-indigo-600 bg-indigo-600 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50',
-                ].join(' ')}
-                onClick={() => {
-                  setSubmissionKind(option.value);
-                  writeStoredValue(kindStorageKey, option.value);
-                  setCursorStack([]);
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-medium text-slate-500">
-              20초마다 자동 새로고침
-            </span>
+        actions={
+          <div className="flex flex-col-reverse items-end justify-end gap-x-3 gap-y-1 sm:flex-row sm:items-center">
+            <SubmissionRefreshCountdown
+              enabled={isVisible}
+              isFetching={submissionsQuery.isFetching}
+              resetKey={`${submissionKind}:${divisionId}:${problemId}:${teamId}:${currentCursor ?? ''}:${submissionsQuery.dataUpdatedAt}:${submissionsQuery.errorUpdatedAt}`}
+            />
             <button
               type="button"
               disabled={submissionsQuery.isFetching}
               aria-busy={submissionsQuery.isFetching}
-              className="h-10 min-w-28 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold whitespace-nowrap text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-wait disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold whitespace-nowrap text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-wait disabled:opacity-50"
               onClick={() => {
                 void submissionsQuery.refetch({ cancelRefetch: false });
                 void dashboardQuery.refetch({ cancelRefetch: false });
               }}
             >
+              <InterfaceIcon
+                name="refresh"
+                className={
+                  submissionsQuery.isFetching
+                    ? 'animate-spin motion-reduce:animate-none'
+                    : ''
+                }
+              />
               {submissionsQuery.isFetching ? '새로고침 중…' : '새로고침'}
             </button>
+          </div>
+        }
+      >
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div
+              role="group"
+              aria-label="제출 구분"
+              className="hidden min-w-0 flex-wrap gap-1 sm:flex"
+            >
+              {SUBMISSION_KIND_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={submissionKind === option.value}
+                  className={[
+                    'min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition',
+                    submissionKind === option.value
+                      ? 'bg-indigo-50 font-semibold text-indigo-700'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700',
+                  ].join(' ')}
+                  onClick={() => {
+                    setSubmissionKind(option.value);
+                    writeStoredValue(kindStorageKey, option.value);
+                    setCursorStack([]);
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <label className="grid min-w-0 flex-1 basis-full gap-2 text-xs font-medium text-slate-500 sm:hidden">
+              <span>제출 구분</span>
+              <select
+                aria-label="제출 구분"
+                className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                value={submissionKind}
+                onChange={(event) => {
+                  const nextKind = event.target.value as SubmissionKindFilter;
+                  setSubmissionKind(nextKind);
+                  writeStoredValue(kindStorageKey, nextKind);
+                  setCursorStack([]);
+                }}
+              >
+                {SUBMISSION_KIND_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                aria-expanded={filtersOpen}
+                aria-controls="operator-submission-filters"
+                className={[
+                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium transition',
+                  filtersOpen
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+                ].join(' ')}
+                onClick={() => setFiltersOpen((open) => !open)}
+              >
+                <InterfaceIcon name="list" />
+                필터
+                {[divisionId, problemId, teamId].filter(Boolean).length > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-700">
+                    {[divisionId, problemId, teamId].filter(Boolean).length}
+                  </span>
+                ) : null}
+                <InterfaceIcon
+                  name="chevronDown"
+                  className={`transition-transform duration-200 motion-reduce:transition-none ${filtersOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+              <button
+                type="button"
+                className="min-h-10 rounded-lg px-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                onClick={() => {
+                  setSubmissionKind('all');
+                  writeStoredValue(kindStorageKey, 'all');
+                  setDivisionId('');
+                  setProblemId('');
+                  setTeamId('');
+                  setCursorStack([]);
+                  writeStoredValue(divisionStorageKey, '');
+                  writeStoredValue(problemStorageKey, '');
+                  writeStoredValue(teamStorageKey, '');
+                }}
+              >
+                초기화
+              </button>
+            </div>
+          </div>
+          <div
+            id="operator-submission-filters"
+            aria-hidden={!filtersOpen}
+            inert={!filtersOpen}
+            className={[
+              'grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+              filtersOpen
+                ? 'grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0',
+            ].join(' ')}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="mt-4 grid min-w-0 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+                <label className="grid min-w-0 gap-2 text-xs font-medium text-slate-500">
+                  <span>유형</span>
+                  <Select
+                    aria-label="유형"
+                    className="h-10 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    onChange={(event) => {
+                      const nextDivisionId = event.target.value;
+                      setDivisionId(nextDivisionId);
+                      setProblemId('');
+                      setTeamId('');
+                      writeStoredValue(divisionStorageKey, nextDivisionId);
+                      writeStoredValue(problemStorageKey, '');
+                      writeStoredValue(teamStorageKey, '');
+                      setCursorStack([]);
+                    }}
+                    value={divisionId}
+                  >
+                    <option value="">전체 유형</option>
+                    {divisions.map((division) => (
+                      <option
+                        key={division.division_id}
+                        value={division.division_id}
+                      >
+                        {division.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="grid min-w-0 gap-2 text-xs font-medium text-slate-500">
+                  <span>문제</span>
+                  <Select
+                    aria-label="문제"
+                    className="h-10 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    onChange={(event) => {
+                      const nextProblemId = event.target.value;
+                      setProblemId(nextProblemId);
+                      writeStoredValue(problemStorageKey, nextProblemId);
+                      setCursorStack([]);
+                    }}
+                    value={problemId}
+                  >
+                    <option value="">전체</option>
+                    {filteredProblems.map((problem) => (
+                      <option
+                        key={problem.problem_id}
+                        value={problem.problem_id}
+                      >
+                        {problem.problem_code}. {problem.title}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="grid min-w-0 gap-2 text-xs font-medium text-slate-500">
+                  <span>팀</span>
+                  <Select
+                    aria-label="팀"
+                    className="h-10 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-sm font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    onChange={(event) => {
+                      const nextTeamId = event.target.value;
+                      setTeamId(nextTeamId);
+                      writeStoredValue(teamStorageKey, nextTeamId);
+                      setCursorStack([]);
+                    }}
+                    value={teamId}
+                  >
+                    <option value="">전체</option>
+                    {filteredTeams.map((team) => (
+                      <option
+                        key={team.participant_team_id}
+                        value={team.participant_team_id}
+                      >
+                        {team.team_name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
         <OperatorSubmissionsTable
@@ -792,6 +875,44 @@ function codeLength(submission: Submission) {
   return typeof length === 'number'
     ? `${length.toLocaleString('ko-KR')} B`
     : '-';
+}
+
+function SubmissionRefreshCountdown({
+  enabled,
+  isFetching,
+  resetKey,
+}: {
+  enabled: boolean;
+  isFetching: boolean;
+  resetKey: string;
+}) {
+  const [remainingSeconds, setRemainingSeconds] = useState(20);
+
+  useEffect(() => {
+    if (!enabled || isFetching) return;
+    const deadline = Date.now() + SUBMISSIONS_REFRESH_INTERVAL_MS;
+    const update = () => {
+      setRemainingSeconds(
+        Math.max(0, Math.ceil((deadline - Date.now()) / 1000)),
+      );
+    };
+    const firstTick = window.setTimeout(update, 0);
+    const timer = window.setInterval(update, 1000);
+    return () => {
+      window.clearTimeout(firstTick);
+      window.clearInterval(timer);
+    };
+  }, [enabled, isFetching, resetKey]);
+
+  return (
+    <span className="text-xs font-medium whitespace-nowrap text-slate-500 tabular-nums">
+      {!enabled
+        ? '자동 새로고침 일시정지'
+        : isFetching
+          ? '새로고침 중…'
+          : `${remainingSeconds}초 뒤 새로고침`}
+    </span>
+  );
 }
 
 function OperatorSubmissionsTable({

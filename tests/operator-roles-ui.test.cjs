@@ -1368,6 +1368,44 @@ test('saving one field sends only that field and leaves untouched schedules inta
   assert.equal(contestOverrides.start_at, '2026-10-01T01:00:37Z');
 });
 
+for (const [label, field] of [
+  ['시작', 'start_at'],
+  ['프리즈', 'freeze_at'],
+  ['종료', 'end_at'],
+]) {
+  test(`an incomplete ${field} draft survives rendering and blocks all settings writes`, async () => {
+    contestOverrides = {
+      status: 'scheduled',
+      start_at: '2099-11-13T00:00:00Z',
+      freeze_at: '2099-11-14T03:00:00Z',
+      end_at: '2099-11-14T06:00:00Z',
+    };
+    await render(SettingsPage, 'settings');
+    const date = container.querySelectorAll('input[type="datetime-local"]')[
+      ['start_at', 'freeze_at', 'end_at'].indexOf(field)
+    ];
+    await input(date, '');
+    assert.equal(date.isConnected, true);
+    assert.equal(date.value, '');
+    assert.equal(button('변경사항 저장').disabled, false);
+    await input(inputByLabel('대회명'), '일정을 입력하는 중');
+    await click(button('변경사항 저장'));
+    assert.equal(settingsChanges.length, 0);
+    assert.match(
+      container.querySelector('.operator-settings-savebar').textContent,
+      new RegExp(`${label} 날짜와 시간을 끝까지 입력`),
+    );
+    await input(date, '2099-11-14T00:00');
+    await click(button('변경사항 저장'));
+    assert.equal(settingsChanges.length, 1);
+    assert.equal(
+      settingsChanges[0].body[field],
+      new Date('2099-11-14T00:00').toISOString(),
+    );
+    assert.equal(settingsChanges[0].body.title, '일정을 입력하는 중');
+  });
+}
+
 test('live public scoreboard defaults off and saves independently from archive visibility', async () => {
   await render(SettingsPage, 'settings');
   const label = [...container.querySelectorAll('label')].find((item) =>

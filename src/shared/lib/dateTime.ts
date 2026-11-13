@@ -33,13 +33,33 @@ export function dateInputValue(value: string) {
 
 export function dateTimeLocalValue(value: string) {
   const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
   const offset = date.getTimezoneOffset();
   const local = new Date(date.getTime() - offset * 60_000);
   return local.toISOString().slice(0, 16);
 }
 
 export function dateTimeLocalToIso(value: string) {
-  return new Date(value).toISOString();
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(
+      value,
+    );
+  if (!parts) return null;
+  const date = new Date(value);
+  const [year, month, day, hour, minute] = parts.slice(1, 6).map(Number);
+  const second = Number(parts[6] ?? 0);
+  if (
+    year < 1 ||
+    !Number.isFinite(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute ||
+    date.getSeconds() !== second
+  )
+    return null;
+  return date.toISOString();
 }
 
 export function formatTime(value?: string | null) {

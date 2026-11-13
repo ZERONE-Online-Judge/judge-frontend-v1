@@ -264,6 +264,15 @@ function OperatorSettingsContent({
     !scheduleDisabled &&
     ['open', 'running'].includes(settingsForm.status),
   );
+  const invalidScheduleFields =
+    settingsForm && !scheduleDisabled
+      ? (['start_at', 'freeze_at', 'end_at'] as const).filter(
+          (field) => dateTimeLocalToIso(settingsForm[field]) === null,
+        )
+      : [];
+  const scheduleError = invalidScheduleFields.length
+    ? `${{ start_at: '시작', freeze_at: '프리즈', end_at: '종료' }[invalidScheduleFields[0]]} 날짜와 시간을 끝까지 입력해 주세요.`
+    : '';
   const alertMinutesErrors = settingsForm
     ? (['freeze', 'end'] as const)
         .map((kind) => {
@@ -327,9 +336,10 @@ function OperatorSettingsContent({
     }
 
     if (!scheduleLocked && !isScheduleTbd(form.status)) {
-      body.start_at = dateTimeLocalToIso(form.start_at);
-      body.freeze_at = dateTimeLocalToIso(form.freeze_at);
-      body.end_at = dateTimeLocalToIso(form.end_at);
+      for (const field of ['start_at', 'freeze_at', 'end_at'] as const) {
+        const value = dateTimeLocalToIso(form[field]);
+        if (value !== null) body[field] = value;
+      }
     }
 
     if (!operationLocked) {
@@ -358,7 +368,8 @@ function OperatorSettingsContent({
   }
   const changedCount = settingsForm
     ? Object.keys(changedSettingsPatch(settingsForm)).length +
-      alertMinutesErrors.length
+      alertMinutesErrors.length +
+      invalidScheduleFields.length
     : 0;
 
   const updateSettingsMutation = useMutation({
@@ -386,6 +397,10 @@ function OperatorSettingsContent({
 
   function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (scheduleError) {
+      setFormError(scheduleError);
+      return;
+    }
     if (alertMinutesError) {
       setFormError(alertMinutesError);
       return;
@@ -470,6 +485,7 @@ function OperatorSettingsContent({
             {settingsForm ? (
               <form
                 className="operator-settings-form"
+                noValidate
                 onSubmit={handleSettingsSubmit}
               >
                 <p className="text-sm leading-6 text-slate-600">

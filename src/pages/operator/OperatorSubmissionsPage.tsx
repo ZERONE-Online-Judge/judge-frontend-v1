@@ -51,10 +51,7 @@ import type {
   Submission,
   SubmissionKindFilter,
 } from '@/domains/submissionScoreboard/types';
-import {
-  isSubmissionPending,
-  submissionProgressText,
-} from '@/domains/submissionScoreboard/status';
+import { isSubmissionPending } from '@/domains/submissionScoreboard/status';
 import { formatApiError } from '@/shared/api/errors';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
@@ -571,26 +568,6 @@ function OperatorSubmissionsContent({
                 ))}
               </Select>
             </label>
-            {canRejudge ? (
-              <button
-                type="button"
-                disabled={!problemId}
-                className="h-10 rounded-lg border border-indigo-200 px-3 text-sm font-semibold text-indigo-700 disabled:opacity-50"
-                title={
-                  problemId
-                    ? '선택한 문제와 팀의 완료된 참가자 제출을 재채점합니다'
-                    : '문제를 먼저 선택하세요'
-                }
-                onClick={() =>
-                  setRejudgingTarget({
-                    problem_id: problemId,
-                    ...(teamId ? { team_id: teamId } : {}),
-                  })
-                }
-              >
-                선택 범위 재채점
-              </button>
-            ) : null}
           </div>
         }
         description="제출 구분을 선택해 참가자, 검수·테스트, 미리보기, 모의채점을 나눠 확인합니다. 유형·문제·팀 필터와 함께 적용됩니다."
@@ -846,15 +823,13 @@ function OperatorSubmissionsTable({
       aria-label="제출 목록, 좌우로 스크롤하여 채점 정보 확인"
       tabIndex={0}
     >
-      <table className="w-full min-w-[1180px] table-fixed border-collapse text-left text-sm">
+      <table className="w-full min-w-[960px] table-fixed border-collapse text-left text-sm">
         <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
           <tr>
-            <th className={`${headerClass} w-28`}>제출</th>
             <th className={`${headerClass} w-44`}>팀/계정</th>
             <th className={`${headerClass} w-64`}>문제</th>
             <th className={`${headerClass} w-36`}>결과</th>
             <th className={`${headerClass} w-24`}>언어</th>
-            <th className={`${headerClass} w-28`}>진행</th>
             <th className={`${headerClass} w-24`}>시간</th>
             <th className={`${headerClass} w-28`}>메모리</th>
             <th className={`${headerClass} w-32`}>제출 시각</th>
@@ -879,12 +854,6 @@ function OperatorSubmissionsTable({
                 }
                 key={submission.submission_id}
               >
-                <td
-                  className={`${cellClass} font-mono text-xs font-medium`}
-                  title={submission.submission_id}
-                >
-                  {displaySubmissionId(submission.submission_id)}
-                </td>
                 <td className={`${cellClass} font-medium text-slate-800`}>
                   <button
                     className="zoj-truncate-safe max-w-full text-left text-indigo-700 hover:text-indigo-950"
@@ -920,7 +889,7 @@ function OperatorSubmissionsTable({
                   )}
                 </td>
                 <td className={cellClass}>
-                  <SubmissionStatusBadge submission={submission} compact />
+                  <SubmissionStatusBadge submission={submission} />
                   {onRetry && submission.status === 'system_error' ? (
                     <button
                       type="button"
@@ -934,11 +903,6 @@ function OperatorSubmissionsTable({
                 </td>
                 <td className={`${cellClass} font-medium`}>
                   {judgeLanguageLabel(submission.language)}
-                </td>
-                <td
-                  className={`${cellClass} text-xs font-medium text-slate-500`}
-                >
-                  {submissionProgressText(submission) || '-'}
                 </td>
                 <td className={cellClass}>
                   {formatRuntime(

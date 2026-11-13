@@ -1028,13 +1028,13 @@ test('presentation replaces tables with start and final-minute countdowns then r
 });
 
 for (const simultaneous of [false, true]) {
-  test(`schedule alerts separate the event, emphasized minutes and suffix${simultaneous ? ' for coincident milestones' : ''}`, async () => {
+  test(`number-focused schedule alerts emphasize minutes${simultaneous ? ' for coincident milestones' : ''}`, async () => {
     const original = { ...contest };
     const at = Date.now() + 1000;
     Object.assign(contest, {
       status: 'open',
       start_at: new Date(at - 3600000).toISOString(),
-      freeze_at: new Date(at + (simultaneous ? 10 : 30) * 60000).toISOString(),
+      freeze_at: new Date(at + (simultaneous ? 10 : 20) * 60000).toISOString(),
       end_at: new Date(at + (simultaneous ? 30 : 90) * 60000).toISOString(),
     });
     let setNow;
@@ -1071,14 +1071,93 @@ for (const simultaneous of [false, true]) {
         ]),
         simultaneous
           ? [
-              ['스코어보드 프리즈', '10', '분', '전입니다'],
-              ['제출 마감', '30', '분', '전입니다'],
+              ['스코어보드 프리즈까지', '10', '분', '남았습니다'],
+              ['대회 종료까지', '30', '분', '남았습니다'],
             ]
-          : [['스코어보드 프리즈', '30', '분', '전입니다']],
+          : [['스코어보드 프리즈까지', '20', '분', '남았습니다']],
+      );
+      assert.match(
+        display.querySelector('.presentation-announcement-footer').textContent,
+        /ZOAC Test잠시 후 순위표로 돌아갑니다/,
       );
       assert.equal(updateCalls.length, 0);
     } finally {
       Object.assign(contest, original);
+    }
+  });
+}
+
+for (const mode of ['auto', 'live', 'frozen']) {
+  test(`presentation ${mode} freeze boundary preserves display preferences and selected rankings`, async () => {
+    const original = { ...contest };
+    const freeze = Date.now() + 60_000;
+    Object.assign(contest, {
+      status: 'running',
+      start_at: new Date(freeze - 3600000).toISOString(),
+      freeze_at: new Date(freeze).toISOString(),
+      end_at: new Date(freeze + 3600000).toISOString(),
+      scoreboard_freeze_mode: mode,
+    });
+    window.sessionStorage.setItem(
+      'zoj.presentation.display-preferences.v1',
+      JSON.stringify({ theme: 'light', fontScale: 3 }),
+    );
+    let setNow;
+    const { OperatorScoreboardPresentationContent: Content } = source(
+      'pages/operator/OperatorScoreboardPresentationPage.tsx',
+    );
+    function TimedPresentation() {
+      const [now, update] = React.useState(freeze - 3001);
+      setNow = update;
+      return h(Content, {
+        contestId: 'contest',
+        token: 'display-token',
+        displayOnly: true,
+        now,
+      });
+    }
+    try {
+      const display = await renderPage(
+        TimedPresentation,
+        '/operator/contests/contest/scoreboard/presentation?divisionId=a',
+      );
+      const frame = display.querySelector('.presentation-display');
+      assert.equal(display.querySelectorAll('table').length, 1);
+      for (const seconds of [3, 2, 1]) {
+        await act(async () => setNow(freeze - seconds * 1000));
+        assert.equal(display.querySelector('.presentation-display'), frame);
+        assert.equal(frame.dataset.presentationTheme, 'light');
+        assert.equal(
+          frame.style.getPropertyValue('--presentation-font-scale'),
+          '3',
+        );
+        if (mode === 'auto') {
+          assert.equal(display.querySelector('table'), null);
+          assert.equal(
+            display.querySelector('.contest-clock-focus strong').textContent,
+            String(seconds),
+          );
+          assert.equal(
+            display.querySelector('[role="timer"]').getAttribute('aria-label'),
+            `스코어보드 프리즈까지 ${seconds}초`,
+          );
+        } else {
+          assert.equal(display.querySelectorAll('table').length, 1);
+          assert.equal(display.querySelector('.contest-clock-focus'), null);
+        }
+      }
+      await act(async () => setNow(freeze));
+      assert.equal(display.querySelector('.presentation-display'), frame);
+      assert.equal(display.querySelector('.contest-clock-focus'), null);
+      assert.equal(display.querySelectorAll('table').length, 1);
+      assert.match(display.textContent, /A 유형/);
+      assert.doesNotMatch(display.textContent, /B 유형/);
+      assertDisplayPreferencesOnly(display);
+      assert.equal(updateCalls.length, 0);
+    } finally {
+      Object.assign(contest, original);
+      if (original.scoreboard_freeze_mode === undefined)
+        delete contest.scoreboard_freeze_mode;
     }
   });
 }

@@ -1,4 +1,7 @@
-import type { ContestTiming } from '@/domains/contestAdministration/contestTimer';
+import {
+  contestTimerState,
+  type ContestTiming,
+} from '../contestAdministration/contestTimer';
 
 export type PresentationAnnouncementContest = ContestTiming & {
   contest_id: string;
@@ -16,8 +19,8 @@ export type PresentationSoundCue =
 export type PresentationAnnouncement = {
   key: string;
   kinds: ('freeze' | 'end')[];
-  minutes: 30 | 10 | 5;
-  milestones: { kind: 'freeze' | 'end'; minutes: 30 | 10 | 5 }[];
+  minutes: 30 | 20 | 10 | 5;
+  milestones: { kind: 'freeze' | 'end'; minutes: 30 | 20 | 10 | 5 }[];
   title: string;
   expiresAt: number;
 };
@@ -26,7 +29,7 @@ export type PresentationAnnouncementMemory = [string, number][];
 const MINUTE = 60_000;
 const FRESHNESS = 5_000;
 const MEMORY_LIFETIME = 7 * 24 * 60 * MINUTE;
-const WARNING_MINUTES = [30, 10, 5] as const;
+const WARNING_MINUTES = [30, 20, 10, 5] as const;
 
 export const PRESENTATION_ANNOUNCEMENT_STORAGE_KEY =
   'zoj.presentation.announcements.v1';
@@ -58,8 +61,23 @@ type ScheduledEvent = {
   at: number;
   cue: PresentationSoundCue;
   kind?: 'freeze' | 'end';
-  minutes?: 30 | 10 | 5;
+  minutes?: 30 | 20 | 10 | 5;
 };
+
+/** Start/end countdowns take priority over a scheduled automatic freeze. */
+export function presentationFreezeCountdown(
+  contest: PresentationAnnouncementContest | undefined,
+  now: number,
+) {
+  if (!contest) return null;
+  const timer = contestTimerState(contest, now, true);
+  return !timer.showPresentationCountdown &&
+    timer.freezeRemaining !== null &&
+    timer.freezeRemaining > 0 &&
+    timer.freezeRemaining <= 3_000
+    ? Math.ceil(timer.freezeRemaining / 1_000)
+    : null;
+}
 
 function schedule(contest: PresentationAnnouncementContest): ScheduledEvent[] {
   const start = Date.parse(contest.start_at);
@@ -95,6 +113,16 @@ function schedule(contest: PresentationAnnouncementContest): ScheduledEvent[] {
       cue: 'warning' as const,
     })),
   );
+  if (targets.some((target) => target.kind === 'freeze')) {
+    for (let seconds = 3; seconds >= 1; seconds--) {
+      events.push({
+        key: `${contest.contest_id}:freeze:${freeze}:second:${seconds}`,
+        kind: 'freeze',
+        at: freeze - seconds * 1000,
+        cue: 'tick',
+      });
+    }
+  }
   for (const [kind, at] of [
     ['start', start],
     ['end', end],
@@ -238,7 +266,13 @@ export class PresentationAnnouncementTracker {
     const fresh = crossed.filter((event) => now - event.at < FRESHNESS);
     // Only the current second can beep. A delayed tick never creates a burst.
     const countdown = fresh
-      .filter((event) => event.cue !== 'warning' && now - event.at < 1_000)
+      .filter(
+        (event) =>
+          event.cue !== 'warning' &&
+          now - event.at < 1_000 &&
+          (event.kind !== 'freeze' ||
+            presentationFreezeCountdown(contest, now) !== null),
+      )
       .sort((a, b) => b.at - a.at)[0];
     if (countdown) return { cue: countdown.cue, changed: crossed.length > 0 };
     const warnings = fresh.filter((event) => event.cue === 'warning');

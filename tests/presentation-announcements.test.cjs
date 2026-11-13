@@ -49,6 +49,7 @@ const {
   PresentationAnnouncementTracker,
   readPresentationAnnouncementMemory,
   PRESENTATION_ANNOUNCEMENT_STORAGE_KEY,
+  presentationFreezeCountdown,
 } = source('domains/submissionScoreboard/presentationAnnouncements.ts');
 const { usePresentationAnnouncements } = source(
   'domains/submissionScoreboard/usePresentationAnnouncements.ts',
@@ -83,10 +84,10 @@ afterEach(async () => {
 });
 after(() => dom.window.close());
 
-test('all six scheduled freeze and submission warnings cross once, despite polling or clock rollback', () => {
+test('all eight scheduled freeze and submission warnings cross once, despite polling or clock rollback', () => {
   const tracker = new PresentationAnnouncementTracker();
   const events = ['freeze', 'end'].flatMap((kind) =>
-    [30, 10, 5].map((minutes) => ({
+    [30, 20, 10, 5].map((minutes) => ({
       kind,
       minutes,
       at: Date.parse(contest[`${kind}_at`]) - minutes * MINUTE,
@@ -109,6 +110,115 @@ test('all six scheduled freeze and submission warnings cross once, despite polli
     tracker.update(contest, at - 1000, visible);
     assert.equal(tracker.update(contest, at, visible).cue, undefined);
   }
+});
+
+test('automatic freeze countdown enters at exactly three seconds and leaves at the freeze boundary', () => {
+  const freeze = Date.parse(contest.freeze_at);
+  for (const [remaining, expected] of [
+    [3001, null],
+    [3000, 3],
+    [2001, 3],
+    [2000, 2],
+    [1001, 2],
+    [1000, 1],
+    [1, 1],
+    [0, null],
+    [-1, null],
+  ])
+    assert.equal(
+      presentationFreezeCountdown(contest, freeze - remaining),
+      expected,
+      `remaining ${remaining}ms`,
+    );
+});
+
+test('freeze countdown excludes manual/live/invalid/ended schedules and defers to start and end screens', () => {
+  const freeze = Date.parse(contest.freeze_at);
+  for (const overrides of [
+    { scoreboard_freeze_mode: 'live' },
+    { scoreboard_freeze_mode: 'frozen' },
+    { status: 'ended' },
+    { status: 'finalized' },
+    { status: 'archived' },
+    { status: 'draft' },
+    { status: 'schedule_tbd' },
+    { freeze_at: undefined },
+    { freeze_at: 'invalid' },
+    { freeze_at: contest.end_at },
+    { freeze_at: contest.start_at },
+    { start_at: 'invalid' },
+    { end_at: contest.start_at },
+    { end_at: new Date(freeze + 30_000).toISOString() },
+    { start_at: new Date(freeze - 1000).toISOString() },
+    { start_at: new Date(freeze - 2000).toISOString() },
+  ]) {
+    const current = { ...contest, ...overrides };
+    assert.equal(presentationFreezeCountdown(current, freeze - 1000), null);
+    const tracker = new PresentationAnnouncementTracker();
+    tracker.update(current, freeze - 4000, visible);
+    const withoutFreeze = new PresentationAnnouncementTracker();
+    const live = { ...current, scoreboard_freeze_mode: 'live' };
+    withoutFreeze.update(live, freeze - 4000, visible);
+    assert.equal(
+      tracker.update(current, freeze - 3000, visible).cue,
+      withoutFreeze.update(live, freeze - 3000, visible).cue,
+      'Keep existing start/end audio without adding a freeze tick',
+    );
+  }
+  assert.equal(presentationFreezeCountdown(undefined, freeze - 1000), null);
+  assert.equal(presentationFreezeCountdown(contest, NaN), null);
+});
+
+test('freeze ticks sound once for each current second without a zero cue, reload replay or background burst', () => {
+  const freeze = Date.parse(contest.freeze_at);
+  const tracker = new PresentationAnnouncementTracker();
+  tracker.update(contest, freeze - 4000, visible);
+  for (const seconds of [3, 2, 1]) {
+    const now = freeze - seconds * 1000;
+    assert.equal(tracker.update(contest, now, visible).cue, 'tick');
+    assert.equal(tracker.update(contest, now + 100, visible).cue, undefined);
+    const reloaded = new PresentationAnnouncementTracker(tracker.memory(now));
+    assert.equal(reloaded.update(contest, now + 200, visible).cue, undefined);
+  }
+  assert.equal(tracker.update(contest, freeze, visible).cue, undefined);
+  tracker.update(contest, freeze - 4000, visible);
+  assert.equal(tracker.update(contest, freeze - 3000, visible).cue, undefined);
+  const hidden = new PresentationAnnouncementTracker();
+  hidden.update(contest, freeze - 4000, visible);
+  hidden.update(contest, freeze - 3000, { visible: false });
+  hidden.update(contest, freeze - 2000, { visible: false });
+  assert.equal(hidden.update(contest, freeze - 1000, visible).cue, undefined);
+  assert.equal(hidden.update(contest, freeze, visible).cue, undefined);
+  const late = new PresentationAnnouncementTracker();
+  assert.equal(late.update(contest, freeze - 400, visible).cue, 'tick');
+  assert.equal(late.update(contest, freeze + 1, visible).cue, undefined);
+});
+
+test('freeze countdown consumes a simultaneous end warning and cancels a previous announcement', () => {
+  const freeze = Date.parse(contest.freeze_at);
+  const current = {
+    ...contest,
+    end_at: new Date(freeze - 3000 + 20 * MINUTE).toISOString(),
+  };
+  const tracker = new PresentationAnnouncementTracker();
+  tracker.advance(current, freeze - 4000, visible);
+  const result = tracker.advance(current, freeze - 3000, {
+    ...visible,
+    suppressed: true,
+  });
+  assert.equal(result.cue, 'tick');
+  assert.equal(result.announcement, undefined);
+  assert.equal(tracker.getSnapshot(), null);
+  assert.equal(
+    tracker.update(current, freeze + 1, visible).announcement,
+    undefined,
+  );
+  const warningAt = freeze - 20 * MINUTE;
+  const active = new PresentationAnnouncementTracker();
+  active.advance(contest, warningAt, visible);
+  assert.ok(active.getSnapshot());
+  active.advance(contest, warningAt + 1, { ...visible, suppressed: true });
+  assert.equal(active.getSnapshot(), null);
 });
 
 test('first load allows only a fresh warning and reload never repeats it', () => {

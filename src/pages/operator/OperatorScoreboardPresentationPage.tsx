@@ -27,6 +27,7 @@ import { formatApiError } from '@/shared/api/errors';
 import PresentationDisplaySettings from '@/components/operator/PresentationDisplaySettings';
 import { usePresentationDisplayPreferences } from '@/domains/submissionScoreboard/presentationDisplayPreferences';
 import { usePresentationAnnouncements } from '@/domains/submissionScoreboard/usePresentationAnnouncements';
+import { presentationFreezeCountdown } from '@/domains/submissionScoreboard/presentationAnnouncements';
 import { usePresentationSound } from '@/domains/submissionScoreboard/presentationSound';
 import { usePresentationReleaseSounds } from '@/domains/submissionScoreboard/usePresentationReleaseSounds';
 
@@ -428,11 +429,14 @@ export function OperatorScoreboardPresentationContent({
     : sections;
   const titleParts = splitContestTitle(contest?.title);
   const timerState = contest ? contestTimerState(contest, now, true) : null;
+  const freezeCountdown = presentationFreezeCountdown(contest, now);
   const { activeAnnouncement, dismiss } = usePresentationAnnouncements({
     contest,
     now,
     onCue: sound.play,
-    suppressed: Boolean(timerState?.showPresentationCountdown),
+    suppressed: Boolean(
+      timerState?.showPresentationCountdown || freezeCountdown !== null,
+    ),
   });
   const availableDivisions =
     presentationQuery.data?.available_divisions ??
@@ -491,7 +495,9 @@ export function OperatorScoreboardPresentationContent({
     updatedAt: presentationQuery.dataUpdatedAt,
     onCue: sound.play,
     suppressed: Boolean(
-      timerState?.showPresentationCountdown || activeAnnouncement,
+      timerState?.showPresentationCountdown ||
+      freezeCountdown !== null ||
+      activeAnnouncement,
     ),
   });
   const shellClassName = isBeforeContestStart
@@ -535,19 +541,40 @@ export function OperatorScoreboardPresentationContent({
     );
   }
 
-  if (contest && timerState?.showPresentationCountdown) {
+  if (
+    contest &&
+    timerState &&
+    (timerState.showPresentationCountdown || freezeCountdown !== null)
+  ) {
     return (
       <section
         {...frameProperties}
         className="presentation-display presentation-countdown presentation-contest-countdown"
-        aria-label="프레젠테이션 카운트다운"
+        aria-label={
+          freezeCountdown !== null
+            ? '스코어보드 프리즈 카운트다운'
+            : '프레젠테이션 카운트다운'
+        }
       >
         {displaySettings}
         <header>
           <p>ZOJ · PRESENTATION SCOREBOARD</p>
           <h1>{contest.title}</h1>
         </header>
-        <ContestCountdown state={timerState} />
+        {freezeCountdown !== null ? (
+          <div
+            className="contest-clock-focus"
+            role="timer"
+            aria-live="off"
+            aria-label={`스코어보드 프리즈까지 ${freezeCountdown}초`}
+          >
+            <p>스코어보드 프리즈까지</p>
+            <strong key={freezeCountdown}>{freezeCountdown}</strong>
+            <span>초 뒤에 순위표가 프리즈됩니다</span>
+          </div>
+        ) : (
+          <ContestCountdown state={timerState} />
+        )}
         <footer>한국 시간(KST) 기준</footer>
       </section>
     );
@@ -574,24 +601,27 @@ export function OperatorScoreboardPresentationContent({
               {activeAnnouncement.milestones.map(({ kind, minutes }) => (
                 <h2 className="presentation-announcement-title" key={kind}>
                   <span className="presentation-announcement-event">
-                    {kind === 'freeze' ? '스코어보드 프리즈' : '제출 마감'}
+                    {kind === 'freeze' ? '스코어보드 프리즈' : '대회 종료'}
+                    <span>까지</span>
                   </span>
                   <span className="presentation-announcement-time">
                     <strong>{minutes}</strong>
                     <span>분</span>
                   </span>
                   <span className="presentation-announcement-suffix">
-                    전입니다
+                    남았습니다
                   </span>
                 </h2>
               ))}
             </div>
-            <p className="presentation-announcement-caption">
-              {contest?.title}
-            </p>
-            <p className="presentation-announcement-caption">
-              잠시 후 순위표로 돌아갑니다.
-            </p>
+            <div className="presentation-announcement-footer">
+              <p className="presentation-announcement-caption">
+                {contest?.title}
+              </p>
+              <p className="presentation-announcement-caption">
+                잠시 후 순위표로 돌아갑니다.
+              </p>
+            </div>
             <button
               className="presentation-announcement-close"
               type="button"

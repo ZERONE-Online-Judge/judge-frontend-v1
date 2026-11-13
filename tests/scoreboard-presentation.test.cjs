@@ -1162,6 +1162,58 @@ for (const mode of ['auto', 'live', 'frozen']) {
   });
 }
 
+test('custom five-digit alert minutes remain separate and expose their responsive digit count', async () => {
+  const original = { ...contest };
+  const at = Date.now() + 1000;
+  Object.assign(contest, {
+    status: 'running',
+    start_at: new Date(at - 3600000).toISOString(),
+    freeze_at: new Date(at + 10070 * 60000).toISOString(),
+    end_at: new Date(at + 10080 * 60000).toISOString(),
+    presentation_freeze_alert_minutes: [10070],
+    presentation_end_alert_minutes: [10080],
+  });
+  let setNow;
+  const { OperatorScoreboardPresentationContent: Content } = source(
+    'pages/operator/OperatorScoreboardPresentationPage.tsx',
+  );
+  function TimedPresentation() {
+    const [now, update] = React.useState(at - 250);
+    setNow = update;
+    return h(Content, {
+      contestId: 'contest',
+      token: 'display-token',
+      displayOnly: true,
+      now,
+    });
+  }
+  try {
+    const display = await renderPage(
+      TimedPresentation,
+      '/operator/contests/contest/scoreboard/presentation',
+    );
+    await act(async () => setNow(at));
+    const titles = [
+      ...display.querySelectorAll('.presentation-announcement-title'),
+    ];
+    assert.deepEqual(
+      titles.map((title) => ({
+        minute: title.querySelector('strong').textContent,
+        digits: title.style.getPropertyValue('--presentation-minute-digits'),
+      })),
+      [
+        { minute: '10070', digits: '5' },
+        { minute: '10080', digits: '5' },
+      ],
+    );
+    assert.equal(updateCalls.length, 0);
+  } finally {
+    Object.assign(contest, original);
+    delete contest.presentation_freeze_alert_minutes;
+    delete contest.presentation_end_alert_minutes;
+  }
+});
+
 test('display settings change local appearance and selected divisions without publishing results', async () => {
   const display = await renderPage(
     Presentation,

@@ -61,6 +61,8 @@ export type Contest = {
   editorial_access_after_end?: ContestResourceAccess;
   scoreboard_freeze_mode?: ScoreboardFreezeMode;
   scoreboard_release_mode?: ScoreboardReleaseMode;
+  presentation_freeze_alert_minutes?: number[];
+  presentation_end_alert_minutes?: number[];
   scoreboard_release_locked?: boolean;
   mock_judging_enabled?: boolean;
   freeze_submission_count_visible?: boolean;
@@ -141,6 +143,8 @@ export type ContestSettingsPatch = Partial<
     | 'editorial_access_after_end'
     | 'scoreboard_freeze_mode'
     | 'scoreboard_release_mode'
+    | 'presentation_freeze_alert_minutes'
+    | 'presentation_end_alert_minutes'
     | 'mock_judging_enabled'
     | 'freeze_submission_count_visible'
     | 'participant_progress_visible'

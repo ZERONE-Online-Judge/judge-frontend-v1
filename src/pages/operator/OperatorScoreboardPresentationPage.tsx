@@ -599,7 +599,18 @@ export function OperatorScoreboardPresentationContent({
               data-count={activeAnnouncement.milestones.length}
             >
               {activeAnnouncement.milestones.map(({ kind, minutes }) => (
-                <h2 className="presentation-announcement-title" key={kind}>
+                <h2
+                  className="presentation-announcement-title"
+                  key={kind}
+                  style={
+                    {
+                      '--presentation-minute-digits': Math.max(
+                        2,
+                        String(minutes).length,
+                      ),
+                    } as CSSProperties
+                  }
+                >
                   <span className="presentation-announcement-event">
                     {kind === 'freeze' ? '스코어보드 프리즈' : '대회 종료'}
                     <span>까지</span>

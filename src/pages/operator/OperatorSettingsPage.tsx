@@ -7,6 +7,11 @@ import {
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import RecentChangeNotice from '@/components/operator/RecentChangeNotice';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
+import PresentationAlertSettings from '@/components/operator/PresentationAlertSettings';
+import {
+  normalizePresentationAlertMinutes,
+  parsePresentationAlertMinutes,
+} from '@/domains/submissionScoreboard/presentationAlertMinutes';
 import './OperatorSettingsPage.css';
 import useConfirmation from '@/shared/ui/useConfirmation';
 import ContestVisibilitySettings from '@/components/operator/ContestVisibilitySettings';
@@ -59,6 +64,8 @@ type SettingsForm = BoardWritingPolicy & {
   hide_participation_counts_before_start: boolean;
   scoreboard_access_after_end: ContestResourceAccess;
   scoreboard_release_mode: ScoreboardReleaseMode;
+  presentation_freeze_alert_minutes: string;
+  presentation_end_alert_minutes: string;
   start_at: string;
   status: string;
   submission_access_after_end: ContestResourceAccess;
@@ -130,6 +137,12 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
     scoreboard_access_after_end:
       contest.scoreboard_access_after_end ?? 'private',
     scoreboard_release_mode: contest.scoreboard_release_mode ?? 'manual',
+    presentation_freeze_alert_minutes: normalizePresentationAlertMinutes(
+      contest.presentation_freeze_alert_minutes,
+    ).join(', '),
+    presentation_end_alert_minutes: normalizePresentationAlertMinutes(
+      contest.presentation_end_alert_minutes,
+    ).join(', '),
     start_at: dateTimeLocalValue(contest.start_at),
     status,
     submission_access_after_end: contestResourceAccess(contest, 'submission'),
@@ -245,6 +258,19 @@ function OperatorSettingsContent({
     !scheduleDisabled &&
     ['open', 'running'].includes(settingsForm.status),
   );
+  const alertMinutesErrors = settingsForm
+    ? (['freeze', 'end'] as const)
+        .map((kind) => {
+          const result = parsePresentationAlertMinutes(
+            settingsForm[`presentation_${kind}_alert_minutes`],
+          );
+          return result.error
+            ? `${kind === 'freeze' ? '프리즈' : '종료'} 알림: ${result.error}`
+            : '';
+        })
+        .filter(Boolean)
+    : [];
+  const alertMinutesError = alertMinutesErrors[0] || '';
 
   function setSettingsForm(
     updater: (prev: SettingsForm | null) => SettingsForm | null,
@@ -287,6 +313,12 @@ function OperatorSettingsContent({
         : form.mock_judging_progress_visible,
     };
 
+    for (const kind of ['freeze', 'end'] as const) {
+      const field = `presentation_${kind}_alert_minutes` as const;
+      const parsed = parsePresentationAlertMinutes(form[field]);
+      if (!parsed.error) body[field] = parsed.minutes;
+    }
+
     if (!scheduleLocked && !isScheduleTbd(form.status)) {
       body.start_at = dateTimeLocalToIso(form.start_at);
       body.freeze_at = dateTimeLocalToIso(form.freeze_at);
@@ -309,13 +341,17 @@ function OperatorSettingsContent({
       ? settingsPatchFromForm(settingsFormFromContest(contest))
       : {};
     return Object.fromEntries(
-      Object.entries(next).filter(
-        ([key, value]) => value !== previous[key as keyof ContestSettingsPatch],
-      ),
+      Object.entries(next).filter(([key, value]) => {
+        const saved = previous[key as keyof ContestSettingsPatch];
+        return Array.isArray(value)
+          ? JSON.stringify(value) !== JSON.stringify(saved)
+          : value !== saved;
+      }),
     ) as ContestSettingsPatch;
   }
   const changedCount = settingsForm
-    ? Object.keys(changedSettingsPatch(settingsForm)).length
+    ? Object.keys(changedSettingsPatch(settingsForm)).length +
+      alertMinutesErrors.length
     : 0;
 
   const updateSettingsMutation = useMutation({
@@ -343,6 +379,10 @@ function OperatorSettingsContent({
 
   function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (alertMinutesError) {
+      setFormError(alertMinutesError);
+      return;
+    }
     if (!settingsForm?.title.trim() || !settingsForm.organization_name.trim()) {
       setFormError(
         '대회명과 주최 기관을 입력해야 합니다. 기본 정보에서 확인해 주세요.',
@@ -621,6 +661,39 @@ function OperatorSettingsContent({
                             ? {
                                 ...prev,
                                 scoreboard_public_during_contest: checked,
+                              }
+                            : prev,
+                        )
+                      }
+                    />
+                  </SettingsSection>
+                  <SettingsSection
+                    title="프레젠테이션 일정 알림"
+                    summary={(['freeze', 'end'] as const)
+                      .map((kind) => {
+                        const parsed = parsePresentationAlertMinutes(
+                          settingsForm[`presentation_${kind}_alert_minutes`],
+                        );
+                        const label = kind === 'freeze' ? '프리즈' : '종료';
+                        return parsed.error
+                          ? `${label} 입력 확인`
+                          : `${label} ${parsed.minutes.length ? `${parsed.minutes.slice(0, 4).join('·')}분 전${parsed.minutes.length > 4 ? ` 외 ${parsed.minutes.length - 4}개` : ''}` : '알림 끔'}`;
+                      })
+                      .join(' / ')}
+                    description="몇 분 전에 안내할지 쉼표로 구분해 입력하세요. 비워 두면 해당 분 단위 알림을 끕니다."
+                    hint="기본값은 각각 30·20·10·5분 전입니다. 변경사항을 저장하면 프레젠테이션 스코어보드에 적용됩니다."
+                  >
+                    <PresentationAlertSettings
+                      freezeMinutes={
+                        settingsForm.presentation_freeze_alert_minutes
+                      }
+                      endMinutes={settingsForm.presentation_end_alert_minutes}
+                      onChange={(kind, value) =>
+                        setSettingsForm((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                [`presentation_${kind}_alert_minutes`]: value,
                               }
                             : prev,
                         )
@@ -969,8 +1042,10 @@ function OperatorSettingsContent({
                   changedCount={changedCount}
                   pending={updateSettingsMutation.isPending}
                   savedMessage={savedMessage}
+                  saveDisabled={Boolean(alertMinutesError)}
                   error={
                     formError ||
+                    alertMinutesError ||
                     (updateSettingsMutation.error
                       ? formatApiError(
                           updateSettingsMutation.error,

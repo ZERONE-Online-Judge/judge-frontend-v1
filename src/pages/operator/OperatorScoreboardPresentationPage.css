@@ -523,7 +523,7 @@
   font-size: min(
     calc(clamp(108px, 22vw, 330px) * var(--presentation-font-scale)),
     36dvh,
-    60cqw
+    calc(120cqw / var(--presentation-minute-digits, 2))
   );
   line-height: 1;
   white-space: nowrap;
@@ -941,7 +941,7 @@
     font-size: min(
       calc(clamp(108px, 22vw, 330px) * var(--presentation-font-scale)),
       24dvh,
-      50cqw
+      calc(100cqw / var(--presentation-minute-digits, 2))
     );
   }
 }
@@ -959,7 +959,7 @@
     font-size: min(
       calc(clamp(108px, 22vw, 330px) * var(--presentation-font-scale)),
       28dvh,
-      60cqw
+      calc(120cqw / var(--presentation-minute-digits, 2))
     );
   }
   .presentation-contest-countdown {

@@ -2,10 +2,13 @@ import {
   contestTimerState,
   type ContestTiming,
 } from '../contestAdministration/contestTimer';
+import {
+  normalizePresentationAlertMinutes,
+  type PresentationAlertMinutesConfig,
+} from './presentationAlertMinutes';
 
-export type PresentationAnnouncementContest = ContestTiming & {
-  contest_id: string;
-};
+export type PresentationAnnouncementContest = ContestTiming &
+  PresentationAlertMinutesConfig & { contest_id: string };
 export type PresentationSoundCue =
   | 'warning'
   | 'tick'
@@ -19,8 +22,8 @@ export type PresentationSoundCue =
 export type PresentationAnnouncement = {
   key: string;
   kinds: ('freeze' | 'end')[];
-  minutes: 30 | 20 | 10 | 5;
-  milestones: { kind: 'freeze' | 'end'; minutes: 30 | 20 | 10 | 5 }[];
+  minutes: number;
+  milestones: { kind: 'freeze' | 'end'; minutes: number }[];
   title: string;
   expiresAt: number;
 };
@@ -29,7 +32,6 @@ export type PresentationAnnouncementMemory = [string, number][];
 const MINUTE = 60_000;
 const FRESHNESS = 5_000;
 const MEMORY_LIFETIME = 7 * 24 * 60 * MINUTE;
-const WARNING_MINUTES = [30, 20, 10, 5] as const;
 
 export const PRESENTATION_ANNOUNCEMENT_STORAGE_KEY =
   'zoj.presentation.announcements.v1';
@@ -61,7 +63,7 @@ type ScheduledEvent = {
   at: number;
   cue: PresentationSoundCue;
   kind?: 'freeze' | 'end';
-  minutes?: 30 | 20 | 10 | 5;
+  minutes?: number;
 };
 
 /** Start/end countdowns take priority over a scheduled automatic freeze. */
@@ -105,7 +107,11 @@ function schedule(contest: PresentationAnnouncementContest): ScheduledEvent[] {
   )
     targets.unshift({ kind: 'freeze', at: freeze });
   const events: ScheduledEvent[] = targets.flatMap(({ kind, at }) =>
-    WARNING_MINUTES.map((minutes) => ({
+    normalizePresentationAlertMinutes(
+      kind === 'freeze'
+        ? contest.presentation_freeze_alert_minutes
+        : contest.presentation_end_alert_minutes,
+    ).map((minutes) => ({
       key: `${contest.contest_id}:${kind}:${at}:${minutes}`,
       kind,
       minutes,
@@ -136,6 +142,29 @@ function schedule(contest: PresentationAnnouncementContest): ScheduledEvent[] {
     }
   }
   return events;
+}
+
+function announcementFromEvents(
+  events: ScheduledEvent[],
+  expiresAt: number,
+): PresentationAnnouncement {
+  const milestones = events.map((event) => ({
+    kind: event.kind!,
+    minutes: event.minutes!,
+  }));
+  return {
+    key: events.map((event) => event.key).join('|'),
+    kinds: milestones.map((milestone) => milestone.kind),
+    minutes: milestones[0].minutes,
+    milestones,
+    title: milestones
+      .map(
+        ({ kind, minutes }) =>
+          `${kind === 'freeze' ? '스코어보드 프리즈' : '제출 마감'} ${minutes}분 전입니다`,
+      )
+      .join(' · '),
+    expiresAt,
+  };
 }
 
 /** Keeps crossings separate from React renders, polling and audio preferences. */
@@ -189,14 +218,29 @@ export class PresentationAnnouncementTracker {
     const current = this.active;
     this.publish(
       result.announcement ??
-        (current &&
-        current.expiresAt > now &&
-        !options.suppressed &&
-        this.isCurrent(current, contest)
-          ? current
+        (current && current.expiresAt > now && !options.suppressed
+          ? this.retainCurrent(current, contest)
           : null),
     );
     return result;
+  }
+
+  private retainCurrent(
+    announcement: PresentationAnnouncement,
+    contest: PresentationAnnouncementContest | undefined,
+  ) {
+    if (!contest) return null;
+    const events = new Map(
+      schedule(contest).map((event) => [event.key, event]),
+    );
+    const keys = announcement.key.split('|');
+    const remaining = keys
+      .map((key) => events.get(key))
+      .filter((event): event is ScheduledEvent => event?.cue === 'warning');
+    if (remaining.length === keys.length) return announcement;
+    return remaining.length
+      ? announcementFromEvents(remaining, announcement.expiresAt)
+      : null;
   }
 
   isCurrent(
@@ -280,27 +324,11 @@ export class PresentationAnnouncementTracker {
       return { changed: crossed.length > 0 };
     const latestAt = Math.max(...warnings.map((event) => event.at));
     const latest = warnings.filter((event) => event.at === latestAt);
-    const minutes = latest[0].minutes!;
-    const milestones = latest.map((event) => ({
-      kind: event.kind!,
-      minutes: event.minutes!,
-    }));
-    const kinds = milestones.map((milestone) => milestone.kind);
-    const title = milestones
-      .map(
-        ({ kind, minutes }) =>
-          `${kind === 'freeze' ? '스코어보드 프리즈' : '제출 마감'} ${minutes}분 전입니다`,
-      )
-      .join(' · ');
     return {
-      announcement: {
-        key: latest.map((event) => event.key).join('|'),
-        kinds,
-        minutes,
-        milestones,
-        title,
-        expiresAt: now + PRESENTATION_ANNOUNCEMENT_DURATION,
-      },
+      announcement: announcementFromEvents(
+        latest,
+        now + PRESENTATION_ANNOUNCEMENT_DURATION,
+      ),
       cue: 'warning',
       changed: crossed.length > 0,
     };

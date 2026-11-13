@@ -12,6 +12,7 @@ export default function SettingsSaveBar({
   pristineMessage = '저장된 설정과 같습니다',
   saveLabel = '변경사항 저장',
   disabled = false,
+  saveDisabled = false,
 }: {
   changedCount: number;
   pending: boolean;
@@ -23,6 +24,7 @@ export default function SettingsSaveBar({
   pristineMessage?: string;
   saveLabel?: string;
   disabled?: boolean;
+  saveDisabled?: boolean;
 }) {
   return (
     <div className="operator-settings-savebar" aria-label={label}>
@@ -52,7 +54,7 @@ export default function SettingsSaveBar({
         <button
           type="submit"
           className="settings-save"
-          disabled={!changedCount || pending || disabled}
+          disabled={!changedCount || pending || disabled || saveDisabled}
         >
           <SettingsIcon />
           {pending ? '저장 중…' : saveLabel}

@@ -40,13 +40,16 @@ export default function SubmissionStatusBadge({
   const pending = isSubmissionPending(status);
   const progressText = submissionProgressText(submission);
   const progressPercent = submissionProgressPercent(submission) ?? 0;
+  const scoreLabel = submission ? submissionScoreLabel(submission) : null;
 
   return (
     <span
       className={
-        compact
-          ? 'inline-flex items-center gap-2'
-          : 'inline-flex min-w-0 flex-wrap items-center gap-3'
+        scoreLabel
+          ? 'inline-flex min-w-0 flex-col items-start gap-2'
+          : compact
+            ? 'inline-flex items-center gap-2'
+            : 'inline-flex min-w-0 flex-wrap items-center gap-3'
       }
     >
       <span
@@ -57,9 +60,9 @@ export default function SubmissionStatusBadge({
       >
         {submissionStatusLabel(status)}
       </span>
-      {submission && submissionScoreLabel(submission) ? (
-        <strong className="text-xs font-semibold text-indigo-700 tabular-nums">
-          {submissionScoreLabel(submission)}
+      {scoreLabel ? (
+        <strong className="text-xs font-semibold whitespace-nowrap text-indigo-700 tabular-nums">
+          {scoreLabel}
         </strong>
       ) : null}
       {pending && progressText && !compact && (

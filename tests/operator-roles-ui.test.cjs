@@ -658,6 +658,26 @@ test('submission settings persist frozen counts separately from release mode', a
   });
 });
 
+test('new contests show frozen submission counts by default', () => {
+  const { emptyContest } = source('domains/contestAdministration/logic.ts');
+  assert.equal(emptyContest().freeze_submission_count_visible, true);
+});
+
+for (const visible of [false, true]) {
+  test(`saved frozen-count visibility ${visible} survives an unrelated settings save`, async () => {
+    contestOverrides = { freeze_submission_count_visible: visible };
+    await render(SettingsPage, 'settings');
+    const label = [...container.querySelectorAll('label')].find((item) =>
+      item.textContent.includes('프리즈 이후 제출 횟수 표시'),
+    );
+    assert.equal(label.querySelector('input').checked, visible);
+    await input(inputByLabel('대회명'), '기존 공개 설정 유지');
+    await click(button('변경사항 저장'));
+    assert.deepEqual(settingsChanges[0].body, { title: '기존 공개 설정 유지' });
+    assert.equal(contestOverrides.freeze_submission_count_visible, visible);
+  });
+}
+
 test('a started release disables mode selection but preserves the saved mode', async () => {
   contestOverrides = {
     scoreboard_release_mode: 'resolver',

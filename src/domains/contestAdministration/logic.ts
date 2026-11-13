@@ -39,7 +39,7 @@ export function emptyContest(contestId?: string): Contest {
     scoreboard_freeze_mode: 'auto',
     scoreboard_release_mode: 'resolver',
     mock_judging_enabled: false,
-    freeze_submission_count_visible: false,
+    freeze_submission_count_visible: true,
     participant_progress_visible: false,
     mock_judging_progress_visible: false,
     emergency_notice: null,

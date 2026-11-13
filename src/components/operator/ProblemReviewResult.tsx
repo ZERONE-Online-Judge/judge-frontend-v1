@@ -1,3 +1,4 @@
+import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import BoundedText from '@/shared/ui/BoundedText';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import type { ProblemReviewRun } from '@/domains/problemManagement/useProblemReviewRuns';
@@ -47,6 +48,7 @@ export default function ProblemReviewResult({
           {label}
         </span>
       </div>
+      {submission ? <SubmissionScoreDetails submission={submission} /> : null}
       {pending ? (
         <div className="grid gap-2">
           <progress

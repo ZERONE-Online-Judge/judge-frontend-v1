@@ -8,6 +8,8 @@ export type ContestStatus =
   | 'finalized'
   | 'archived';
 
+export type ContestScoringMode = 'icpc' | 'ioi';
+
 export type ContestFormatType =
   | 'wa_ac'
   | 'wa/ac'
@@ -45,7 +47,8 @@ export type Contest = {
   format?: ContestFormatType | null;
   format_type?: ContestFormatType | null;
   problem_access_after_end?: ContestResourceAccess;
-  scoring_mode?: ContestFormatType | null;
+  scoring_mode?: ContestScoringMode;
+  scoring_mode_locked?: boolean;
   scoring_type?: ContestFormatType | null;
   scoreboard_public_during_contest?: boolean;
   hide_participation_counts_before_start?: boolean;
@@ -119,6 +122,7 @@ export type OperatorDashboard = {
 export type ContestSettingsPatch = Partial<
   Pick<
     Contest,
+    | 'scoring_mode'
     | 'title'
     | 'organization_name'
     | 'overview'

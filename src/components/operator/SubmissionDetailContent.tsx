@@ -1,3 +1,4 @@
+import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import BoundedText from '@/shared/ui/BoundedText';
 import { useState } from 'react';
 import { parseVerificationDetails } from '@/domains/problemManagement/verificationDetails';
@@ -61,6 +62,9 @@ export default function SubmissionDetailContent({
   return (
     <div className="grid min-w-0 gap-5 sm:gap-6">
       <section aria-label="채점 결과" className="zoj-card">
+        <div className="mb-4">
+          <SubmissionScoreDetails submission={submission} />
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
           <div role="status" className="min-w-0">
             <p className="text-xs font-medium text-slate-500">채점 결과</p>
@@ -71,7 +75,10 @@ export default function SubmissionDetailContent({
             </h3>
             {failedCase != null ? (
               <p className="mt-1.5 text-sm text-slate-600">
-                테스트케이스 #{failedCase}에서 종료
+                테스트케이스 #{failedCase}
+                {submission.scoring_mode === 'ioi'
+                  ? '에서 실패 · 다른 그룹도 독립적으로 채점'
+                  : '에서 종료'}
               </p>
             ) : null}
           </div>

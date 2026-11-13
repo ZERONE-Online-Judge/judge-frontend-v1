@@ -1,3 +1,4 @@
+import { submissionScoreLabel } from '@/domains/submissionScoreboard/scoring';
 import {
   isSubmissionPending,
   submissionProgressPercent,
@@ -56,6 +57,11 @@ export default function SubmissionStatusBadge({
       >
         {submissionStatusLabel(status)}
       </span>
+      {submission && submissionScoreLabel(submission) ? (
+        <strong className="text-xs font-semibold text-indigo-700 tabular-nums">
+          {submissionScoreLabel(submission)}
+        </strong>
+      ) : null}
       {pending && progressText && !compact && (
         <span className="grid min-w-24 gap-1">
           <span className="text-xs font-medium text-slate-500">

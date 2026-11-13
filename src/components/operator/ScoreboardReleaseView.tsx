@@ -1,3 +1,5 @@
+import { formatScore } from '@/domains/submissionScoreboard/scoring';
+import type { ContestScoringMode } from '@/domains/contestAdministration/types';
 import useConfirmation from '@/shared/ui/useConfirmation';
 import { formatApiError } from '@/shared/api/errors';
 import { submissionStatusLabel } from '@/domains/submissionScoreboard/status';
@@ -17,6 +19,7 @@ export default function ScoreboardReleaseView({
   error,
   publish,
   practice = false,
+  scoringMode = 'icpc',
 }: {
   release?: ScoreboardRelease;
   strategy?: ScoreboardReleaseMode;
@@ -26,6 +29,7 @@ export default function ScoreboardReleaseView({
   error?: unknown;
   publish: (action: ScoreboardReleaseAction) => void;
   practice?: boolean;
+  scoringMode?: ContestScoringMode;
 }) {
   const { confirm: confirmAction, dialog: confirmationDialog } =
     useConfirmation();
@@ -129,8 +133,9 @@ export default function ScoreboardReleaseView({
             </p>
             {isResolver ? (
               <p>
-                한 번의 공개로 해당 문제의 제출을 첫 정답 또는 마지막 제출까지
-                반영하고 순위를 갱신합니다.
+                {scoringMode === 'ioi'
+                  ? '한 번의 공개로 해당 문제의 모든 기여 제출을 반영합니다. 서브태스크별 최고점을 합산해 점수와 순위를 갱신합니다.'
+                  : '한 번의 공개로 해당 문제의 제출을 첫 정답 또는 마지막 제출까지 반영하고 순위를 갱신합니다.'}
               </p>
             ) : (
               <p>
@@ -165,7 +170,9 @@ export default function ScoreboardReleaseView({
                 <strong>{lastEvent.team_name}</strong>
                 <span> · {lastEvent.problem_code}번</span>
                 <span className="scoreboard-release__verdict">
-                  {submissionStatusLabel(lastEvent.status)}
+                  {scoringMode === 'ioi' && lastEvent.to_score != null
+                    ? `${formatScore(lastEvent.from_score ?? 0)} → ${formatScore(lastEvent.to_score)}점`
+                    : submissionStatusLabel(lastEvent.status)}
                 </span>
               </p>
               <span className="scoreboard-release__rank">

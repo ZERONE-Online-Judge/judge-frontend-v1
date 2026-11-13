@@ -305,7 +305,9 @@ export function updateProblemTestcaseSet(
   problemId: string,
   testcaseSetId: string,
   token: string,
-  body: Partial<Pick<TestcaseSet, 'is_active'>>,
+  body: Partial<Pick<TestcaseSet, 'is_active' | 'subtasks'>> & {
+    expected_subtasks?: TestcaseSet['subtasks'];
+  },
 ) {
   return apiRequest<TestcaseSet>(
     `/operator/contests/${contestId}/problems/${problemId}/testcase-sets/${testcaseSetId}`,

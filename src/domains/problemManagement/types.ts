@@ -1,4 +1,8 @@
 export type Problem = {
+  scoring_mode?: import('@/domains/contestAdministration/types').ContestScoringMode;
+  score?: number | null;
+  max_score?: number;
+  subtasks?: Pick<SubtaskDefinition, 'subtask_id' | 'name' | 'points'>[];
   allowed_languages?: import('@/domains/submissionScoreboard/types').JudgeLanguage[];
   default_statement_language?: string;
   statement_translations?: Record<string, { title: string; statement: string }>;
@@ -9,7 +13,7 @@ export type Problem = {
   title: string;
   statement: string;
   editorial?: string;
-  solve_status?: 'accepted' | 'wrong' | 'unsolved';
+  solve_status?: 'accepted' | 'partial' | 'wrong' | 'unsolved';
   time_limit_ms: number;
   memory_limit_mb: number;
   language_resource_limits?: Partial<
@@ -76,7 +80,16 @@ export type Testcase = {
   output_size_bytes?: number | null;
 };
 
+export type SubtaskDefinition = {
+  subtask_id: string;
+  name: string;
+  points: number;
+  testcase_orders: number[];
+};
+
 export type TestcaseSet = {
+  subtasks?: SubtaskDefinition[];
+  subtasks_locked?: boolean;
   testcase_set_id: string;
   version: number;
   is_active: boolean;

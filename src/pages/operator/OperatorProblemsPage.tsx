@@ -1,3 +1,5 @@
+import SubtaskSettingsPanel from '@/components/operator/SubtaskSettingsPanel';
+import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import BoundedTextarea from '@/shared/ui/BoundedTextarea';
 import StatementFieldEditor from '@/components/operator/StatementFieldEditor';
@@ -527,6 +529,9 @@ function previewProblemFromForm(
     : selectedProblem?.display_order;
 
   return {
+    scoring_mode: selectedProblem?.scoring_mode,
+    subtasks: selectedProblem?.subtasks,
+    max_score: selectedProblem?.max_score,
     display_order: displayOrder,
     division_id: form.divisionId || selectedProblem?.division_id,
     editorial: form.editorial,
@@ -2892,6 +2897,16 @@ function OperatorProblemsContent({
                       </p>
                     )}
                   </div>
+                  {latestTestcaseSet ? (
+                    <SubtaskSettingsPanel
+                      key={`${latestTestcaseSet.testcase_set_id}:${latestTestcaseSet.subtasks_locked}`}
+                      contestId={contestId}
+                      problemId={effectiveSelectedProblemId}
+                      token={token}
+                      testcaseSet={latestTestcaseSet}
+                      scoringMode={dashboardQuery.data?.contest.scoring_mode}
+                    />
+                  ) : null}
                   <VerificationCodeSection
                     contestId={contestId}
                     token={token}
@@ -3372,6 +3387,8 @@ function OperatorPreviewJudgeResult({
           {submission.status}
         </span>
       </div>
+
+      <SubmissionScoreDetails submission={submission} />
 
       {isSubmissionPending(submission.status) ? (
         <div className="grid gap-2">

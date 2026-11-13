@@ -1,4 +1,5 @@
 import type {
+  ContestScoringMode,
   Division,
   ScoreboardReleaseMode,
 } from '@/domains/contestAdministration/types';
@@ -19,7 +20,20 @@ export type SubmissionKindFilter =
   | 'participant_preview'
   | 'mock_judging';
 
+export type SubtaskResult = {
+  subtask_id: string;
+  name: string;
+  score: number | null;
+  max_score: number;
+  status: string;
+  failed_testcase_order?: number | null;
+};
+
 export type Submission = {
+  scoring_mode?: ContestScoringMode;
+  score?: number | null;
+  max_score?: number | null;
+  subtask_results?: SubtaskResult[];
   submission_id: string;
   problem_id: string;
   problem_code?: string;
@@ -80,7 +94,10 @@ export type SubmissionProgressState = Pick<
   | 'progress_percent'
   | 'queue_position'
 > &
-  Pick<Partial<Submission>, 'submitted_at'>;
+  Pick<
+    Partial<Submission>,
+    'submitted_at' | 'scoring_mode' | 'score' | 'max_score' | 'subtask_results'
+  >;
 
 export type SubmissionCreateRequest = {
   language: JudgeLanguage;
@@ -88,6 +105,10 @@ export type SubmissionCreateRequest = {
 };
 
 export type ScoreboardProblemScore = {
+  score?: number;
+  max_score?: number;
+  subtask_scores?: SubtaskResult[];
+  score_achieved_at?: string | null;
   pending_attempts?: number;
   problem_id?: string;
   problem_code: string;
@@ -118,6 +139,9 @@ export type ScoreboardProblemStat = {
 };
 
 export type ScoreboardRow = {
+  total_score?: number;
+  max_score?: number;
+  score_achieved_at?: string | null;
   is_finalized?: boolean;
   is_revealed?: boolean;
   /** Manual release: whether rank is the published final rank or a frozen rank. */
@@ -136,6 +160,7 @@ export type ScoreboardRow = {
 };
 
 export type ScoreboardResponse = {
+  scoring_mode?: ContestScoringMode;
   release?: ScoreboardRelease;
   division: Division;
   frozen: boolean;
@@ -144,6 +169,7 @@ export type ScoreboardResponse = {
 };
 
 export type OperatorScoreboardResponse = {
+  scoring_mode?: ContestScoringMode;
   release?: ScoreboardRelease | null;
   frozen_public_view: boolean;
   operator_live_view: boolean;
@@ -152,6 +178,7 @@ export type OperatorScoreboardResponse = {
 };
 
 export type OperatorPresentationScoreboardSection = {
+  scoring_mode?: ContestScoringMode;
   release?: ScoreboardRelease | null;
   division: Division;
   frozen: boolean;
@@ -166,8 +193,10 @@ export type OperatorPresentationScoreboardSection = {
 };
 
 export type OperatorPresentationScoreboardResponse = {
+  scoring_mode?: ContestScoringMode;
   available_divisions?: Pick<Division, 'division_id' | 'code' | 'name'>[];
   contest: {
+    scoring_mode?: ContestScoringMode;
     status?: string;
     contest_id: string;
     title: string;
@@ -200,6 +229,9 @@ export type ScoreboardRelease = {
       team_name: string;
       problem_code: string;
       status: string;
+      from_score?: number;
+      to_score?: number;
+      score_delta?: number;
       from_rank: number;
       to_rank: number;
     } | null;

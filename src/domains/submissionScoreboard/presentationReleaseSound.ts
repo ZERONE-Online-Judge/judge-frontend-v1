@@ -127,7 +127,13 @@ function forwardCue(
       typeof event.status === 'string' &&
       event.status.length > 0
     )
-      return event.status === 'accepted' ? 'accepted' : 'rejected';
+      return event.score_delta !== undefined
+        ? event.score_delta > 0
+          ? 'accepted'
+          : 'result'
+        : event.status === 'accepted'
+          ? 'accepted'
+          : 'rejected';
   } else if (
     after.strategy === 'manual' &&
     (after.revealed_count > before.revealed_count ||

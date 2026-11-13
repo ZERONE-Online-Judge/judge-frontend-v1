@@ -1,3 +1,5 @@
+import type { ContestScoringMode } from '@/domains/contestAdministration/types';
+import { formatScore } from '@/domains/submissionScoreboard/scoring';
 import { compareProblemCodes } from '@/domains/problemManagement/problemCodeOrder';
 import { ContestCountdown } from '@/components/contest/ContestScheduleClock';
 import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
@@ -103,7 +105,39 @@ function penaltyLabel(value?: number | null) {
   return value.toLocaleString('ko-KR');
 }
 
-function PresentationScoreCell({ score }: { score?: ScoreboardProblemScore }) {
+function PresentationScoreCell({
+  score,
+  scoringMode,
+}: {
+  score?: ScoreboardProblemScore;
+  scoringMode?: ContestScoringMode;
+}) {
+  if (scoringMode === 'ioi') {
+    if (!score || (!score.attempts && !score.pending_attempts && !score.score))
+      return (
+        <span className="presentation-score is-empty text-white/20">-</span>
+      );
+    const value = score.score ?? 0;
+    const full = value === (score.max_score ?? 100);
+    const pending = !full && score.pending_attempts;
+    return (
+      <span
+        className="inline-flex flex-wrap items-center justify-center gap-1"
+        title={`${formatScore(value)} / 100점${pending ? ` · 미공개 제출 ${pending}건` : ''}`}
+      >
+        <span
+          className={`presentation-score inline-flex h-6 min-w-8 items-center justify-center rounded-lg px-1.5 text-[0.68rem] font-black ${full ? 'is-solved bg-emerald-300 text-slate-950' : value > 0 ? 'is-partial bg-violet-300 text-slate-950' : 'is-empty bg-white/10 text-white/60'}`}
+        >
+          {formatScore(value)}
+        </span>
+        {pending ? (
+          <span className="presentation-score is-pending text-[0.6rem] font-bold text-amber-200">
+            ?{pending}
+          </span>
+        ) : null}
+      </span>
+    );
+  }
   if (score?.pending_attempts && !score.solved) {
     return (
       <span
@@ -136,9 +170,12 @@ function PresentationScoreCell({ score }: { score?: ScoreboardProblemScore }) {
 
 function PresentationDivisionBoard({
   section,
+  scoringMode = section.scoring_mode ?? 'icpc',
 }: {
   section: OperatorPresentationScoreboardSection;
+  scoringMode?: ContestScoringMode;
 }) {
+  const points = scoringMode === 'ioi';
   const problemCodes = useMemo(() => sortedProblemCodes(section), [section]);
   const gridMinWidth = Math.max(560, 380 + problemCodes.length * 48);
   const bodyRef = useScoreboardRowMotion(section.rows, 450);
@@ -196,13 +233,17 @@ function PresentationDivisionBoard({
             <tr className="border-y border-white/10 text-[0.62rem] font-black tracking-normal text-white/85 uppercase">
               <th className="w-16 px-3 py-3">Rank</th>
               <th className="min-w-48 px-3 py-3">Team</th>
-              <th className="w-16 px-2 py-3 text-center">Solved</th>
+              <th className="w-16 px-2 py-3 text-center">
+                {points ? 'Score' : 'Solved'}
+              </th>
               {problemCodes.map((code) => (
                 <th className="w-12 px-1 py-3 text-center" key={code}>
                   {code}
                 </th>
               ))}
-              <th className="w-20 px-3 py-3 text-center">Time</th>
+              {!points ? (
+                <th className="w-20 px-3 py-3 text-center">Time</th>
+              ) : null}
             </tr>
           </thead>
           <tbody ref={bodyRef}>
@@ -211,7 +252,7 @@ function PresentationDivisionBoard({
                 ? [
                     <tr key={`rank-section-${rankSection.key}`}>
                       <th
-                        colSpan={4 + problemCodes.length}
+                        colSpan={(points ? 3 : 4) + problemCodes.length}
                         className="border-y border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-semibold text-white/75"
                         data-scoreboard-rank-section={rankSection.key}
                       >
@@ -244,7 +285,7 @@ function PresentationDivisionBoard({
                         {row.rank}
                       </td>
                       <td
-                        colSpan={3 + problemCodes.length}
+                        colSpan={(points ? 2 : 3) + problemCodes.length}
                         className="presentation-board-meta px-3 py-4 text-sm font-bold text-white/35"
                       >
                         공개 대기
@@ -290,16 +331,21 @@ function PresentationDivisionBoard({
                       ) : null}
                     </td>
                     <td className="presentation-board-solved px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                      {row.solved}
+                      {points ? formatScore(row.total_score) : row.solved}
                     </td>
                     {problemCodes.map((code) => (
                       <td className="px-1 py-1.5 text-center" key={code}>
-                        <PresentationScoreCell score={scores.get(code)} />
+                        <PresentationScoreCell
+                          score={scores.get(code)}
+                          scoringMode={scoringMode}
+                        />
                       </td>
                     ))}
-                    <td className="presentation-board-penalty px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                      {penaltyLabel(row.penalty)}
-                    </td>
+                    {!points ? (
+                      <td className="presentation-board-penalty px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
+                        {penaltyLabel(row.penalty)}
+                      </td>
+                    ) : null}
                   </tr>
                 );
               }),
@@ -748,6 +794,11 @@ export function OperatorScoreboardPresentationContent({
               <PresentationDivisionBoard
                 key={section.division.division_id}
                 section={section}
+                scoringMode={
+                  section.scoring_mode ??
+                  presentationQuery.data?.scoring_mode ??
+                  contest?.scoring_mode
+                }
               />
             ))}
           </div>

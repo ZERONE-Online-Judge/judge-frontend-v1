@@ -998,6 +998,7 @@ function OperatorScoreboardContent({
       >
         {canManage && liveView && contest && ended && divisionId ? (
           <ScoreboardReleaseControl
+            scoringMode={contest?.scoring_mode}
             key={divisionId}
             contestId={contestId}
             divisionId={divisionId}
@@ -1039,11 +1040,23 @@ function OperatorScoreboardContent({
             불러오는 중입니다.
           </p>
         ) : null}
+        {canViewSelectedBoard && contest?.scoring_mode === 'ioi' ? (
+          <p className="mb-4 text-xs leading-5 text-slate-500">
+            서브태스크별 최고점을 여러 제출에서 합산합니다. 총점 동점은 공동
+            순위이며 시간·오답 페널티는 없습니다. 아래 정답 통계는 만점
+            기준입니다.
+          </p>
+        ) : null}
         {canViewSelectedBoard && !scoreboardQuery.isError ? (
           <ContestScoreboardTable
+            scoringMode={
+              scoreboardQuery.data?.scoring_mode ?? contest?.scoring_mode
+            }
             release={scoreboardQuery.data?.release}
             onSelectPenaltyBreakdown={
-              liveView ? setSelectedPenaltyRow : undefined
+              liveView && contest?.scoring_mode !== 'ioi'
+                ? setSelectedPenaltyRow
+                : undefined
             }
             problems={problems}
             rows={rows}
@@ -1061,7 +1074,7 @@ function OperatorScoreboardContent({
           </p>
         ) : null}
       </OperatorPanel>
-      {liveView && penaltyRow ? (
+      {liveView && contest?.scoring_mode !== 'ioi' && penaltyRow ? (
         <PenaltyBreakdownModal
           contestStartAt={contest?.start_at}
           onClose={() => setSelectedPenaltyRow(null)}

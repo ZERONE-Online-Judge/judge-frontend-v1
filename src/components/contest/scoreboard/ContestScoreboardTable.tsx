@@ -1,3 +1,8 @@
+import type { ContestScoringMode } from '@/domains/contestAdministration/types';
+import {
+  formatScore,
+  IOI_SCORING_DESCRIPTION,
+} from '@/domains/submissionScoreboard/scoring';
 import { compareProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import ContestScoreboardProblemCell from '@/components/contest/scoreboard/ContestScoreboardProblemCell';
 import ScoreboardMedal from '@/components/contest/scoreboard/ScoreboardMedal';
@@ -11,6 +16,7 @@ import type {
 } from '@/domains/submissionScoreboard/types';
 
 type ContestScoreboardTableProps = {
+  scoringMode?: ContestScoringMode;
   onSelectPenaltyBreakdown?: (row: ScoreboardRow) => void;
   problems?: Problem[];
   release?: ScoreboardRelease | null;
@@ -55,10 +61,12 @@ function submissionCount(row: ScoreboardRow) {
 
 export default function ContestScoreboardTable({
   onSelectPenaltyBreakdown,
+  scoringMode = 'icpc',
   problems = [],
   release,
   rows,
 }: ContestScoreboardTableProps) {
+  const points = scoringMode === 'ioi';
   const scoreboardProblemScores = scoreboardProblems(rows, problems);
   const rankSections = scoreboardRankSections(rows);
   const bodyRef = useScoreboardRowMotion(rows);
@@ -84,12 +92,16 @@ export default function ContestScoreboardTable({
           minWidth: `calc(var(--zoj-scoreboard-base-width, 360px) + ${scoreboardProblemScores.length} * var(--zoj-scoreboard-problem-width, 64px))`,
         }}
       >
-        <caption className="sr-only">팀별 순위와 문제별 해결 현황</caption>
+        <caption className="sr-only">
+          {points ? IOI_SCORING_DESCRIPTION : '팀별 순위와 문제별 해결 현황'}
+        </caption>
         <thead>
           <tr className="border-b border-slate-200 bg-white text-xs font-black text-slate-950">
             <th className={`${headerCellClassName} zoj-score-rank`}>순위</th>
             <th className={`${headerCellClassName} zoj-score-team`}>팀명</th>
-            <th className={`${headerCellClassName} w-24`}>해결</th>
+            <th className={`${headerCellClassName} w-24`}>
+              {points ? '총점' : '해결'}
+            </th>
             <th className={`${headerCellClassName} w-24`}>시도</th>
             {scoreboardProblemScores.map((problem) => (
               <th
@@ -99,7 +111,9 @@ export default function ContestScoreboardTable({
                 {problem.problem_code}
               </th>
             ))}
-            <th className={`${headerCellClassName} w-32`}>총시간(min)</th>
+            {!points ? (
+              <th className={`${headerCellClassName} w-32`}>총시간(min)</th>
+            ) : null}
           </tr>
         </thead>
         <tbody ref={bodyRef}>
@@ -108,7 +122,9 @@ export default function ContestScoreboardTable({
               ? [
                   <tr key={`rank-section-${section.key}`}>
                     <th
-                      colSpan={5 + scoreboardProblemScores.length}
+                      colSpan={
+                        (points ? 4 : 5) + scoreboardProblemScores.length
+                      }
                       className="border-y border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-600"
                       data-scoreboard-rank-section={section.key}
                     >
@@ -140,7 +156,7 @@ export default function ContestScoreboardTable({
                     {row.rank}위
                   </td>
                   <td
-                    colSpan={4 + scoreboardProblemScores.length}
+                    colSpan={(points ? 3 : 4) + scoreboardProblemScores.length}
                     className="px-5 py-5 text-sm font-bold text-slate-400"
                   >
                     아직 공개되지 않은 순위
@@ -176,7 +192,9 @@ export default function ContestScoreboardTable({
                     </span>
                   </td>
                   <td className={`${bodyCellClassName} font-bold`}>
-                    {row.solved}개
+                    {points
+                      ? `${formatScore(row.total_score)}점`
+                      : `${row.solved}개`}
                   </td>
                   <td className={bodyCellClassName}>{submissionCount(row)}</td>
                   {scoreboardProblemScores.map((problem) => {
@@ -189,24 +207,29 @@ export default function ContestScoreboardTable({
                         className={problemBodyCellClassName}
                         key={problem.problem_code}
                       >
-                        <ContestScoreboardProblemCell score={score} />
+                        <ContestScoreboardProblemCell
+                          score={score}
+                          scoringMode={scoringMode}
+                        />
                       </td>
                     );
                   })}
-                  <td className={bodyCellClassName}>
-                    {onSelectPenaltyBreakdown ? (
-                      <button
-                        className="font-black text-indigo-700 underline-offset-4 hover:text-indigo-950 hover:underline"
-                        onClick={() => onSelectPenaltyBreakdown(row)}
-                        title="패널티 계산 상세 보기"
-                        type="button"
-                      >
-                        {totalPenalty(row)}
-                      </button>
-                    ) : (
-                      totalPenalty(row)
-                    )}
-                  </td>
+                  {!points ? (
+                    <td className={bodyCellClassName}>
+                      {onSelectPenaltyBreakdown ? (
+                        <button
+                          className="font-black text-indigo-700 underline-offset-4 hover:text-indigo-950 hover:underline"
+                          onClick={() => onSelectPenaltyBreakdown(row)}
+                          title="패널티 계산 상세 보기"
+                          type="button"
+                        >
+                          {totalPenalty(row)}
+                        </button>
+                      ) : (
+                        totalPenalty(row)
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ),
             ),

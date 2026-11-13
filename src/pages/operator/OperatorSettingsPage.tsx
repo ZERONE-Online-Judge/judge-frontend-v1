@@ -1,3 +1,7 @@
+import {
+  IOI_RULES_URL,
+  IOI_SCORING_DESCRIPTION,
+} from '@/domains/submissionScoreboard/scoring';
 import Select from '@/shared/ui/Select';
 import BoardWritingSettings from '@/components/operator/BoardWritingSettings';
 import {
@@ -53,6 +57,7 @@ import { formatApiError } from '@/shared/api/errors';
 import { dateTimeLocalToIso, dateTimeLocalValue } from '@/shared/lib/dateTime';
 
 type SettingsForm = BoardWritingPolicy & {
+  scoring_mode: 'icpc' | 'ioi';
   visibility: ContestVisibility;
   visibility_after_end: ContestVisibility;
   end_at: string;
@@ -121,6 +126,7 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
 
   return normalizeVisibility({
     ...boardWritingSettingsFromContest(contest),
+    scoring_mode: contest.scoring_mode ?? 'icpc',
     visibility: contest.visibility ?? 'public',
     visibility_after_end: contest.visibility_after_end ?? 'public',
     end_at: dateTimeLocalValue(contest.end_at),
@@ -285,6 +291,7 @@ function OperatorSettingsContent({
 
   function settingsPatchFromForm(form: SettingsForm): ContestSettingsPatch {
     const body: ContestSettingsPatch = {
+      scoring_mode: form.scoring_mode,
       visibility: form.visibility,
       visibility_after_end: form.visibility_after_end,
       problem_access_after_end: form.problem_access_after_end,
@@ -549,6 +556,62 @@ function OperatorSettingsContent({
                         value={settingsForm.overview}
                       />
                     </label>
+                  </SettingsSection>
+                  <SettingsSection
+                    title="채점 방식"
+                    summary={
+                      settingsForm.scoring_mode === 'ioi'
+                        ? 'IOI 점수제 · 서브태스크별 최고점 합산'
+                        : 'ICPC · 해결 수와 페널티'
+                    }
+                    description={
+                      contest?.scoring_mode_locked
+                        ? '참가자 제출 또는 결과 공개 기록이 있어 채점 방식을 변경할 수 없습니다.'
+                        : '참가자 제출이 시작되기 전에 대회의 채점 방식을 선택하세요.'
+                    }
+                    disabled={
+                      Boolean(contest?.scoring_mode_locked) ||
+                      updateSettingsMutation.isPending
+                    }
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <ChoiceCard
+                        type="radio"
+                        name="scoring_mode"
+                        checked={settingsForm.scoring_mode === 'icpc'}
+                        title="ICPC · 정답 / 오답"
+                        description="푼 문제 수가 많은 팀이 우선이며, 동점이면 기존 페널티 규칙을 적용합니다."
+                        onChange={() =>
+                          setSettingsForm((prev) =>
+                            prev ? { ...prev, scoring_mode: 'icpc' } : prev,
+                          )
+                        }
+                      />
+                      <ChoiceCard
+                        type="radio"
+                        name="scoring_mode"
+                        checked={settingsForm.scoring_mode === 'ioi'}
+                        title="IOI · 점수제"
+                        description={IOI_SCORING_DESCRIPTION}
+                        onChange={() =>
+                          setSettingsForm((prev) =>
+                            prev ? { ...prev, scoring_mode: 'ioi' } : prev,
+                          )
+                        }
+                      />
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                      서브태스크는 문제의 테스트케이스에서 설정합니다.
+                      서브태스크가 없는 문제는 0점 또는 100점입니다.{' '}
+                      <a
+                        className="font-medium text-indigo-700 underline underline-offset-4"
+                        href={IOI_RULES_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        IOI 채점 규칙 ↗
+                      </a>
+                    </p>
                   </SettingsSection>
                   <SettingsSection
                     title="대회 일정"

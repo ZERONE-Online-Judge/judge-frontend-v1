@@ -1,4 +1,5 @@
 import type {
+  ContestScoringMode,
   Division,
   ScoreboardReleaseMode,
 } from '@/domains/contestAdministration/types';
@@ -50,6 +51,7 @@ type Snapshot = {
 type Undo = NonNullable<ScoreboardRelease['undo']>;
 
 export type PracticeState = {
+  scoringMode?: ContestScoringMode;
   strategy: ScoreboardReleaseMode;
   revision: number;
   current: Snapshot;
@@ -156,7 +158,40 @@ const PENDING_CELLS = TEAMS.flatMap((team) =>
 function problemScore(
   problem: Problem,
   attempts: Attempt[],
+  scoringMode: ContestScoringMode = 'icpc',
 ): ScoreboardProblemScore {
+  if (scoringMode === 'ioi') {
+    const groups = attempts.map((attempt) =>
+      attempt.status === 'accepted'
+        ? [30, 70]
+        : attempt.status === 'compile_error'
+          ? [0, 0]
+          : attempt.minute >= 100
+            ? [0, 70]
+            : [30, 0],
+    );
+    const groupBest = [0, 1].map((index) =>
+      Math.max(0, ...groups.map((group) => group[index])),
+    );
+    const score = groupBest.reduce((sum, points) => sum + points, 0);
+    return {
+      problem_id: problem.problem_id,
+      problem_code: problem.problem_code,
+      score,
+      max_score: 100,
+      attempts: attempts.length,
+      wrong_attempts: 0,
+      solved: score === 100,
+      best_status: attempts.at(-1)?.status ?? null,
+      subtask_scores: groupBest.map((points, index) => ({
+        subtask_id: `st${index + 1}`,
+        name: `서브태스크 ${index + 1}`,
+        score: points,
+        max_score: index === 0 ? 30 : 70,
+        status: points > 0 ? 'accepted' : 'wrong_answer',
+      })),
+    };
+  }
   let wrongAttempts = 0;
   let firstAccepted: Attempt | undefined;
   for (const attempt of attempts) {
@@ -185,11 +220,16 @@ function unresolvedAttempts(row: ScoreboardRow) {
   );
 }
 
-function rankRows(rows: ScoreboardRow[]) {
+function rankRows(
+  rows: ScoreboardRow[],
+  scoringMode: ContestScoringMode = 'icpc',
+) {
   const scoreCompare = (a: ScoreboardRow, b: ScoreboardRow) =>
-    b.solved - a.solved ||
-    (a.penalty ?? 0) - (b.penalty ?? 0) ||
-    unresolvedAttempts(a) - unresolvedAttempts(b);
+    scoringMode === 'ioi'
+      ? (b.total_score ?? 0) - (a.total_score ?? 0)
+      : b.solved - a.solved ||
+        (a.penalty ?? 0) - (b.penalty ?? 0) ||
+        unresolvedAttempts(a) - unresolvedAttempts(b);
   rows.sort(
     (a, b) =>
       scoreCompare(a, b) ||
@@ -204,7 +244,11 @@ function rankRows(rows: ScoreboardRow[]) {
   return rows;
 }
 
-function scoreRows(snapshot: Snapshot, showCounts: boolean) {
+function scoreRows(
+  snapshot: Snapshot,
+  showCounts: boolean,
+  scoringMode: ContestScoringMode = 'icpc',
+) {
   return rankRows(
     TEAMS.map((team): ScoreboardRow => {
       let submissionCount = 0;
@@ -216,7 +260,7 @@ function scoreRows(snapshot: Snapshot, showCounts: boolean) {
           snapshot.revealedProblems.includes(cellKey(team.id, code));
         const visibleAttempts = visible ? attempts : preFreeze(attempts);
         submissionCount += visibleAttempts.length;
-        const score = problemScore(problem, visibleAttempts);
+        const score = problemScore(problem, visibleAttempts, scoringMode);
         if (showCounts && !visible && !score.solved) {
           const pendingCount = pendingAttempts(team, code).length;
           if (pendingCount > 0) score.pending_attempts = pendingCount;
@@ -228,6 +272,12 @@ function scoreRows(snapshot: Snapshot, showCounts: boolean) {
         team_name: team.name,
         division: PRACTICE_DIVISION.name,
         division_id: PRACTICE_DIVISION.division_id,
+        total_score:
+          scoringMode === 'ioi'
+            ? problemScores.reduce((sum, score) => sum + (score.score ?? 0), 0)
+            : undefined,
+        max_score:
+          scoringMode === 'ioi' ? PRACTICE_PROBLEMS.length * 100 : undefined,
         rank: 0,
         solved: problemScores.filter((score) => score.solved).length,
         penalty: problemScores.reduce(
@@ -244,6 +294,7 @@ function scoreRows(snapshot: Snapshot, showCounts: boolean) {
         is_revealed: true,
       };
     }),
+    scoringMode,
   );
 }
 
@@ -251,14 +302,13 @@ function emptySnapshot(mode: Snapshot['mode'] = 'not_started'): Snapshot {
   return { mode, revealedRanks: [], revealedProblems: [], lastEvent: null };
 }
 
-const FINAL_ROWS = scoreRows(emptySnapshot('all'), false);
-const FINAL_RANKS = Array.from(new Set(FINAL_ROWS.map((row) => row.rank)));
-
 export function createScoreboardPractice(
   strategy: ScoreboardReleaseMode = 'resolver',
+  scoringMode: ContestScoringMode = 'icpc',
 ): PracticeState {
   return {
     strategy,
+    scoringMode,
     revision: 0,
     current: emptySnapshot(strategy === 'immediate' ? 'all' : 'not_started'),
     history:
@@ -278,9 +328,12 @@ export function getScoreboardPractice(
   showCounts: boolean,
 ) {
   const { current, strategy } = state;
+  const scoringMode = state.scoringMode ?? 'icpc';
+  const FINAL_ROWS = scoreRows(emptySnapshot('all'), false, scoringMode);
+  const FINAL_RANKS = Array.from(new Set(FINAL_ROWS.map((row) => row.rank)));
   const revealedRanks =
     current.mode === 'all' ? FINAL_RANKS : current.revealedRanks;
-  let rows = scoreRows(current, showCounts);
+  let rows = scoreRows(current, showCounts, scoringMode);
   const hasPendingProblem = (teamId: string | undefined) =>
     PENDING_CELLS.some(
       (key) =>
@@ -387,6 +440,9 @@ export function applyScoreboardPractice(
   )
     return state;
   const { current, strategy } = state;
+  const scoringMode = state.scoringMode ?? 'icpc';
+  const FINAL_ROWS = scoreRows(emptySnapshot('all'), false, scoringMode);
+  const FINAL_RANKS = Array.from(new Set(FINAL_ROWS.map((row) => row.rank)));
   if (action.action === 'undo') {
     const previous = state.history.at(-1);
     if (!previous) return state;
@@ -452,7 +508,7 @@ export function applyScoreboardPractice(
   const pending = PENDING_CELLS.filter(
     (key) => !current.revealedProblems.includes(key),
   );
-  const rows = scoreRows(current, false);
+  const rows = scoreRows(current, false, scoringMode);
   const team = [...rows]
     .reverse()
     .find((row) => pending.some((key) => key.startsWith(`${row.team_id}:`)));
@@ -468,7 +524,7 @@ export function applyScoreboardPractice(
     revealedProblems,
     mode: revealedProblems.length === PENDING_CELLS.length ? 'all' : 'partial',
   };
-  const updated = scoreRows(next, false).find(
+  const updated = scoreRows(next, false, scoringMode).find(
     (row) => row.team_id === team.team_id,
   )!;
   const teamFixture = TEAMS.find((item) => item.id === team.team_id)!;
@@ -480,6 +536,19 @@ export function applyScoreboardPractice(
     status:
       attempts.find((attempt) => attempt.status === 'accepted')?.status ??
       attempts.at(-1)!.status,
+    ...(scoringMode === 'ioi'
+      ? {
+          from_score:
+            team.problem_scores.find(
+              (score) => score.problem_code === problem.problem_code,
+            )?.score ?? 0,
+          to_score:
+            updated.problem_scores.find(
+              (score) => score.problem_code === problem.problem_code,
+            )?.score ?? 0,
+          score_delta: (updated.total_score ?? 0) - (team.total_score ?? 0),
+        }
+      : {}),
     from_rank: team.rank,
     to_rank: updated.rank,
   };

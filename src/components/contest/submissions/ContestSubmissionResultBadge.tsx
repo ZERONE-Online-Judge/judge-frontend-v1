@@ -1,3 +1,4 @@
+import SubmissionScoreDetails from './SubmissionScoreDetails';
 import { useEffect, useMemo, useState } from 'react';
 import {
   isSubmissionPending,
@@ -121,6 +122,9 @@ export default function ContestSubmissionResultBadge({
       >
         {displayLabel}
       </span>
+      {submission ? (
+        <SubmissionScoreDetails submission={submission} compact />
+      ) : null}
       {detail ? (
         <details className="zoj-judge-detail max-w-full text-xs font-normal text-slate-500">
           <summary className="cursor-pointer py-1 text-slate-500">

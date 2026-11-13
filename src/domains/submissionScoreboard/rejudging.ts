@@ -8,6 +8,10 @@ export type RejudgingTarget = {
 };
 export type RejudgingResult = Pick<
   Submission,
+  | 'scoring_mode'
+  | 'score'
+  | 'max_score'
+  | 'subtask_results'
   | 'status'
   | 'compile_message'
   | 'judge_message'

@@ -1,3 +1,4 @@
+import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -69,6 +70,10 @@ type SubmitVariables = {
 type MockResult = Pick<
   Submission,
   | 'status'
+  | 'scoring_mode'
+  | 'score'
+  | 'max_score'
+  | 'subtask_results'
   | 'progress_percent'
   | 'runtime_ms'
   | 'memory_kb'
@@ -144,6 +149,9 @@ function MockJudgeResult({
         >
           {statusLabels[result.status] ?? result.status}
         </span>
+      </div>
+      <div className="mt-3">
+        <SubmissionScoreDetails submission={result} />
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
         <div

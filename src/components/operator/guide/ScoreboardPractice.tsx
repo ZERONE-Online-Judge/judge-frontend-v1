@@ -1,3 +1,7 @@
+import {
+  formatScore,
+  IOI_SCORING_DESCRIPTION,
+} from '@/domains/submissionScoreboard/scoring';
 import { useMemo, useState } from 'react';
 import ContestScoreboardTable from '@/components/contest/scoreboard/ContestScoreboardTable';
 import ScoreboardReleaseView from '@/components/operator/ScoreboardReleaseView';
@@ -126,10 +130,20 @@ export default function ScoreboardPractice() {
     () => getScoreboardPractice(practice, showCounts),
     [practice, showCounts],
   );
-  const guide = nextGuide(board.release);
+  const guide =
+    practice.scoringMode === 'ioi'
+      ? {
+          title: board.release.resolver?.last_event
+            ? `${board.release.resolver.last_event.team_name} · ${board.release.resolver.last_event.problem_code} 공개`
+            : 'IOI 점수제 발표를 체험해 보세요',
+          detail: board.release.resolver?.last_event
+            ? `문제 점수 ${formatScore(board.release.resolver.last_event.from_score ?? 0)} → ${formatScore(board.release.resolver.last_event.to_score)}점. 그룹별 최고점과 순위를 함께 반영합니다. 동점 팀은 공동 순위입니다.`
+            : IOI_SCORING_DESCRIPTION,
+        }
+      : nextGuide(board.release);
 
   function reset(strategy = practice.strategy) {
-    setPractice(createScoreboardPractice(strategy));
+    setPractice(createScoreboardPractice(strategy, practice.scoringMode));
     setGeneration((value) => value + 1);
   }
   function publish(action: ScoreboardReleaseAction) {
@@ -162,6 +176,26 @@ export default function ScoreboardPractice() {
         >
           체험 초기화
         </button>
+      </div>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="체험 채점 방식"
+      >
+        {(['icpc', 'ioi'] as const).map((mode) => (
+          <button
+            type="button"
+            key={mode}
+            aria-pressed={(practice.scoringMode ?? 'icpc') === mode}
+            className={`min-h-10 rounded-lg border px-4 py-2 text-xs font-semibold ${(practice.scoringMode ?? 'icpc') === mode ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600'}`}
+            onClick={() => {
+              setPractice(createScoreboardPractice(practice.strategy, mode));
+              setGeneration((value) => value + 1);
+            }}
+          >
+            {mode === 'ioi' ? 'IOI 점수제' : 'ICPC 정답 / 오답'}
+          </button>
+        ))}
       </div>
       <div
         className="scoreboard-practice__modes"
@@ -208,6 +242,7 @@ export default function ScoreboardPractice() {
         <span>횟수를 꺼도 공개 단계는 유지됩니다.</span>
       </div>
       <ScoreboardReleaseView
+        scoringMode={practice.scoringMode}
         key={`${practice.strategy}:${generation}`}
         release={board.release}
         strategy={practice.strategy}
@@ -226,6 +261,7 @@ export default function ScoreboardPractice() {
         </span>
       </div>
       <ContestScoreboardTable
+        scoringMode={practice.scoringMode}
         rows={board.rows}
         problems={PRACTICE_PROBLEMS}
         release={board.release}
@@ -237,11 +273,11 @@ export default function ScoreboardPractice() {
         >
           <span>
             <i data-tone="accepted" />
-            정답
+            {practice.scoringMode === 'ioi' ? '만점' : '정답'}
           </span>
           <span>
             <i data-tone="wrong" />
-            오답
+            {practice.scoringMode === 'ioi' ? '부분점수 · 0점' : '오답'}
           </span>
           <span>
             <i data-tone="pending" />

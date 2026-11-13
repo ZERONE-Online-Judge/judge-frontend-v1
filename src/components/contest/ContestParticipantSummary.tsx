@@ -1,3 +1,5 @@
+import type { ContestScoringMode } from '@/domains/contestAdministration/types';
+import { formatScore } from '@/domains/submissionScoreboard/scoring';
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
 import { Link } from 'react-router-dom';
@@ -146,6 +148,8 @@ export default function ContestParticipantSummary({
   return (
     <ParticipantSummaryCards
       contestId={contestId}
+      scoringMode={contest.scoring_mode}
+      publicScore={rank !== null ? row?.total_score : undefined}
       rank={rank}
       rankNote={rankNote}
       problems={ordered}
@@ -156,22 +160,30 @@ export default function ContestParticipantSummary({
 
 export function ParticipantSummaryCards({
   contestId,
+  scoringMode = 'icpc',
+  publicScore,
   rank,
   rankNote,
   problems,
   emptyMessage,
 }: {
   contestId: string;
+  scoringMode?: ContestScoringMode;
+  publicScore?: number;
   rank: number | null;
   rankNote: string;
   problems?: Problem[];
   emptyMessage: string;
 }) {
-  const solved = problems?.filter(
-    (problem) => problem.solve_status === 'accepted',
+  const solved = problems?.filter((problem) =>
+    scoringMode === 'ioi'
+      ? problem.score === 100 || problem.solve_status === 'accepted'
+      : problem.solve_status === 'accepted',
   );
-  const unsolved = problems?.filter(
-    (problem) => problem.solve_status !== 'accepted',
+  const unsolved = problems?.filter((problem) =>
+    scoringMode === 'ioi'
+      ? problem.score !== 100 && problem.solve_status !== 'accepted'
+      : problem.solve_status !== 'accepted',
   );
   return (
     <section
@@ -190,17 +202,27 @@ export function ParticipantSummaryCards({
             '—'
           )}
         </strong>
-        <span>{rankNote}</span>
+        {scoringMode === 'ioi' ? (
+          <p className="mb-2 text-sm font-semibold text-slate-700">
+            공개 총점 {formatScore(publicScore)}점
+          </p>
+        ) : null}
+        <span>
+          {rankNote}
+          {scoringMode === 'ioi' ? ' · 문제별 점수는 내 팀의 최신 성적' : ''}
+        </span>
       </div>
       <ProblemGroup
-        title="푼 문제"
+        title={scoringMode === 'ioi' ? '만점 문제' : '푼 문제'}
+        showScores={scoringMode === 'ioi'}
         problems={solved}
         contestId={contestId}
         emptyMessage={emptyMessage}
         solved
       />
       <ProblemGroup
-        title="아직 못 푼 문제"
+        title={scoringMode === 'ioi' ? '부분점수 · 미해결' : '아직 못 푼 문제'}
+        showScores={scoringMode === 'ioi'}
         problems={unsolved}
         contestId={contestId}
         emptyMessage={emptyMessage}
@@ -214,12 +236,14 @@ function ProblemGroup({
   contestId,
   emptyMessage,
   solved = false,
+  showScores = false,
 }: {
   title: string;
   problems?: Problem[];
   contestId: string;
   emptyMessage: string;
   solved?: boolean;
+  showScores?: boolean;
 }) {
   return (
     <div className="zoj-card contest-participant-problems" data-solved={solved}>
@@ -237,6 +261,11 @@ function ProblemGroup({
                   title={problem.title}
                 >
                   {problem.problem_code}
+                  {showScores ? (
+                    <span className="ml-1 text-xs tabular-nums">
+                      {formatScore(problem.score)}점
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             ))}

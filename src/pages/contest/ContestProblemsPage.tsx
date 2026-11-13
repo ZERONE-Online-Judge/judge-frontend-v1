@@ -1,3 +1,4 @@
+import { formatScore } from '@/domains/submissionScoreboard/scoring';
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -249,9 +250,18 @@ function ContestProblemsContent({
                         </Link>
                       </td>
                       <td data-label="풀이 상태" className="px-4 py-4">
-                        <ProblemStatusBadge
-                          status={problemStatus(problem.solve_status)}
-                        />
+                        {contest.scoring_mode === 'ioi' &&
+                        problem.score != null ? (
+                          <span
+                            className={`inline-flex min-h-7 items-center rounded px-3 text-xs font-bold tabular-nums ${problem.score === 100 ? 'bg-emerald-50 text-emerald-700' : problem.score > 0 ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            {formatScore(problem.score)} / 100점
+                          </span>
+                        ) : (
+                          <ProblemStatusBadge
+                            status={problemStatus(problem.solve_status)}
+                          />
+                        )}
                       </td>
                       <td
                         data-label="시간"

@@ -6,7 +6,10 @@ import {
 } from '@/domains/submissionScoreboard/api';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { notifyScoreboardUpdate } from '@/domains/submissionScoreboard/presentationSync';
-import type { ScoreboardReleaseMode } from '@/domains/contestAdministration/types';
+import type {
+  ContestScoringMode,
+  ScoreboardReleaseMode,
+} from '@/domains/contestAdministration/types';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import type { ScoreboardReleaseAction } from '@/domains/submissionScoreboard/types';
 
@@ -16,12 +19,14 @@ export default function ScoreboardReleaseControl({
   divisionName,
   token,
   strategy = 'manual',
+  scoringMode,
 }: {
   contestId: string;
   divisionId: string;
   divisionName: string;
   token: string;
   strategy?: ScoreboardReleaseMode;
+  scoringMode?: ContestScoringMode;
 }) {
   const client = useQueryClient();
   const isVisible = useDocumentVisibility();
@@ -58,6 +63,7 @@ export default function ScoreboardReleaseControl({
   return (
     <ScoreboardReleaseView
       release={query.data}
+      scoringMode={scoringMode}
       strategy={strategy}
       divisionName={divisionName}
       pending={mutation.isPending}

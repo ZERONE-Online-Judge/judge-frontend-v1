@@ -415,3 +415,27 @@ test('retained snapshots cannot be mutated by callers or malformed rows to fabri
   assert.equal(h.update(invalid), undefined);
   assert.equal(h.update(section({ mode: 'all', revealed: 3 })), undefined);
 });
+
+test('IOI score improvements use a positive cue even when the raw verdict is WA', () => {
+  const h = harness();
+  h.update(section());
+  const improvement = section({ step: 1, status: 'wrong_answer' });
+  Object.assign(improvement.release.resolver.last_event, {
+    from_score: 30,
+    to_score: 100,
+    score_delta: 70,
+  });
+  assert.equal(h.update(improvement), 'accepted');
+});
+
+test('IOI publication with no score gain uses a neutral result cue instead of a failure cue', () => {
+  const h = harness();
+  h.update(section());
+  const unchanged = section({ step: 1, status: 'wrong_answer' });
+  Object.assign(unchanged.release.resolver.last_event, {
+    from_score: 30,
+    to_score: 30,
+    score_delta: 0,
+  });
+  assert.equal(h.update(unchanged), 'result');
+});

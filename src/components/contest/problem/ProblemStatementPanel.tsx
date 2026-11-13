@@ -45,6 +45,34 @@ export default function ProblemStatementPanel({
         />
       </header>
 
+      {problem.scoring_mode === 'ioi' ? (
+        <section
+          aria-label="배점 안내"
+          className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4"
+        >
+          <h2 className="text-sm font-semibold text-slate-900">배점 · 100점</h2>
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            {problem.subtasks?.length
+              ? '각 서브태스크의 모든 테스트를 통과하면 배점을 받습니다. 각 그룹의 최고점은 여러 제출에서 합산합니다.'
+              : '전체 테스트를 통과하면 100점, 그렇지 않으면 0점입니다.'}
+          </p>
+          {problem.subtasks?.length ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {problem.subtasks.map((group) => (
+                <li
+                  key={group.subtask_id}
+                  className="rounded-lg border border-indigo-100 bg-white px-3 py-2 text-xs text-slate-700"
+                >
+                  <span className="break-words">{group.name}</span>{' '}
+                  <strong className="ml-2 text-indigo-700 tabular-nums">
+                    {group.points}점
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
       <div className="mt-7">
         <MarkdownPreview assets={assets} statement={document.statement} />
       </div>

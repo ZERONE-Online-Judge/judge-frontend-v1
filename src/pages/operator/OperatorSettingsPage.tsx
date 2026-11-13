@@ -566,8 +566,8 @@ function OperatorSettingsContent({
                     }
                     description={
                       contest?.scoring_mode_locked
-                        ? '참가자 제출 또는 결과 공개 기록이 있어 채점 방식을 변경할 수 없습니다.'
-                        : '참가자 제출이 시작되기 전에 대회의 채점 방식을 선택하세요.'
+                        ? '제출·테스트 또는 결과 공개 기록이 있어 채점 방식을 변경할 수 없습니다.'
+                        : '참가자 제출·운영자 테스트·모의채점·참가자 미리보기 전에 채점 방식을 선택하세요.'
                     }
                     disabled={
                       Boolean(contest?.scoring_mode_locked) ||

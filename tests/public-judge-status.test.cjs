@@ -76,7 +76,11 @@ test('unloaded judge status shows unknown counts instead of fabricated zeros or 
   assert.doesNotMatch(html, /서버 연결됨/);
 });
 
-test('public judge status only presents server connectivity, even with cached workload fields', () => {
+test('public judge status only presents server connectivity, even with cached workload fields', (t) => {
+  t.mock.timers.enable({
+    apis: ['Date'],
+    now: Date.parse('2026-11-13T06:00:00Z'),
+  });
   const html = render({
     ...status,
     total_running_jobs: 7,
@@ -114,7 +118,11 @@ test('judge status polling pauses when the document is hidden', () => {
   visible = true;
 });
 
-test('submission activity never changes public text or animation state', () => {
+test('submission activity never changes public text or animation state', (t) => {
+  t.mock.timers.enable({
+    apis: ['Date'],
+    now: Date.parse('2026-11-13T06:00:00Z'),
+  });
   const idle = render({
     ...status,
     total_running_jobs: 0,

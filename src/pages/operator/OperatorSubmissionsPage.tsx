@@ -55,6 +55,9 @@ import { formatMemoryKb } from '@/shared/lib/formatters';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
 import SubmissionStatusBadge from '@/shared/ui/SubmissionStatusBadge';
+import { useClockTick } from '@/shared/hooks/useAutoRefresh';
+import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
+import '@/components/contest/submissions/SubmissionRecency.css';
 
 const SUBMISSIONS_PAGE_SIZE = 20;
 const SUBMISSION_KIND_OPTIONS: {
@@ -814,6 +817,7 @@ function OperatorSubmissionsTable({
   problemById: Map<string, SubmissionProblem>;
   submissions: Submission[];
 }) {
+  const now = useClockTick() || undefined;
   const headerClass = 'border-r border-slate-200 px-4 py-3 last:border-r-0';
   const cellClass =
     'border-r border-slate-100 px-4 py-4 align-top last:border-r-0';
@@ -845,7 +849,11 @@ function OperatorSubmissionsTable({
             const problem = submissionProblem(submission, problemById);
             return (
               <tr
-                className="hover:bg-indigo-50/40"
+                className="zoj-submission-recency hover:bg-indigo-50/40"
+                data-recent-submission={isRecentSubmission(
+                  submission.submitted_at,
+                  now,
+                )}
                 key={submission.submission_id}
               >
                 <td
@@ -925,9 +933,19 @@ function OperatorSubmissionsTable({
                 </td>
                 <td
                   className={`${cellClass} text-xs font-medium text-slate-500`}
-                  title={formatDateTime(submission.submitted_at)}
                 >
-                  {formatRelativeTime(submission.submitted_at)}
+                  <time
+                    dateTime={submission.submitted_at}
+                    title={
+                      Number.isFinite(
+                        new Date(submission.submitted_at).getTime(),
+                      )
+                        ? formatDateTime(submission.submitted_at)
+                        : undefined
+                    }
+                  >
+                    {formatRelativeTime(submission.submitted_at, now)}
+                  </time>
                 </td>
                 <td className={cellClass}>
                   <button

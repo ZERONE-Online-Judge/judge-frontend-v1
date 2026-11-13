@@ -1,0 +1,27 @@
+.zoj-submission-recency {
+  transition:
+    background-color 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.zoj-participant .zoj-submissions-table tbody tr[data-recent-submission='true'],
+.zoj-submission-recency[data-recent-submission='true'] {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  box-shadow: inset 3px 0 0 #818cf8;
+}
+
+.zoj-participant
+  .zoj-submissions-table
+  tbody
+  tr[data-recent-submission='true']:hover,
+.zoj-submission-recency[data-recent-submission='true']:hover {
+  background: #e7ecff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoj-submission-recency {
+    transition: none;
+  }
+}

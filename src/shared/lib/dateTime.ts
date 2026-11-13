@@ -1,12 +1,17 @@
 export function formatDateTime(value?: string) {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
-export function formatRelativeTime(value?: string) {
+export function formatRelativeTime(value?: string, now = Date.now()) {
   if (!value) return '-';
 
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp) || !Number.isFinite(now)) return '-';
+  const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
   if (diffSeconds < 60) return `${diffSeconds}초 전`;
 
   const diffMinutes = Math.floor(diffSeconds / 60);
@@ -47,7 +52,11 @@ export function formatTime(value?: string | null) {
 }
 
 export function isSameLocalDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 export function formatContestMoment(value?: string | null) {
@@ -59,7 +68,10 @@ export function formatContestMoment(value?: string | null) {
 
   if (isSameLocalDay(date, now)) return time;
 
-  const day = new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' })
+  const day = new Intl.DateTimeFormat('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+  })
     .format(date)
     .replace(/\s/g, '');
   return `${day} ${time}`;

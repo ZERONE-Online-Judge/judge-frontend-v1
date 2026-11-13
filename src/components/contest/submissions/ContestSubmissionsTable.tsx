@@ -5,10 +5,13 @@ import { Link } from 'react-router-dom';
 import type { Submission } from '@/domains/submissionScoreboard/types';
 import type { Problem } from '@/domains/problemManagement/types';
 import { contestStaffDisplayName } from '@/domains/identityAccess/staffDisplay';
-import { formatRelativeTime } from '@/shared/lib/dateTime';
+import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
+import { useClockTick } from '@/shared/hooks/useAutoRefresh';
+import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import ContestSubmissionResultBadge from '@/components/contest/submissions/ContestSubmissionResultBadge';
 import { SvgIcon } from '@/utils/Icons';
+import './SubmissionRecency.css';
 
 type ContestSubmissionsTableProps = {
   contestId: string;
@@ -138,6 +141,7 @@ export default function ContestSubmissionsTable({
   loadSource,
   sourceScopeKey,
 }: ContestSubmissionsTableProps) {
+  const now = useClockTick() || undefined;
   const problemById = new Map(
     problems.map((problem) => [problem.problem_id, problem]),
   );
@@ -179,7 +183,13 @@ export default function ContestSubmissionsTable({
 
               return (
                 <Fragment key={submission.submission_id}>
-                  <tr className="zoj-submission-row border-b border-slate-200">
+                  <tr
+                    className="zoj-submission-row zoj-submission-recency border-b border-slate-200"
+                    data-recent-submission={isRecentSubmission(
+                      submission.submitted_at,
+                      now,
+                    )}
+                  >
                     <td
                       data-label="제출번호"
                       className={`${cellClassName} font-mono text-xs font-medium`}
@@ -263,7 +273,18 @@ export default function ContestSubmissionsTable({
                       {formatCodeLength(submission)}
                     </td>
                     <td data-label="제출한 시간" className={cellClassName}>
-                      {formatRelativeTime(submission.submitted_at)}
+                      <time
+                        dateTime={submission.submitted_at}
+                        title={
+                          Number.isFinite(
+                            new Date(submission.submitted_at).getTime(),
+                          )
+                            ? formatDateTime(submission.submitted_at)
+                            : undefined
+                        }
+                      >
+                        {formatRelativeTime(submission.submitted_at, now)}
+                      </time>
                     </td>
                   </tr>
                   {isOpen ? (

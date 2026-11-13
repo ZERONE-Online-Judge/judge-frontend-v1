@@ -46,6 +46,9 @@ import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
+import { useClockTick } from '@/shared/hooks/useAutoRefresh';
+import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
+import '@/components/contest/submissions/SubmissionRecency.css';
 
 const pendingSubmissionStatuses = new Set([
   'pending',
@@ -624,34 +627,11 @@ function AdminJudgeContent({ token }: { token: string }) {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {submissions.length > 0 ? (
-                    submissions.map((entry) => (
-                      <SubmissionRow
-                        entry={entry}
-                        isSelected={
-                          selectedSubmissionId ===
-                          entry.submission.submission_id
-                        }
-                        key={entry.submission.submission_id}
-                        onSelect={() =>
-                          setSelectedSubmissionId(
-                            entry.submission.submission_id,
-                          )
-                        }
-                      />
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        className="px-4 py-10 text-center text-sm font-medium text-slate-500"
-                        colSpan={8}
-                      >
-                        표시할 제출이 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
+                <SubmissionRows
+                  entries={submissions}
+                  selectedSubmissionId={selectedSubmissionId}
+                  onSelect={setSelectedSubmissionId}
+                />
               </table>
             </div>
           </AdminPanel>
@@ -810,13 +790,51 @@ function entryJudgeNodeLabel(entry: AdminJudgeSubmissionEntry) {
   );
 }
 
+function SubmissionRows({
+  entries,
+  selectedSubmissionId,
+  onSelect,
+}: {
+  entries: AdminJudgeSubmissionEntry[];
+  selectedSubmissionId: string | null;
+  onSelect: (submissionId: string) => void;
+}) {
+  const now = useClockTick() || undefined;
+  return (
+    <tbody className="divide-y divide-slate-100">
+      {entries.length > 0 ? (
+        entries.map((entry) => (
+          <SubmissionRow
+            entry={entry}
+            isSelected={selectedSubmissionId === entry.submission.submission_id}
+            key={entry.submission.submission_id}
+            now={now}
+            onSelect={() => onSelect(entry.submission.submission_id)}
+          />
+        ))
+      ) : (
+        <tr>
+          <td
+            className="px-4 py-10 text-center text-sm font-medium text-slate-500"
+            colSpan={8}
+          >
+            표시할 제출이 없습니다.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  );
+}
+
 function SubmissionRow({
   entry,
   isSelected,
+  now,
   onSelect,
 }: {
   entry: AdminJudgeSubmissionEntry;
   isSelected: boolean;
+  now?: number;
   onSelect: () => void;
 }) {
   const { submission } = entry;
@@ -833,15 +851,22 @@ function SubmissionRow({
   const contestDivision = entryContestDivisionLabel(entry);
 
   return (
-    <tr className={isSelected ? 'bg-indigo-50/70' : 'hover:bg-indigo-50/40'}>
+    <tr
+      className={`zoj-submission-recency ${isSelected ? 'bg-indigo-50/70' : 'hover:bg-indigo-50/40'}`}
+      data-recent-submission={isRecentSubmission(submission.submitted_at, now)}
+    >
       <td
         className="border-r border-slate-100 px-4 py-4 align-top font-mono text-xs font-medium text-slate-700"
         title={`${submission.submission_id} · ${formatDateTime(submission.submitted_at)}`}
       >
         {shortSubmissionId(submission.submission_id)}
-        <span className="mt-1 block font-sans text-[11px] font-medium text-slate-400">
-          {formatRelativeTime(submission.submitted_at)}
-        </span>
+        <time
+          className="mt-1 block font-sans text-[11px] font-medium text-slate-400"
+          dateTime={submission.submitted_at}
+          title={formatDateTime(submission.submitted_at)}
+        >
+          {formatRelativeTime(submission.submitted_at, now)}
+        </time>
       </td>
       <td
         className="border-r border-slate-100 px-4 py-4 align-top"

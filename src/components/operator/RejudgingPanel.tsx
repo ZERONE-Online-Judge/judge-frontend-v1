@@ -79,8 +79,8 @@ export default function RejudgingPanel({
         ) : null}
         {!history.isLoading && !history.error && !history.data?.total ? (
           <p className="text-sm text-slate-500">
-            아직 재채점 작업이 없습니다. 제출 상세에서 개별 재채점을 시작하거나
-            문제 필터를 선택해 일괄 요청하세요.
+            아직 재채점 작업이 없습니다. 제출 상세에서 개별 재채점을 시작할 수
+            있습니다.
           </p>
         ) : null}
         <div className="grid gap-2">

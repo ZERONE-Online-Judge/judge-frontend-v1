@@ -73,7 +73,7 @@ function source(relative) {
   return loaded.exports;
 }
 
-const { isRecentSubmission } = source(
+const { isRecentSubmission, submissionRecencyStrength } = source(
   'domains/submissionScoreboard/submissionTime.ts',
 );
 const { formatRelativeTime } = source('shared/lib/dateTime.ts');
@@ -110,6 +110,18 @@ test('recent highlighting uses the submission instant, not the time a page or re
     assert.equal(isRecentSubmission(value, epoch), false);
   }
   assert.equal(formatRelativeTime('invalid', epoch), '-');
+});
+
+test('the highlight fades steadily from full strength to white during the first minute', () => {
+  assert.equal(submissionRecencyStrength(isoAtAge(0), epoch), 1);
+  assert.equal(submissionRecencyStrength(isoAtAge(30_000), epoch), 0.5);
+  assert.equal(submissionRecencyStrength(isoAtAge(60_000), epoch), 0);
+  let previous = 1;
+  for (let seconds = 1; seconds <= 60; seconds += 1) {
+    const strength = submissionRecencyStrength(isoAtAge(seconds * 1000), epoch);
+    assert(strength < previous && strength >= 0);
+    previous = strength;
+  }
 });
 
 for (const view of ['participant', 'operator', 'admin']) {
@@ -186,6 +198,10 @@ for (const view of ['participant', 'operator', 'admin']) {
         ['10초 전', '59초 전', '3분 전'],
       );
       assert.equal(highlights().length, 2);
+      const firstRow = host.querySelector('tr[data-recent-submission]');
+      const initialStrength = parseFloat(
+        firstRow.style.getPropertyValue('--zoj-submission-recency'),
+      );
       assert.equal(times()[0].getAttribute('datetime'), rows[0].submitted_at);
       assert.ok(
         times()[0].title,
@@ -198,6 +214,13 @@ for (const view of ['participant', 'operator', 'admin']) {
         ['11초 전', '1분 전', '3분 전'],
       );
       assert.equal(highlights().length, 1);
+      const fadedStrength = parseFloat(
+        firstRow.style.getPropertyValue('--zoj-submission-recency'),
+      );
+      assert(
+        fadedStrength > 0 && fadedStrength < initialStrength,
+        'The existing card fades on every tick',
+      );
       // A throttled/background timer catches up to wall-clock time on return.
       now += 120_000;
       await act(() => tick.callback());
@@ -206,6 +229,10 @@ for (const view of ['participant', 'operator', 'admin']) {
         ['2분 전', '3분 전', '5분 전'],
       );
       assert.equal(highlights().length, 0);
+      assert.equal(
+        firstRow.style.getPropertyValue('--zoj-submission-recency'),
+        '0%',
+      );
       assert.equal(
         host.querySelectorAll('tr[data-recent-submission]').length,
         3,

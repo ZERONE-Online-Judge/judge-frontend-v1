@@ -3,7 +3,7 @@ import Select from '@/shared/ui/Select';
 import JudgeNodeWorkloads from '@/domains/auditMonitoring/components/JudgeNodeWorkloads';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   keepPreviousData,
   useQuery,
@@ -47,7 +47,7 @@ import { formatMemoryKb } from '@/shared/lib/formatters';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
-import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
+import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
 import '@/components/contest/submissions/SubmissionRecency.css';
 
 const pendingSubmissionStatuses = new Set([
@@ -849,11 +849,15 @@ function SubmissionRow({
     queue_position: submission.queue_position,
   };
   const contestDivision = entryContestDivisionLabel(entry);
+  const recency = submissionRecencyStrength(submission.submitted_at, now);
 
   return (
     <tr
       className={`zoj-submission-recency ${isSelected ? 'bg-indigo-50/70' : 'hover:bg-indigo-50/40'}`}
-      data-recent-submission={isRecentSubmission(submission.submitted_at, now)}
+      data-recent-submission={recency > 0}
+      style={
+        { '--zoj-submission-recency': `${recency * 100}%` } as CSSProperties
+      }
     >
       <td
         className="border-r border-slate-100 px-4 py-4 align-top font-mono text-xs font-medium text-slate-700"

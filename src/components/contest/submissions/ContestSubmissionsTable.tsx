@@ -1,5 +1,5 @@
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
-import { Fragment, useState } from 'react';
+import { Fragment, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { Submission } from '@/domains/submissionScoreboard/types';
@@ -7,7 +7,7 @@ import type { Problem } from '@/domains/problemManagement/types';
 import { contestStaffDisplayName } from '@/domains/identityAccess/staffDisplay';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
-import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
+import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import ContestSubmissionResultBadge from '@/components/contest/submissions/ContestSubmissionResultBadge';
 import { SvgIcon } from '@/utils/Icons';
@@ -178,6 +178,10 @@ export default function ContestSubmissionsTable({
               );
               const problemId = submissionProblemId(submission, problemById);
               const sourceCode = submissionSourceCode(submission);
+              const recency = submissionRecencyStrength(
+                submission.submitted_at,
+                now,
+              );
 
               const isOpen = openSubmissionId === submission.submission_id;
 
@@ -185,10 +189,12 @@ export default function ContestSubmissionsTable({
                 <Fragment key={submission.submission_id}>
                   <tr
                     className="zoj-submission-row zoj-submission-recency border-b border-slate-200"
-                    data-recent-submission={isRecentSubmission(
-                      submission.submitted_at,
-                      now,
-                    )}
+                    data-recent-submission={recency > 0}
+                    style={
+                      {
+                        '--zoj-submission-recency': `${recency * 100}%`,
+                      } as CSSProperties
+                    }
                   >
                     <td
                       data-label="제출번호"

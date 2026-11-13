@@ -7,9 +7,14 @@
 
 .zoj-participant .zoj-submissions-table tbody tr[data-recent-submission='true'],
 .zoj-submission-recency[data-recent-submission='true'] {
-  border-color: #c7d2fe;
-  background: #eef2ff;
-  box-shadow: inset 3px 0 0 #818cf8;
+  border-color: color-mix(
+    in srgb,
+    #c7d2fe var(--zoj-submission-recency),
+    #e2e8f0
+  );
+  background: color-mix(in srgb, #e0e7ff var(--zoj-submission-recency), white);
+  box-shadow: inset 3px 0 0
+    color-mix(in srgb, #818cf8 var(--zoj-submission-recency), transparent);
 }
 
 .zoj-participant
@@ -17,7 +22,7 @@
   tbody
   tr[data-recent-submission='true']:hover,
 .zoj-submission-recency[data-recent-submission='true']:hover {
-  background: #e7ecff;
+  background: color-mix(in srgb, #dfe5ff var(--zoj-submission-recency), white);
 }
 
 @media (prefers-reduced-motion: reduce) {

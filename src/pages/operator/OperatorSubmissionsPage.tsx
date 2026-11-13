@@ -8,7 +8,13 @@ import {
   canRejudgeSubmission,
   type RejudgingTarget,
 } from '@/domains/submissionScoreboard/rejudging';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import {
   keepPreviousData,
@@ -56,7 +62,7 @@ import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
 import SubmissionStatusBadge from '@/shared/ui/SubmissionStatusBadge';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
-import { isRecentSubmission } from '@/domains/submissionScoreboard/submissionTime';
+import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
 import '@/components/contest/submissions/SubmissionRecency.css';
 
 const SUBMISSIONS_PAGE_SIZE = 20;
@@ -847,13 +853,19 @@ function OperatorSubmissionsTable({
         <tbody className="divide-y divide-slate-100">
           {submissions.map((submission) => {
             const problem = submissionProblem(submission, problemById);
+            const recency = submissionRecencyStrength(
+              submission.submitted_at,
+              now,
+            );
             return (
               <tr
                 className="zoj-submission-recency hover:bg-indigo-50/40"
-                data-recent-submission={isRecentSubmission(
-                  submission.submitted_at,
-                  now,
-                )}
+                data-recent-submission={recency > 0}
+                style={
+                  {
+                    '--zoj-submission-recency': `${recency * 100}%`,
+                  } as CSSProperties
+                }
                 key={submission.submission_id}
               >
                 <td

@@ -474,24 +474,37 @@
 .operator-layout :is(button, a)[class*='rounded'] {
   font-size: 13px;
 }
-.operator-layout :where(table) {
+/* Problem previews are body portals, outside their operator page layout. */
+.operator-layout :where(table),
+.zoj-dialog :where(.zoj-problem-document table) {
   font-size: 13px;
 }
-.operator-layout :where(table th) {
+.operator-layout :where(table th),
+.zoj-dialog :where(.zoj-problem-document table th) {
   padding: 10px 14px;
   color: #64748b;
   font-size: 11px;
   font-weight: 500;
   background: #f8f9fb;
 }
-.operator-layout :where(table td) {
+.operator-layout :where(table td),
+.zoj-dialog :where(.zoj-problem-document table td) {
   padding: 12px 14px;
 }
-.operator-layout :where(table th, table td) {
+.operator-layout :where(table th, table td),
+.zoj-dialog
+  :where(.zoj-problem-document table th, .zoj-problem-document table td) {
   border-right-width: 0;
 }
-.operator-layout :where(tbody tr:hover) {
+.operator-layout :where(tbody tr:hover),
+.zoj-dialog :where(.zoj-problem-document tbody tr:hover) {
   background-color: #f8f9fc;
+}
+.zoj-dialog :where(.zoj-problem-document table) {
+  line-height: 1.6;
+}
+.zoj-dialog :where(.zoj-problem-document table td) {
+  line-height: 1.5;
 }
 .operator-layout .operator-metric {
   display: flex;

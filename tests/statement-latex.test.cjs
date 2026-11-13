@@ -307,3 +307,55 @@ test('unrecognized angle-bracket text stays visible and Markdown autolinks still
   assert.ok(doc.body.textContent.includes('vector<int> set<N>'));
   assert.equal(doc.querySelector('a').href, 'https://example.test/');
 });
+
+test('problem preview portals keep collection table spacing without styling unrelated dialogs', async () => {
+  const doc = await render(String.raw`| 번호 | 점수 | 조건 |
+| --- | ---: | --- |
+| 1 | 30 | $N \le 60$ |
+
+\begin{tabular}{|c|c|}\hline 가격 & 단위 \\ \hline $1\,000$ & $5$ \\ \hline\end{tabular}`);
+  const content = doc.body.innerHTML;
+  doc.body.innerHTML = `
+    <section class="operator-layout zoj-management"><article class="zoj-problem-document">${content}</article></section>
+    <dialog class="zoj-dialog"><div class="zoj-modal-body"><article class="zoj-problem-document">${content}</article></div></dialog>
+    <dialog class="zoj-dialog unrelated"><table><tr><th>Unrelated</th><td>Cell</td></tr></table></dialog>`;
+  const style = doc.createElement('style');
+  style.textContent = [
+    '.zoj-management { line-height: 1.6; } .zoj-management td { line-height: 1.5; }',
+    fs.readFileSync(
+      path.resolve(__dirname, '../src/components/common/OperatorWorkspace.css'),
+      'utf8',
+    ),
+    fs.readFileSync(
+      path.resolve(__dirname, '../src/shared/ui/Modal.css'),
+      'utf8',
+    ),
+    fs.readFileSync(
+      path.resolve(__dirname, '../src/shared/ui/statementLatex.css'),
+      'utf8',
+    ),
+  ].join('\n');
+  doc.head.append(style);
+  const computed = (selector) =>
+    doc.defaultView.getComputedStyle(doc.querySelector(selector));
+  assert.equal(computed('.operator-layout th').padding, '10px 14px');
+  assert.equal(computed('.operator-layout td').padding, '12px 14px');
+  for (const tag of ['th', 'td']) {
+    const properties = ['padding', 'fontSize', 'backgroundColor'];
+    if (tag === 'th') properties.push('color');
+    for (const property of properties) {
+      assert.equal(
+        computed(`.zoj-dialog .zoj-problem-document ${tag}`)[property],
+        computed(`.operator-layout ${tag}`)[property],
+        `${tag} ${property}`,
+      );
+    }
+  }
+  assert.equal(
+    computed('.zoj-dialog .zoj-tex-table td').padding,
+    '0.5rem 0.75rem',
+  );
+  assert.equal(computed('.zoj-dialog .zoj-tex-table td').borderTopWidth, '1px');
+  assert.notEqual(computed('.unrelated th').padding, '10px 14px');
+  assert.notEqual(computed('.unrelated td').padding, '12px 14px');
+});

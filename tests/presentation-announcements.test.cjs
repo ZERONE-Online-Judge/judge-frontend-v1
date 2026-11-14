@@ -666,6 +666,7 @@ test('unsupported or blocked audio never prevents announcements or marks output 
   window.AudioContext = class {
     constructor() {
       const player = fakeAudioContext();
+      player.state = 'suspended';
       player.resume = async () => {
         throw new Error('gesture blocked');
       };
@@ -678,7 +679,7 @@ test('unsupported or blocked audio never prevents announcements or marks output 
   assert.equal(state.enabled, true);
 });
 
-test('sound defaults on but stays silent until the first pointer or keyboard gesture', async () => {
+test('sound defaults on but synthetic pointer and keyboard events cannot unlock it', async () => {
   const contexts = [];
   window.AudioContext = class {
     constructor() {
@@ -712,6 +713,9 @@ test('sound defaults on but stays silent until the first pointer or keyboard ges
     await act(async () => {
       document.dispatchEvent(new window.Event(gesture));
     });
+    assert.equal(state.unlocked, false);
+    assert.equal(contexts.length, before);
+    await act(async () => assert.equal(await state.enable(), true));
     assert.equal(state.unlocked, true);
     assert.equal(contexts.length, before + 1);
     const player = contexts.at(-1);

@@ -2,7 +2,7 @@
    the dimensions of a full-screen board. No row measurements are needed. */
 .presentation-stage-board {
   --stage-unit: var(--presentation-font-scale, 1);
-  --stage-spacing-unit: clamp(0.8, var(--stage-unit), 1.5);
+  --stage-spacing-unit: var(--stage-fit, 1);
   container: presentation-scoreboard / size;
   display: flex;
   flex-direction: column;
@@ -17,6 +17,10 @@
 .presentation-stage-board__scroll {
   position: relative;
   flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  container: presentation-table-viewport / size;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
@@ -36,8 +40,9 @@
     0.8,
     calc(var(--presentation-font-scale, 1) * var(--stage-fit))
   );
-  --stage-spacing-unit: clamp(0.8, var(--stage-unit), 1.5);
-  --stage-heading-unit: var(--stage-unit);
+  --stage-spacing-unit: var(--stage-fit, 1);
+  --stage-heading-unit: min(var(--stage-unit), 1.3);
+  --stage-layout-unit: var(--stage-fit);
   --stage-team-share: 0.3;
   --stage-data-share: 0.7;
   --stage-team-min: calc(17.5 * var(--presentation-resolution-size, 16px));
@@ -56,13 +61,15 @@
   --stage-min-problem: var(--stage-problem-col);
   table-layout: fixed;
   min-width: max(
-    calc(var(--stage-team-min) / var(--stage-team-share) * var(--stage-unit)),
+    calc(
+      var(--stage-team-min) / var(--stage-team-share) * var(--stage-layout-unit)
+    ),
     calc(
       (
           var(--stage-fixed-cols) + var(--stage-problem-count, 0) *
             var(--stage-min-problem)
         ) /
-        var(--stage-data-share) * var(--stage-unit)
+        var(--stage-data-share) * var(--stage-layout-unit)
     )
   );
 }
@@ -74,20 +81,20 @@
 }
 
 .presentation-stage-board__col-rank {
-  width: calc(var(--stage-rank-col) * var(--stage-unit));
+  width: calc(var(--stage-rank-col) * var(--stage-layout-unit));
 }
 .presentation-stage-board__col-team {
   width: calc(var(--stage-team-share) * 100%);
 }
 .presentation-stage-board__col-total {
-  width: calc(var(--stage-solved-col) * var(--stage-unit));
+  width: calc(var(--stage-solved-col) * var(--stage-layout-unit));
 }
 .presentation-stage-board[data-scoring-mode='ioi']
   .presentation-stage-board__col-total {
-  width: calc(var(--stage-points-col) * var(--stage-unit));
+  width: calc(var(--stage-points-col) * var(--stage-layout-unit));
 }
 .presentation-stage-board__col-penalty {
-  width: calc(var(--stage-time-col) * var(--stage-unit));
+  width: calc(var(--stage-time-col) * var(--stage-layout-unit));
 }
 
 .presentation-display
@@ -177,10 +184,89 @@
 .presentation-stage-board__number {
   display: inline-block;
   white-space: nowrap;
+  font-size: min(
+    1em,
+    calc(
+      var(--stage-number-space, 10000px) / var(--stage-number-chars, 1) * 1.45
+    )
+  );
 }
 
-.presentation-stage-board__label-short {
-  display: none;
+/* Text zoom does not change the table, columns, padding, or card geometry. */
+.presentation-stage-board__rank {
+  --stage-number-space: calc(
+    var(--stage-rank-col) * var(--stage-layout-unit) - 16px
+  );
+}
+.presentation-stage-board__rank-value {
+  font-size: min(
+    1em,
+    calc(var(--stage-number-space) / var(--stage-rank-chars, 1) * 1.45)
+  );
+}
+.presentation-stage-board__total {
+  --stage-number-space: calc(
+    var(--stage-solved-col) * var(--stage-layout-unit) - 16px
+  );
+}
+.presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__total {
+  --stage-number-space: calc(
+    var(--stage-points-col) * var(--stage-layout-unit) - 16px
+  );
+}
+.presentation-stage-board__penalty {
+  --stage-number-space: calc(
+    var(--stage-time-col) * var(--stage-layout-unit) - 16px
+  );
+}
+.presentation-stage-board__cell-content {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  --stage-number-space: max(10px, calc(100cqw - 12px));
+}
+.presentation-display .presentation-stage-board .presentation-score,
+.presentation-display
+  .presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__score-pill {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: calc(2rem * var(--stage-layout-unit));
+  padding: 0.2em 0.35em;
+  font-size: min(
+    calc(
+      1.0625 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+    ),
+    36cqw
+  );
+  line-height: 1.15;
+}
+.presentation-stage-board__cell-stack {
+  width: 100%;
+}
+.presentation-stage-board__cell-stack[data-has-pending] {
+  flex-wrap: nowrap;
+}
+.presentation-display
+  .presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__cell-stack[data-has-pending]
+  .presentation-stage-board__score-pill {
+  width: calc((100% - var(--stage-cell-gap) * var(--stage-spacing-unit)) / 2);
+  max-width: calc(
+    (100% - var(--stage-cell-gap) * var(--stage-spacing-unit)) / 2
+  );
+  container-type: inline-size;
+  --stage-number-space: max(6px, 100cqw);
+}
+.presentation-display .presentation-stage-board .presentation-board-rank {
+  font-size: min(
+    calc(1.5 * var(--presentation-resolution-size, 16px) * var(--stage-unit)),
+    calc(var(--stage-rank-col) * var(--stage-layout-unit) / 1.6)
+  );
 }
 
 /* Keep compact boards readable before allowing their internal scrollbar.
@@ -395,4 +481,76 @@
     min-height: 1.5em;
     line-height: 1;
   }
+}
+
+/* A short table still shows a complete first result beneath its sticky head. */
+@container presentation-table-viewport (max-height: 210px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-unit: clamp(
+      0.8,
+      calc(var(--presentation-font-scale, 1) * var(--stage-fit)),
+      1.15
+    );
+    --stage-heading-unit: 0.85;
+  }
+  .presentation-stage-board__table thead th {
+    padding-block: 4px;
+  }
+  .presentation-stage-board__row > td {
+    height: auto;
+    padding-block: 3px;
+    vertical-align: top;
+    line-height: 1.1;
+  }
+  .presentation-display .presentation-stage-board .presentation-board-team {
+    line-height: 1.15;
+  }
+  .presentation-stage-board__table .presentation-stage-board__team-name {
+    -webkit-line-clamp: 1;
+  }
+  .presentation-display .presentation-stage-board .presentation-score,
+  .presentation-display
+    .presentation-stage-board[data-scoring-mode='ioi']
+    .presentation-stage-board__score-pill {
+    padding: 0.12em 0.2em;
+    min-height: 20px;
+    font-size: min(
+      calc(
+        1.0625 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+      ),
+      28cqw
+    );
+  }
+  .presentation-stage-board__cell-stack {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+  .presentation-display
+    .presentation-stage-board[data-scoring-mode='ioi']
+    .presentation-stage-board__cell-stack
+    .presentation-stage-board__score-pill {
+    font-size: min(
+      calc(
+        1.0625 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+      ),
+      21cqw
+    );
+  }
+}
+
+@container presentation-table-viewport (max-height: 80px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-unit: 0.8;
+    --stage-heading-unit: 0.7;
+  }
+  .presentation-stage-board__table thead th {
+    padding-block: 2px;
+  }
+  .presentation-stage-board__row > td {
+    padding-block: 1px;
+  }
+}
+
+.presentation-stage-board__label-short {
+  display: none;
 }

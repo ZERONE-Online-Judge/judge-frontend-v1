@@ -19,6 +19,7 @@ type Props = {
   selectedDivisionIds: string[];
   onDivisionIdsChange: (ids: string[]) => void;
   soundEnabled: boolean;
+  soundReady?: boolean;
   soundVolume: number;
   onSoundVolumeChange: (volume: number) => void;
   onSoundEnabledChange: (enabled: boolean) => void;
@@ -46,6 +47,7 @@ export default function PresentationDisplaySettings({
   selectedDivisionIds,
   onDivisionIdsChange,
   soundEnabled,
+  soundReady,
   soundVolume,
   onSoundVolumeChange,
   onSoundEnabledChange,
@@ -327,6 +329,10 @@ export default function PresentationDisplaySettings({
               <span>작게 80%</span>
               <span>크게 300%</span>
             </div>
+            <p className="presentation-settings-hint">
+              카드·열 너비와 여백을 유지하고 글자만 확대합니다. 좁은 칸의 숫자는
+              칸에 맞춰 조절됩니다.
+            </p>
           </div>
           <div className="presentation-settings-group">
             <div className="presentation-settings-label-row">
@@ -389,7 +395,15 @@ export default function PresentationDisplaySettings({
               onClick={() => onSoundEnabledChange(!soundEnabled)}
             >
               <span>
-                <strong>{soundEnabled ? '효과음 켜짐' : '효과음 꺼짐'}</strong>
+                <strong>
+                  {soundEnabled
+                    ? soundVolume === 0
+                      ? '효과음 무음'
+                      : soundReady === false
+                        ? '효과음 활성화 필요'
+                        : '효과음 켜짐'
+                    : '효과음 꺼짐'}
+                </strong>
                 <small>
                   {soundStatus ||
                     '카운트다운과 일정 알림에 효과음을 재생합니다.'}

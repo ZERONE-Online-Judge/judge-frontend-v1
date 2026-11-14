@@ -4,6 +4,7 @@ import './PresentationSoundPrompt.css';
 type Props = {
   contestId: string;
   supported: boolean;
+  active?: boolean;
   onEnable: () => Promise<boolean>;
   onLater?: () => void;
   onOpenChange?: (open: boolean) => void;
@@ -21,13 +22,28 @@ function completed(contestId: string) {
   }
 }
 
+function recordCompleted(contestId: string) {
+  completedInMemory.add(contestId);
+  try {
+    window.sessionStorage.setItem(STORAGE_PREFIX + contestId, 'done');
+  } catch {
+    // Keep the choice for this tab's mounted app when storage is blocked.
+  }
+}
+
 /** An invitation only: never steals focus or blocks the presentation. */
 export default function PresentationSoundPrompt(props: Props) {
   if (!props.supported) return null;
   return <SoundPrompt key={props.contestId} {...props} />;
 }
 
-function SoundPrompt({ contestId, onEnable, onLater, onOpenChange }: Props) {
+function SoundPrompt({
+  contestId,
+  active = false,
+  onEnable,
+  onLater,
+  onOpenChange,
+}: Props) {
   const [dismissed, setDismissed] = useState(() => completed(contestId));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -36,12 +52,17 @@ function SoundPrompt({ contestId, onEnable, onLater, onOpenChange }: Props) {
   const openRef = useRef(false);
   const openChangeRef = useRef(onOpenChange);
   const descriptionId = useId();
+  const hidden = dismissed || active || completed(contestId);
 
   useEffect(() => {
-    openRef.current = !dismissed;
+    if (active) recordCompleted(contestId);
+  }, [active, contestId]);
+
+  useEffect(() => {
+    openRef.current = !hidden;
     openChangeRef.current = onOpenChange;
-    onOpenChange?.(!dismissed);
-  }, [dismissed, onOpenChange]);
+    onOpenChange?.(!hidden);
+  }, [hidden, onOpenChange]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -52,12 +73,7 @@ function SoundPrompt({ contestId, onEnable, onLater, onOpenChange }: Props) {
   }, []);
 
   function finish() {
-    completedInMemory.add(contestId);
-    try {
-      window.sessionStorage.setItem(STORAGE_PREFIX + contestId, 'done');
-    } catch {
-      // Keep the choice for this tab's mounted app when storage is blocked.
-    }
+    recordCompleted(contestId);
     setDismissed(true);
   }
 
@@ -86,7 +102,7 @@ function SoundPrompt({ contestId, onEnable, onLater, onOpenChange }: Props) {
     }
   }
 
-  if (dismissed) return null;
+  if (hidden) return null;
   return (
     <aside
       className="presentation-sound-prompt"

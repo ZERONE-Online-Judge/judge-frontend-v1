@@ -18,6 +18,7 @@ import {
 } from './presentationBoardModel';
 import './PresentationDivisionBoard.css';
 import usePresentationRankScroll from './usePresentationRankScroll';
+import PresentationTableScrollControl from './PresentationTableScrollControl';
 
 export type PresentationDivisionBoardProps = {
   section: OperatorPresentationScoreboardSection;
@@ -39,9 +40,33 @@ function ScoreNumber({
 }) {
   const display = useAnimatedValue(value, scope);
   return (
-    <span className="presentation-stage-board__number">
+    <span
+      className="presentation-stage-board__number"
+      style={
+        {
+          '--stage-number-chars': Math.max(
+            formatScore(display).length,
+            formatScore(value).length,
+            1,
+          ),
+        } as CSSProperties
+      }
+    >
       <span aria-hidden="true">{formatScore(display)}</span>
       <span className="sr-only">{formatScore(value)}</span>
+    </span>
+  );
+}
+
+function PendingCount({ count }: { count: number }) {
+  return (
+    <span
+      className="presentation-stage-board__number"
+      style={
+        { '--stage-number-chars': String(count).length + 1 } as CSSProperties
+      }
+    >
+      ?{count}
     </span>
   );
 }
@@ -63,53 +88,56 @@ function ProblemCell({
       className={`presentation-stage-board__problem-cell px-1 py-1.5 text-center ${active ? 'is-active-problem' : ''}`}
       aria-label={label}
     >
-      {state === 'empty' ? (
-        <span
-          className="presentation-score presentation-stage-board__empty-mark is-empty text-white/20"
-          aria-hidden="true"
-        >
-          -
-        </span>
-      ) : points && value !== undefined ? (
-        <span
-          className="presentation-stage-board__cell-stack inline-flex flex-wrap items-center justify-center"
-          title={label}
-        >
+      <span className="presentation-stage-board__cell-content">
+        {state === 'empty' ? (
           <span
-            data-score-state={state}
-            className={`presentation-score presentation-stage-board__score presentation-stage-board__score-pill inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black ${state === 'full' ? 'is-solved is-full bg-emerald-300 text-slate-950' : value > 0 ? 'is-partial bg-violet-300 text-slate-950' : 'is-empty bg-white/10 text-white/60'}`}
+            className="presentation-score presentation-stage-board__empty-mark is-empty text-white/20"
+            aria-hidden="true"
           >
-            <ScoreNumber value={value} scope={scope} />
+            -
           </span>
-          {pending ? (
-            <span className="presentation-score presentation-stage-board__pending-detail presentation-stage-board__score-pill is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950">
-              ?{pending}
+        ) : points && value !== undefined ? (
+          <span
+            className="presentation-stage-board__cell-stack inline-flex flex-wrap items-center justify-center"
+            data-has-pending={pending > 0 || undefined}
+            title={label}
+          >
+            <span
+              data-score-state={state}
+              className={`presentation-score presentation-stage-board__score presentation-stage-board__score-pill inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black ${state === 'full' ? 'is-solved is-full bg-emerald-300 text-slate-950' : value > 0 ? 'is-partial bg-violet-300 text-slate-950' : 'is-empty bg-white/10 text-white/60'}`}
+            >
+              <ScoreNumber value={value} scope={scope} />
             </span>
-          ) : null}
-        </span>
-      ) : pending ? (
-        <span
-          className="presentation-score presentation-stage-board__score presentation-stage-board__score-pill is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950"
-          title={label}
-        >
-          ?{pending}
-        </span>
-      ) : (
-        <span
-          className={`presentation-score presentation-stage-board__score inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black ${score?.solved ? 'is-solved is-full bg-emerald-300 text-slate-950' : 'is-wrong bg-rose-300 text-slate-950 ring-1 ring-rose-100/35'}`}
-          title={label}
-        >
-          {score?.solved ? (
-            score.wrong_attempts > 0 ? (
-              `+${score.wrong_attempts}`
+            {pending ? (
+              <span className="presentation-score presentation-stage-board__pending-detail presentation-stage-board__score-pill is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950">
+                <PendingCount count={pending} />
+              </span>
+            ) : null}
+          </span>
+        ) : pending ? (
+          <span
+            className="presentation-score presentation-stage-board__score presentation-stage-board__score-pill is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950"
+            title={label}
+          >
+            <PendingCount count={pending} />
+          </span>
+        ) : (
+          <span
+            className={`presentation-score presentation-stage-board__score inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black ${score?.solved ? 'is-solved is-full bg-emerald-300 text-slate-950' : 'is-wrong bg-rose-300 text-slate-950 ring-1 ring-rose-100/35'}`}
+            title={label}
+          >
+            {score?.solved ? (
+              score.wrong_attempts > 0 ? (
+                `+${score.wrong_attempts}`
+              ) : (
+                <InterfaceIcon name="check" size={14} label="정답" />
+              )
             ) : (
-              <InterfaceIcon name="check" size={14} label="정답" />
-            )
-          ) : (
-            `-${score?.attempts}`
-          )}
-        </span>
-      )}
+              `-${score?.attempts}`
+            )}
+          </span>
+        )}
+      </span>
     </td>
   );
 }
@@ -120,7 +148,14 @@ function Rank({ row }: { row: ScoreboardRow }) {
       className="presentation-stage-board__rank-stack"
       aria-label={`${row.rank_is_final === false ? '프리즈 ' : row.rank_is_final === true ? '확정 ' : ''}${row.rank}위`}
     >
-      <span className="presentation-stage-board__rank-value">{row.rank}</span>
+      <span
+        className="presentation-stage-board__rank-value"
+        style={
+          { '--stage-rank-chars': String(row.rank).length } as CSSProperties
+        }
+      >
+        {row.rank}
+      </span>
     </span>
   );
 }
@@ -506,6 +541,11 @@ export default function PresentationDivisionBoard({
           </tbody>
         </table>
       </div>
+      <PresentationTableScrollControl
+        scrollRef={scrollRef}
+        label={section.division.name}
+        fontScale={fontScale}
+      />
       {section.rows.length === 0 ? (
         <p className="presentation-board-meta presentation-stage-board__empty px-5 py-8 text-center text-sm font-bold text-white/50">
           표시할 팀이 없습니다.

@@ -78,6 +78,7 @@ beforeEach(() => {
   props = {
     contestId: 'contest',
     supported: true,
+    active: false,
     onEnable: async () => {
       enables++;
       return true;
@@ -275,4 +276,51 @@ test('an old activation cannot dismiss a new contest or persist after its compon
   await act(() => root.unmount());
   assert.equal(changes.at(-1), false);
   root = createRoot(host);
+});
+
+test('already playable audio never opens an invitation and remembers that fact for the same contest', async () => {
+  await render({ active: true });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(enables, 0);
+  assert.equal(later, 0);
+  assert.deepEqual(changes, [false]);
+  assert.equal(window.sessionStorage.getItem(key('contest')), 'done');
+  await render({ active: false });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  await remount({ reload: true });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  await render({ contestId: 'another' });
+  assert.ok(host.querySelector('[role="dialog"]'));
+});
+
+test('a successful external gesture closes an open invitation without stealing focus or replaying later', async () => {
+  await render();
+  const outside = document.getElementById('outside');
+  outside.focus();
+  await render({ active: true });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(document.activeElement, outside);
+  assert.deepEqual(changes, [true, false]);
+  assert.equal(window.sessionStorage.getItem(key('contest')), 'done');
+  await render({ active: false });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(enables, 0);
+  assert.equal(later, 0);
+});
+
+test('a stale failed activation cannot reopen an invitation after another gesture made output playable', async () => {
+  let resolve;
+  await render({
+    onEnable: () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  });
+  await click('효과음 켜기');
+  await render({ active: true });
+  await act(async () => resolve(false));
+  await render({ active: false });
+  assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.equal(host.querySelector('[role="alert"]'), null);
+  assert.equal(window.sessionStorage.getItem(key('contest')), 'done');
 });

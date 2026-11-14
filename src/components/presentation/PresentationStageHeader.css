@@ -77,40 +77,52 @@
   padding: clamp(6px, min(1vw, 1.4dvh), 16px);
 }
 .presentation-display .presentation-stage-header .presentation-time-label {
+  --time-label-size: clamp(
+    10px,
+    min(0.85vw, 1.5dvh),
+    calc(0.9 * var(--presentation-resolution-size, 16px))
+  );
+  height: calc(var(--time-label-size) * 1.2 * 1.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: calc(
-    clamp(
-        10px,
-        min(0.85vw, 1.5dvh),
-        calc(0.9 * var(--presentation-resolution-size, 16px))
-      ) *
-      clamp(1, var(--presentation-font-scale, 1), 1.2)
+    var(--time-label-size) * clamp(1, var(--presentation-font-scale, 1), 1.2)
   );
   line-height: 1.2;
 }
 .presentation-display .presentation-stage-header .presentation-time-time {
+  --time-date-size: clamp(
+    10px,
+    min(0.78vw, 1.4dvh),
+    calc(0.82 * var(--presentation-resolution-size, 16px))
+  );
+  height: calc(var(--time-date-size) * 1.1 * 1.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 4px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: calc(
-    clamp(
-        10px,
-        min(0.78vw, 1.4dvh),
-        calc(0.82 * var(--presentation-resolution-size, 16px))
-      ) *
-      clamp(1, var(--presentation-font-scale, 1), 1.1)
+    var(--time-date-size) * clamp(1, var(--presentation-font-scale, 1), 1.1)
   );
   line-height: 1.2;
 }
 .presentation-display .presentation-stage-header .presentation-time-value {
+  --time-value-size: clamp(
+    20px,
+    min(2.65vw, 4.5dvh),
+    calc(2.8 * var(--presentation-resolution-size, 16px))
+  );
+  height: calc(var(--time-value-size) * 1.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 4px;
   font-size: calc(
-    clamp(
-        20px,
-        min(2.65vw, 4.5dvh),
-        calc(2.8 * var(--presentation-resolution-size, 16px))
-      ) *
-      clamp(1, var(--presentation-font-scale, 1), 1.25)
+    var(--time-value-size) * clamp(1, var(--presentation-font-scale, 1), 1.25)
   );
   line-height: 1;
 }

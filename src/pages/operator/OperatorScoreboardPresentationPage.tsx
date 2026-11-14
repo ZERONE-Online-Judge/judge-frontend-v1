@@ -33,6 +33,8 @@ import PresentationStageHeader from '@/components/presentation/PresentationStage
 import usePresentationRevealOrigin from '@/components/presentation/usePresentationRevealOrigin';
 import usePresentationAutoScroll from '@/components/presentation/usePresentationAutoScroll';
 import PresentationSoundPrompt from '@/components/presentation/PresentationSoundPrompt';
+import PresentationAwardsStage from '@/components/presentation/PresentationAwardsStage';
+import { usePresentationAwards } from '@/domains/submissionScoreboard/usePresentationAwards';
 import './PresentationStagePage.css';
 
 function useNow(intervalMs = 250) {
@@ -246,6 +248,7 @@ export function OperatorScoreboardPresentationContent({
           setSearchParams(next, { replace: true });
         }}
         soundEnabled={sound.enabled}
+        soundReady={sound.enabled && sound.unlocked && sound.volume > 0}
         soundVolume={sound.volume}
         onSoundVolumeChange={sound.setVolume}
         onSoundEnabledChange={(enabled) => {
@@ -269,6 +272,7 @@ export function OperatorScoreboardPresentationContent({
         key={contestId}
         contestId={contestId}
         supported={sound.supported}
+        active={sound.enabled && sound.unlocked && sound.volume > 0}
         onEnable={sound.enable}
         onLater={sound.disable}
         onOpenChange={setSoundPromptOpen}
@@ -302,6 +306,30 @@ export function OperatorScoreboardPresentationContent({
       presentationQuery.error,
     ),
   });
+  const awards = usePresentationAwards({
+    scopeKey: JSON.stringify([
+      contestId,
+      displayOnly,
+      queryIdentity,
+      divisionIds,
+    ]),
+    contestId,
+    sections: visibleSections,
+    ended: isEnded,
+    updatedAt: presentationQuery.dataUpdatedAt,
+    ready: Boolean(
+      releaseMotion.idle &&
+      !settingsOpen &&
+      !soundPromptOpen &&
+      !(
+        timerState?.showPresentationCountdown ||
+        freezeCountdown !== null ||
+        activeAnnouncement
+      ),
+    ),
+    suppressed: Boolean(presentationQuery.error),
+    onCue: sound.play,
+  });
   const shellClassName = `presentation-stage-shell ${isBeforeContestStart ? 'is-before-start' : ''}`;
   const rankMoving =
     releaseMotion.stage === 'highlighting' || releaseMotion.stage === 'moving';
@@ -329,6 +357,7 @@ export function OperatorScoreboardPresentationContent({
       timerState?.showPresentationCountdown ||
       freezeCountdown !== null ||
       activeAnnouncement ||
+      awards.section ||
       releaseMotion.reveal ||
       releaseMotion.stage !== 'board',
     ),
@@ -523,14 +552,16 @@ export function OperatorScoreboardPresentationContent({
             data-reveal-stage={releaseMotion.stage}
             data-large-type={fontScale > 1.5}
             inert={Boolean(
-              releaseMotion.reveal &&
-              (releaseMotion.stage === 'suspense' ||
-                releaseMotion.stage === 'result'),
+              awards.section ||
+              (releaseMotion.reveal &&
+                (releaseMotion.stage === 'suspense' ||
+                  releaseMotion.stage === 'result')),
             )}
             aria-hidden={Boolean(
-              releaseMotion.reveal &&
-              (releaseMotion.stage === 'suspense' ||
-                releaseMotion.stage === 'result'),
+              awards.section ||
+              (releaseMotion.reveal &&
+                (releaseMotion.stage === 'suspense' ||
+                  releaseMotion.stage === 'result')),
             )}
           >
             {releaseMotion.sections.map((section) => (
@@ -600,6 +631,15 @@ export function OperatorScoreboardPresentationContent({
           reveal={releaseMotion.reveal}
           stage={releaseMotion.stage}
           contestTitle={contest?.title || '프레젠테이션 스코어보드'}
+        />
+      ) : null}
+      {awards.section ? (
+        <PresentationAwardsStage
+          key={`${contestId}:${awards.section.division.division_id}`}
+          section={awards.section}
+          contestTitle={contest?.title || '프레젠테이션 스코어보드'}
+          reducedMotion={awards.reducedMotion}
+          onComplete={awards.complete}
         />
       ) : null}
     </section>

@@ -41,7 +41,16 @@ function Harness(props) {
   return h(
     'section',
     { ref },
-    h('div', { className: 'presentation-stage-board__scroll', id: 'one' }),
+    h(
+      'div',
+      { className: 'presentation-stage-board' },
+      h('div', { className: 'presentation-stage-board__scroll', id: 'one' }),
+      h(
+        'div',
+        { 'data-presentation-scroll-control': true },
+        h('input', { id: 'pan', type: 'range' }),
+      ),
+    ),
     h('div', { className: 'presentation-stage-board__scroll', id: 'two' }),
     h('div', { className: 'settings' }),
   );
@@ -263,4 +272,43 @@ test('changing the contest or division filter restarts reading time without jump
   assert.equal(one.scrollTop, top);
   advance(500);
   assert.ok(one.scrollTop > top && one.scrollTop - top < 15);
+});
+
+test('the visible horizontal range yields only its own table until five seconds after release', async () => {
+  await render();
+  const one = measure('one');
+  const two = measure('two');
+  advance(3000);
+  const pan = host.querySelector('#pan');
+  pan.dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+  const held = one.scrollLeft;
+  advance(6000);
+  assert.equal(
+    one.scrollLeft,
+    held,
+    'The auto-scroller must not fight a held range',
+  );
+  assert.ok(two.scrollTop > one.scrollTop, 'Other divisions continue');
+  document.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+  advance(4900);
+  assert.equal(one.scrollLeft, held);
+  advance(300);
+  assert.ok(one.scrollLeft > held);
+});
+
+test('Enter on a horizontal control gives the same five-second manual hold', async () => {
+  await render();
+  const one = measure('one', 500, 0);
+  measure('two');
+  advance(3000);
+  host
+    .querySelector('#pan')
+    .dispatchEvent(
+      new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+  one.scrollLeft = 100;
+  advance(4900);
+  assert.equal(one.scrollLeft, 100);
+  advance(300);
+  assert.ok(one.scrollLeft > 100);
 });

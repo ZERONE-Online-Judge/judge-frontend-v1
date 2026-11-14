@@ -1,0 +1,82 @@
+.presentation-table-pan {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  padding-top: 5px;
+  color: var(--presentation-muted);
+}
+.presentation-table-pan button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 26px;
+  border: 1px solid var(--presentation-border);
+  border-radius: 7px;
+  background: var(--presentation-faint);
+  color: inherit;
+  cursor: pointer;
+}
+.presentation-table-pan button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.presentation-table-pan button:hover:not(:disabled) {
+  color: var(--presentation-text);
+}
+.presentation-table-pan svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.presentation-table-pan input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  cursor: ew-resize;
+}
+.presentation-table-pan input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 8px;
+  background: var(--presentation-border);
+}
+.presentation-table-pan input::-webkit-slider-thumb {
+  appearance: none;
+  width: 42px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 8px;
+  background: var(--presentation-scrollbar);
+}
+.presentation-table-pan input::-moz-range-track {
+  height: 6px;
+  border-radius: 8px;
+  background: var(--presentation-border);
+}
+.presentation-table-pan input::-moz-range-thumb {
+  width: 42px;
+  height: 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--presentation-scrollbar);
+}
+.presentation-table-pan :is(button, input):focus-visible {
+  outline: 2px solid var(--presentation-accent);
+  outline-offset: 2px;
+}
+@container presentation-scoreboard (max-height: 160px) {
+  .presentation-table-pan {
+    padding-top: 2px;
+  }
+  .presentation-table-pan button,
+  .presentation-table-pan input {
+    height: 22px;
+  }
+}

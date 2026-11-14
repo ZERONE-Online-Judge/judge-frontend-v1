@@ -18,7 +18,8 @@ export type PresentationSoundCue =
   | 'accepted'
   | 'rejected'
   | 'result'
-  | 'complete';
+  | 'complete'
+  | 'celebration';
 export type PresentationAnnouncement = {
   key: string;
   kinds: ('freeze' | 'end')[];

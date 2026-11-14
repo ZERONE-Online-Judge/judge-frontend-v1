@@ -1,9 +1,29 @@
 # Presentation scoreboard rehearsal
 
-Revision 11: retain the original scoreboard and result playback, fit two
+Revision 13: retain the original scoreboard and result playback, fit two
 divisions across the screen, and keep the presentation frame fixed. Each
 division scrolls its own table; optional horizontal and vertical auto-scroll
 make overflowing columns and teams available without shrinking them away.
+
+Text scaling now changes glyph sizes while preserving card, table and column
+geometry and padding. Fixed time-panel line slots prevent the header from
+pushing the boards down at larger font settings. Numeric values fit their
+published column; short table viewports retain a readable first row. A visible
+horizontal range and arrow buttons give mouse and keyboard users direct access
+to overflowing problems without moving the page.
+
+After observed completion of all selected divisions and the final result/rank
+motion, the awards stage celebrates the official podium. Bronze, silver and
+gold medals settle in sequence with a single confetti/firework burst and a
+3.45-second fanfare when sound is available. Tied ranks include every named
+team; overflowing award lists scroll internally and extend reading time up to
+16 seconds. Already-public results loaded on entry do not replay awards.
+Hidden, stale, undone and changed audiences cancel retained ceremonies.
+
+The sound invitation is hidden when the actual audio output is ready. The
+sound hook checks current AudioContext state, recovers a previously activated
+interrupted output on return or a trusted gesture, and never queues missed
+cues. Enabled preference and actual playback readiness are shown separately.
 
 This is the real product page and CSS with synthetic API responses only.
 The reviewed design is authorized for production after verification and the

@@ -8,6 +8,7 @@ const VOICE_GAIN = 0.36;
 const WARNING_VOICE_GAIN = 0.82;
 const RELEASE_VOICE_GAIN = 0.55;
 const REJECTED_VOICE_GAIN = 0.42;
+const CELEBRATION_VOICE_GAIN = 0.64;
 const REPLACEMENT_FADE_SECONDS = 0.008;
 type SoundVoice = {
   oscillator: OscillatorNode;
@@ -104,6 +105,18 @@ export function presentationSoundNotes(cue: PresentationSoundCue) {
         { frequency: 783.99, offset: 0.2, duration: 0.16 },
         { frequency: 1046.5, offset: 0.4, duration: 0.26 },
       ];
+    case 'celebration':
+      return [
+        { frequency: 523.25, offset: 0, duration: 0.18 },
+        { frequency: 659.25, offset: 0.22, duration: 0.18 },
+        { frequency: 783.99, offset: 0.44, duration: 0.32 },
+        { frequency: 1046.5, offset: 0.84, duration: 0.4 },
+        { frequency: 783.99, offset: 1.45, duration: 0.18 },
+        { frequency: 880, offset: 1.67, duration: 0.18 },
+        { frequency: 987.77, offset: 1.89, duration: 0.32 },
+        { frequency: 1046.5, offset: 2.35, duration: 0.32 },
+        { frequency: 1318.51, offset: 2.75, duration: 0.7 },
+      ];
     case 'complete':
       return [
         { frequency: 523.25, offset: 0, duration: 0.14 },
@@ -122,6 +135,8 @@ function voiceGain(cue: PresentationSoundCue) {
       return WARNING_VOICE_GAIN;
     case 'rejected':
       return REJECTED_VOICE_GAIN;
+    case 'celebration':
+      return CELEBRATION_VOICE_GAIN;
     case 'reveal':
     case 'accepted':
     case 'result':
@@ -157,7 +172,7 @@ export function playPresentationSound(
       amplitude,
       at + (cue === 'warning' ? 0.02 : 0.012),
     );
-    // Warning and release phrases never overlap. Countdown melodies retain
+    // Warning, release and celebration phrases never overlap. Countdown melodies retain
     // their softer gain and at most two voices, keeping full-scale headroom.
     gain.gain.setValueAtTime(
       amplitude,
@@ -218,66 +233,169 @@ export function usePresentationSound() {
   const playerRef = useRef<AudioContext | null>(null);
   const enabledRef = useRef(enabled);
   const volumeRef = useRef(volume);
+  const unlockedRef = useRef(false);
+  const mountedRef = useRef(false);
+  const generationRef = useRef(0);
+  const previouslyRunningRef = useRef(false);
+  const resumeRef = useRef<{
+    player: AudioContext;
+    promise: Promise<boolean>;
+  } | null>(null);
+
+  const invalidate = useCallback(() => {
+    generationRef.current++;
+    resumeRef.current = null;
+  }, []);
+
+  const observe = useCallback((player: AudioContext) => {
+    if (!mountedRef.current || playerRef.current !== player) return false;
+    const running = player.state === 'running';
+    if (!running) stopCurrentCue(player);
+    else previouslyRunningRef.current = true;
+    if (unlockedRef.current !== running) {
+      unlockedRef.current = running;
+      setUnlocked(running);
+    }
+    return running;
+  }, []);
+
   useEffect(() => {
-    enabledRef.current = enabled;
-    volumeRef.current = volume;
-  }, [enabled, volume]);
-  useEffect(
-    () => () => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      invalidate();
+      unlockedRef.current = false;
       const player = playerRef.current;
       playerRef.current = null;
       if (player) {
         player.onstatechange = null;
+        stopCurrentCue(player);
         void player.close().catch(() => undefined);
       }
+    };
+  }, [invalidate]);
+
+  const enable = useCallback(
+    (retryPending = true): Promise<boolean> => {
+      const Constructor = audioConstructor();
+      if (!Constructor || !mountedRef.current) return Promise.resolve(false);
+      let player = playerRef.current;
+      try {
+        if (!player || player.state === 'closed') {
+          const created = new Constructor();
+          player = created;
+          playerRef.current = created;
+          created.onstatechange = () => observe(created);
+        }
+      } catch {
+        if (unlockedRef.current) {
+          unlockedRef.current = false;
+          setUnlocked(false);
+        }
+        return Promise.resolve(false);
+      }
+      const current = player;
+      const generation = generationRef.current;
+      const accept = () => {
+        if (
+          generationRef.current !== generation ||
+          !mountedRef.current ||
+          playerRef.current !== current
+        )
+          return false;
+        if (!observe(current)) return false;
+        enabledRef.current = true;
+        setEnabled(true);
+        savePreference(SOUND_STORAGE_KEY, 'true');
+        return true;
+      };
+      // Read the actual output every time; a missed statechange must not leave
+      // an old "ready" value blocking the next real gesture from recovering it.
+      if (current.state === 'running') return Promise.resolve(accept());
+      observe(current);
+      const previousAttempt = resumeRef.current;
+      if (previousAttempt?.player === current && !retryPending)
+        return previousAttempt.promise;
+      const attempt = { player: current, promise: Promise.resolve(false) };
+      resumeRef.current = attempt;
+      attempt.promise = (async () => {
+        try {
+          // Synchronous invocation retains the browser's trusted user gesture.
+          await current.resume();
+          return accept();
+        } catch {
+          if (
+            generationRef.current === generation &&
+            playerRef.current === current
+          )
+            observe(current);
+          return false;
+        } finally {
+          if (resumeRef.current === attempt) resumeRef.current = null;
+        }
+      })();
+      return attempt.promise;
     },
-    [],
+    [observe],
   );
 
-  const enable = useCallback(async () => {
-    const Constructor = audioConstructor();
-    if (!Constructor) return false;
-    try {
-      let player = playerRef.current;
-      if (!player || player.state === 'closed') {
-        const created = new Constructor();
-        player = created;
-        playerRef.current = created;
-        created.onstatechange = () => {
-          if (playerRef.current === created) {
-            if (created.state !== 'running') stopCurrentCue(created);
-            setUnlocked(created.state === 'running');
-          }
-        };
-      }
-      // Called only by a button: browsers can reject an unsolicited resume.
-      await player.resume();
-      if (playerRef.current !== player || player.state !== 'running')
-        return false;
-      enabledRef.current = true;
-      setEnabled(true);
-      setUnlocked(true);
-      savePreference(SOUND_STORAGE_KEY, 'true');
-      return true;
-    } catch {
-      setUnlocked(false);
-      return false;
-    }
-  }, []);
   useEffect(() => {
-    if (!enabled || unlocked || !supported) return;
-    // Browsers require a gesture before audio can run. Unlock silently when
-    // the operator first uses the display; old scheduled cues stay consumed.
-    const unlock = () => void enable();
+    if (!enabled || !supported) return;
+    const unlock = (event: Event) => {
+      if (
+        !event.isTrusted ||
+        !enabledRef.current ||
+        document.visibilityState !== 'visible'
+      )
+        return;
+      const player = playerRef.current;
+      if (!player || !observe(player)) void enable();
+    };
+    // Listen even while ready: browsers can interrupt an audio output without
+    // delivering statechange before the next interaction (notably on iOS).
     document.addEventListener('pointerdown', unlock);
     document.addEventListener('keydown', unlock);
+    document.addEventListener('touchend', unlock, { passive: true });
     return () => {
       document.removeEventListener('pointerdown', unlock);
       document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchend', unlock);
     };
-  }, [enable, enabled, supported, unlocked]);
+  }, [enable, enabled, observe, supported]);
+
+  useEffect(() => {
+    let previousVisibility = document.visibilityState;
+    const visibility = () => {
+      const wasHidden = previousVisibility !== 'visible';
+      previousVisibility = document.visibilityState;
+      const player = playerRef.current;
+      if (!player) return;
+      if (document.visibilityState !== 'visible') {
+        stopCurrentCue(player);
+        return;
+      }
+      observe(player);
+      if (
+        wasHidden &&
+        enabledRef.current &&
+        volumeRef.current > 0 &&
+        previouslyRunningRef.current &&
+        player.state !== 'running' &&
+        player.state !== 'closed'
+      )
+        // Recover an output this user already activated, once per return.
+        // Failure waits for a real gesture; cues are never queued or retried.
+        void enable(false);
+    };
+    document.addEventListener('visibilitychange', visibility);
+    return () => document.removeEventListener('visibilitychange', visibility);
+  }, [enable, observe]);
+
   const disable = useCallback(() => {
+    invalidate();
+    previouslyRunningRef.current = false;
     enabledRef.current = false;
+    unlockedRef.current = false;
     setEnabled(false);
     setUnlocked(false);
     savePreference(SOUND_STORAGE_KEY, 'false');
@@ -285,23 +403,37 @@ export function usePresentationSound() {
     playerRef.current = null;
     if (player) {
       player.onstatechange = null;
-      // Closing also drops pending notes; unmuting must not replay an old cue.
+      stopCurrentCue(player);
+      // Closing drops pending notes; unmuting must not replay an old cue.
       void player.close().catch(() => undefined);
     }
-  }, []);
-  const play = useCallback((cue: PresentationSoundCue) => {
-    const player = playerRef.current;
-    if (!enabledRef.current || !player) return;
-    try {
-      playPresentationSound(player, cue, volumeRef.current);
-    } catch {
-      // An unavailable audio output must never interrupt the scoreboard.
-    }
-  }, []);
+  }, [invalidate]);
+  const play = useCallback(
+    (cue: PresentationSoundCue) => {
+      const player = playerRef.current;
+      if (!enabledRef.current || !player) return false;
+      if (!observe(player)) return false;
+      if (document.visibilityState !== 'visible') {
+        stopCurrentCue(player);
+        return false;
+      }
+      try {
+        return playPresentationSound(player, cue, volumeRef.current);
+      } catch {
+        stopCurrentCue(player);
+        if (unlockedRef.current) {
+          unlockedRef.current = false;
+          setUnlocked(false);
+        }
+        // An unavailable output must never interrupt the scoreboard.
+        return false;
+      }
+    },
+    [observe],
+  );
   const test = useCallback(async () => {
     if (!(await enable())) return false;
-    play('warning');
-    return true;
+    return play('warning');
   }, [enable, play]);
   const setVolume = useCallback((value: number) => {
     if (!Number.isFinite(value)) return;

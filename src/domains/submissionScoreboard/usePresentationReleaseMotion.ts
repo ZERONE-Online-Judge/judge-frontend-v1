@@ -105,6 +105,13 @@ export function usePresentationReleaseMotion({
     sections: eligible ? state.sections : sections,
     reveal: eligible ? state.reveal : null,
     stage: eligible ? state.stage : ('board' as const),
+    idle:
+      state.scopeKey === scopeKey &&
+      !suppressed &&
+      ended &&
+      state.stage === 'board' &&
+      state.reveal === null &&
+      state.nextAt === null,
     finish: () => coordinator.finish(Date.now()),
   };
 }

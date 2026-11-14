@@ -229,3 +229,36 @@ test('a newer release cue cancels every scheduled celebration note, and zero or 
     assert.equal(suspended.oscillators.length, 0);
   }
 });
+
+test('the completion celebration is a distinct 3–4 second fanfare with single-voice headroom', () => {
+  const notes = presentationSoundNotes('celebration');
+  assert(notes.length >= 8);
+  assert.equal(notes[0].offset, 0);
+  assert(notes.at(-1).offset + notes.at(-1).duration >= 3);
+  assert(notes.at(-1).offset + notes.at(-1).duration <= 4);
+  assert.notDeepEqual(notes, presentationSoundNotes('complete'));
+  assert(notes.at(-1).frequency > notes[0].frequency);
+  assert(notes.at(-1).duration >= 0.6);
+  for (let index = 1; index < notes.length; index++) {
+    assert(
+      notes[index].offset >=
+        notes[index - 1].offset + notes[index - 1].duration,
+    );
+  }
+  const context = output();
+  assert.equal(playPresentationSound(context, 'celebration', 1), true);
+  assert.equal(context.oscillators.length, notes.length);
+  assert(
+    context.envelopes.every(
+      (events) => events[1][1] === 0.64 && events.at(-1)[1] === 0,
+    ),
+  );
+  context.currentTime = 0.5;
+  const old = context.oscillators.slice();
+  assert.equal(playPresentationSound(context, 'tick', 1), true);
+  assert(
+    old.every(
+      (events) => events.at(-1)[0] === 'stop' && events.at(-1)[1] <= 0.508,
+    ),
+  );
+});

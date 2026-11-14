@@ -12,6 +12,7 @@ const SCROLL_KEYS = new Set([
   'PageDown',
   'Home',
   'End',
+  'Enter',
   ' ',
 ]);
 
@@ -66,7 +67,12 @@ export default function usePresentationAutoScroll(
       const target = event.target;
       const region =
         target instanceof Element
-          ? target.closest<HTMLElement>(SCROLL_REGION)
+          ? (target.closest<HTMLElement>(SCROLL_REGION) ??
+            (target.closest('[data-presentation-scroll-control]')
+              ? target
+                  .closest('.presentation-stage-board')
+                  ?.querySelector<HTMLElement>(SCROLL_REGION)
+              : null))
           : null;
       if (!region || !root.contains(region)) return;
       if (event.type === 'pointerdown' || event.type === 'touchstart')

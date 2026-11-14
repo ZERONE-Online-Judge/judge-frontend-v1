@@ -76,8 +76,13 @@ export default function PresentationLaunchDialog({
         ))}
         <p role="status" className="text-xs leading-6 text-slate-500">
           {selectedIds.length
-            ? `${selectedIds.length}개 유형을 한 화면에 함께 표시합니다.`
+            ? `${selectedIds.length}개 유형을 한 화면에 함께 표시합니다. 각 유형의 표는 따로 스크롤할 수 있습니다.`
             : '표시할 유형을 1개 이상 선택하세요.'}
+        </p>
+        <p className="text-xs leading-6 text-slate-500">
+          열린 화면의 화면 설정에서 유형·테마·글자 크기와 표 자동 스크롤을 바꿀
+          수 있습니다. 자동 스크롤은 기본적으로 켜져 있으며 넘치는 표만
+          이동합니다.
         </p>
       </fieldset>
     </ModalDialog>

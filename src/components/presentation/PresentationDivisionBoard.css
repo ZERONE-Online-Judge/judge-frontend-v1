@@ -1,0 +1,398 @@
+/* Size each table against its own card, so a second division does not inherit
+   the dimensions of a full-screen board. No row measurements are needed. */
+.presentation-stage-board {
+  --stage-unit: var(--presentation-font-scale, 1);
+  --stage-spacing-unit: clamp(0.8, var(--stage-unit), 1.5);
+  container: presentation-scoreboard / size;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.presentation-stage-board__header {
+  flex: none;
+}
+
+.presentation-stage-board__scroll {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.presentation-stage-board .presentation-stage-board__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--presentation-surface);
+  box-shadow: 0 1px var(--presentation-border);
+}
+
+.presentation-stage-board .presentation-stage-board__table {
+  --stage-fit: 1;
+  --stage-unit: max(
+    0.8,
+    calc(var(--presentation-font-scale, 1) * var(--stage-fit))
+  );
+  --stage-spacing-unit: clamp(0.8, var(--stage-unit), 1.5);
+  --stage-heading-unit: var(--stage-unit);
+  --stage-team-share: 0.3;
+  --stage-data-share: 0.7;
+  --stage-team-min: calc(17.5 * var(--presentation-resolution-size, 16px));
+  --stage-rank-col: calc(4.5 * var(--presentation-resolution-size, 16px));
+  --stage-solved-col: calc(5 * var(--presentation-resolution-size, 16px));
+  --stage-points-col: calc(8 * var(--presentation-resolution-size, 16px));
+  --stage-time-col: calc(6 * var(--presentation-resolution-size, 16px));
+  --stage-problem-col: calc(4.5 * var(--presentation-resolution-size, 16px));
+  --stage-points-problem-col: calc(
+    6 * var(--presentation-resolution-size, 16px)
+  );
+  --stage-cell-gap: calc(0.5 * var(--presentation-resolution-size, 16px));
+  --stage-fixed-cols: calc(
+    var(--stage-rank-col) + var(--stage-solved-col) + var(--stage-time-col)
+  );
+  --stage-min-problem: var(--stage-problem-col);
+  table-layout: fixed;
+  min-width: max(
+    calc(var(--stage-team-min) / var(--stage-team-share) * var(--stage-unit)),
+    calc(
+      (
+          var(--stage-fixed-cols) + var(--stage-problem-count, 0) *
+            var(--stage-min-problem)
+        ) /
+        var(--stage-data-share) * var(--stage-unit)
+    )
+  );
+}
+
+.presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__table {
+  --stage-fixed-cols: calc(var(--stage-rank-col) + var(--stage-points-col));
+  --stage-min-problem: var(--stage-points-problem-col);
+}
+
+.presentation-stage-board__col-rank {
+  width: calc(var(--stage-rank-col) * var(--stage-unit));
+}
+.presentation-stage-board__col-team {
+  width: calc(var(--stage-team-share) * 100%);
+}
+.presentation-stage-board__col-total {
+  width: calc(var(--stage-solved-col) * var(--stage-unit));
+}
+.presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__col-total {
+  width: calc(var(--stage-points-col) * var(--stage-unit));
+}
+.presentation-stage-board__col-penalty {
+  width: calc(var(--stage-time-col) * var(--stage-unit));
+}
+
+.presentation-display
+  .presentation-stage-board
+  .presentation-stage-board__table
+  thead
+  th {
+  font-size: calc(
+    0.875 * var(--presentation-resolution-size, 16px) *
+      var(--stage-heading-unit)
+  );
+}
+
+.presentation-stage-board .presentation-stage-board__problem-code {
+  font-size: calc(
+    1.1875 * var(--presentation-resolution-size, 16px) *
+      var(--stage-heading-unit)
+  );
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.presentation-display .presentation-stage-board .presentation-board-team {
+  font-size: calc(
+    1.25 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+  );
+  line-height: 1.4;
+}
+
+.presentation-display .presentation-stage-board .presentation-board-rank {
+  font-size: calc(
+    1.5 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+  );
+}
+
+.presentation-display .presentation-stage-board .presentation-board-solved {
+  font-size: calc(
+    1.4375 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+  );
+}
+
+.presentation-display .presentation-stage-board .presentation-board-penalty {
+  font-size: calc(
+    1.125 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+  );
+}
+
+.presentation-stage-board__row > td {
+  height: calc(
+    3.75 * var(--presentation-resolution-size, 16px) * var(--stage-spacing-unit)
+  );
+}
+
+.presentation-display .presentation-stage-board .presentation-score {
+  min-width: calc(2.5rem * clamp(0.8, var(--stage-unit), 2));
+  min-height: calc(2rem * clamp(0.8, var(--stage-unit), 2));
+  font-size: calc(
+    1.0625 * var(--presentation-resolution-size, 16px) * var(--stage-unit)
+  );
+}
+
+.presentation-stage-board__cell-stack {
+  max-width: 100%;
+  gap: calc(var(--stage-cell-gap) * var(--stage-spacing-unit));
+  vertical-align: middle;
+}
+
+/* A published point value and its pending count form one centered group.
+   At large text sizes the group wraps instead of pushing into another cell. */
+.presentation-display
+  .presentation-stage-board[data-scoring-mode='ioi']
+  .presentation-stage-board__score-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: max(calc(2.5rem * clamp(0.8, var(--stage-unit), 2)), 2.25em);
+  height: max(calc(2rem * clamp(0.8, var(--stage-unit), 2)), 1.5em);
+  min-height: max(calc(2rem * clamp(0.8, var(--stage-unit), 2)), 1.5em);
+  padding: 0 0.5em;
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.presentation-stage-board__number {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.presentation-stage-board__label-short {
+  display: none;
+}
+
+/* Keep compact boards readable before allowing their internal scrollbar.
+   Explicit 300% text scaling still multiplies these dimensions; fitting never
+   cancels the viewer's zoom or hides a problem column. */
+@container presentation-scoreboard (max-width: 1200px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-fit: 0.94;
+    --stage-team-share: 0.26;
+    --stage-data-share: 0.74;
+    --stage-team-min: calc(11.25 * var(--presentation-resolution-size, 16px));
+    --stage-rank-col: calc(3.5 * var(--presentation-resolution-size, 16px));
+    --stage-solved-col: calc(4.5 * var(--presentation-resolution-size, 16px));
+    --stage-points-col: calc(6.5 * var(--presentation-resolution-size, 16px));
+    --stage-time-col: calc(4.75 * var(--presentation-resolution-size, 16px));
+    --stage-problem-col: calc(3.75 * var(--presentation-resolution-size, 16px));
+    --stage-points-problem-col: calc(
+      5.5 * var(--presentation-resolution-size, 16px)
+    );
+    --stage-cell-gap: calc(0.375 * var(--presentation-resolution-size, 16px));
+  }
+  .presentation-stage-board__table :is(th, td) {
+    padding-inline: calc(6px * var(--stage-spacing-unit));
+  }
+  .presentation-stage-board__table thead th {
+    padding-block: calc(10px * var(--stage-spacing-unit));
+  }
+  .presentation-stage-board__row > td {
+    padding-block: calc(8px * var(--stage-spacing-unit));
+  }
+  .presentation-stage-board__table
+    :is(
+      .presentation-stage-board__problem-heading,
+      .presentation-stage-board__problem-cell
+    ) {
+    padding-inline: calc(3px * var(--stage-spacing-unit));
+  }
+  .presentation-stage-board__table .presentation-stage-board__team-name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@container presentation-scoreboard (max-width: 960px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-fit: 0.9;
+    --stage-team-share: 0.24;
+    --stage-data-share: 0.76;
+    --stage-team-min: calc(9 * var(--presentation-resolution-size, 16px));
+    --stage-rank-col: calc(3.25 * var(--presentation-resolution-size, 16px));
+    --stage-solved-col: calc(4 * var(--presentation-resolution-size, 16px));
+    --stage-points-col: calc(6 * var(--presentation-resolution-size, 16px));
+    --stage-time-col: calc(4.25 * var(--presentation-resolution-size, 16px));
+    --stage-problem-col: calc(3.5 * var(--presentation-resolution-size, 16px));
+    --stage-points-problem-col: calc(
+      5 * var(--presentation-resolution-size, 16px)
+    );
+    --stage-cell-gap: calc(0.3125 * var(--presentation-resolution-size, 16px));
+  }
+}
+
+@container presentation-scoreboard (max-width: 760px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-fit: 0.85;
+    --stage-team-share: 0.22;
+    --stage-data-share: 0.78;
+    --stage-team-min: calc(8 * var(--presentation-resolution-size, 16px));
+    --stage-rank-col: calc(3 * var(--presentation-resolution-size, 16px));
+    --stage-solved-col: calc(3.625 * var(--presentation-resolution-size, 16px));
+    --stage-points-col: calc(5.5 * var(--presentation-resolution-size, 16px));
+    --stage-time-col: calc(3.875 * var(--presentation-resolution-size, 16px));
+    --stage-problem-col: calc(
+      3.125 * var(--presentation-resolution-size, 16px)
+    );
+    --stage-points-problem-col: calc(
+      5.25 * var(--presentation-resolution-size, 16px)
+    );
+    --stage-cell-gap: calc(0.25 * var(--presentation-resolution-size, 16px));
+  }
+  .presentation-stage-board__label-full {
+    display: none;
+  }
+  .presentation-stage-board__label-short {
+    display: inline;
+  }
+}
+
+@container presentation-scoreboard (max-width: 620px) {
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-fit: 0.8;
+    --stage-team-share: 0.2;
+    --stage-data-share: 0.8;
+    --stage-team-min: calc(6.875 * var(--presentation-resolution-size, 16px));
+    --stage-rank-col: calc(2.625 * var(--presentation-resolution-size, 16px));
+    --stage-solved-col: calc(3.25 * var(--presentation-resolution-size, 16px));
+    --stage-points-col: calc(5.25 * var(--presentation-resolution-size, 16px));
+    --stage-time-col: calc(3.5 * var(--presentation-resolution-size, 16px));
+    --stage-problem-col: calc(3 * var(--presentation-resolution-size, 16px));
+  }
+  .presentation-stage-board__table :is(th, td) {
+    padding-inline: calc(4px * var(--stage-spacing-unit));
+  }
+}
+
+.presentation-stage-board__row {
+  transition:
+    background-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.presentation-display
+  .presentation-stage-board
+  .presentation-stage-board__row[data-rank-moving='true'] {
+  position: relative;
+  z-index: 3;
+  background: color-mix(
+    in srgb,
+    var(--presentation-pending-bg) 28%,
+    var(--presentation-surface)
+  );
+  box-shadow:
+    inset 3px 0 var(--presentation-pending-bg),
+    inset -3px 0 var(--presentation-pending-bg);
+  transition-duration: 180ms;
+}
+
+.presentation-stage-board__score {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
+.presentation-stage-board__scroll:focus-visible {
+  outline: 2px solid var(--presentation-accent);
+  outline-offset: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presentation-stage-board__row,
+  .presentation-stage-board__score {
+    transition: none;
+  }
+}
+
+.presentation-display .presentation-stage-board .presentation-board-title {
+  font-size: calc(
+    clamp(18px, 3cqw, calc(2.45 * var(--presentation-resolution-size, 16px))) *
+      clamp(1, var(--presentation-font-scale, 1), 1.25)
+  );
+  line-height: 1.15;
+}
+.presentation-display .presentation-stage-board .presentation-board-meta {
+  font-size: calc(
+    0.6 * var(--presentation-resolution-size, 16px) *
+      clamp(1, var(--presentation-font-scale, 1), 1.2)
+  );
+}
+@container presentation-scoreboard (max-height: 260px) {
+  .presentation-stage-board__header {
+    padding-bottom: 6px;
+  }
+  .presentation-stage-board__header .presentation-board-meta {
+    display: none;
+  }
+  .presentation-display .presentation-stage-board .presentation-board-title {
+    font-size: clamp(14px, 3cqw, 24px);
+  }
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-heading-unit: clamp(0.8, var(--stage-unit), 1.35);
+  }
+  .presentation-stage-board .presentation-stage-board__table thead th {
+    padding-block: 5px;
+    line-height: 1.1;
+  }
+}
+@container presentation-scoreboard (max-height: 160px) {
+  .presentation-stage-board__header {
+    padding-bottom: 4px;
+  }
+  .presentation-display .presentation-stage-board .presentation-board-title {
+    font-size: clamp(13px, 2.5cqw, 18px);
+  }
+  .presentation-stage-board .presentation-stage-board__table {
+    --stage-unit: clamp(
+      0.8,
+      calc(var(--presentation-font-scale, 1) * var(--stage-fit)),
+      1.75
+    );
+    --stage-heading-unit: clamp(0.8, var(--stage-unit), 1.15);
+  }
+  .presentation-stage-board .presentation-stage-board__table thead th {
+    padding-block: 3px;
+  }
+  .presentation-stage-board__row > td {
+    height: auto;
+    padding-block: 3px;
+    line-height: 1.1;
+    vertical-align: top;
+  }
+  .presentation-display .presentation-stage-board .presentation-board-team {
+    -webkit-line-clamp: 1;
+    line-height: 1.2;
+  }
+  .presentation-display
+    .presentation-stage-board[data-scoring-mode]
+    .presentation-score {
+    height: 1.5em;
+    min-height: 1.5em;
+    line-height: 1;
+  }
+}

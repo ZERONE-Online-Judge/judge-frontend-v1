@@ -1,0 +1,116 @@
+.presentation-display.presentation-stage-display {
+  --presentation-resolution-size: clamp(
+    16px,
+    min(0.833333vw, 1.481481dvh),
+    24px
+  );
+  --presentation-layout-gap: clamp(6px, min(1.3vw, 1.3dvh), 24px);
+  isolation: isolate;
+  height: 100dvh;
+  overflow: hidden;
+}
+.presentation-stage-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  margin-inline: auto;
+  gap: var(--presentation-layout-gap);
+}
+.presentation-stage-shell > .presentation-stage-header {
+  flex: none;
+}
+.presentation-stage-shell.is-before-start {
+  justify-content: center;
+  gap: clamp(1rem, 2vw, 2rem);
+}
+.presentation-stage-boards {
+  --presentation-board-gap: var(--presentation-layout-gap);
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(
+      min(100%, max(34rem, calc((100% - var(--presentation-board-gap)) / 2))),
+      1fr
+    )
+  );
+  gap: var(--presentation-board-gap);
+  min-width: 0;
+  transition:
+    opacity 300ms ease,
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 300ms ease;
+  transform-origin: top center;
+}
+.presentation-stage-boards[data-reveal-stage='suspense'],
+.presentation-stage-boards[data-reveal-stage='result'] {
+  opacity: 0.25;
+  transform: scale(0.985);
+  filter: blur(3px);
+}
+.presentation-stage-boards[data-reveal-stage='focusing']
+  .presentation-stage-board {
+  opacity: 0.45;
+  transition: opacity 200ms ease;
+}
+.presentation-stage-boards[data-reveal-stage='focusing']
+  .presentation-stage-board[data-reveal-focused] {
+  opacity: 1;
+  border-color: var(--presentation-accent);
+}
+.presentation-stage-board[data-reveal-focused]
+  .presentation-stage-board__row[data-active-team='true'] {
+  z-index: 4;
+  box-shadow:
+    inset 3px 0 var(--presentation-accent),
+    inset -3px 0 var(--presentation-accent);
+  animation: presentation-source-focus 420ms ease-out both;
+}
+.presentation-stage-board[data-reveal-focused]
+  .presentation-stage-board__problem-cell.is-active-problem {
+  outline: 2px solid var(--presentation-accent);
+  outline-offset: -2px;
+  background: var(--presentation-accent-bg);
+}
+@keyframes presentation-source-focus {
+  from {
+    filter: brightness(1);
+  }
+  55% {
+    filter: brightness(1.3);
+  }
+  to {
+    filter: brightness(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .presentation-stage-boards,
+  .presentation-stage-boards * {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Leave touch controls above the fixed presentation on narrow displays. */
+@media (max-width: 640px) {
+  .presentation-display.presentation-stage-display:not(:fullscreen) {
+    padding-top: max(54px, calc(env(safe-area-inset-top) + 50px));
+    padding-inline: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .presentation-stage-board {
+    padding: 8px;
+  }
+}
+
+@media (max-height: 640px) {
+  .presentation-stage-board {
+    padding: 8px;
+  }
+}

@@ -1,29 +1,23 @@
-import type { ContestScoringMode } from '@/domains/contestAdministration/types';
-import { formatScore } from '@/domains/submissionScoreboard/scoring';
-import { compareProblemCodes } from '@/domains/problemManagement/problemCodeOrder';
 import { ContestCountdown } from '@/components/contest/ContestScheduleClock';
 import { contestTimerState } from '@/domains/contestAdministration/contestTimer';
 import './OperatorScoreboardPresentationPage.css';
-import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { getPresentationScoreboard } from '@/domains/presentationAccess/api';
 import { usePresentationSession } from '@/domains/presentationAccess/session';
 import { isSessionAuthError } from '@/shared/api/errors';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OperatorAccessGate } from '@/components/operator/OperatorShell';
-import ScoreboardMedal from '@/components/contest/scoreboard/ScoreboardMedal';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { getOperatorPresentationScoreboard } from '@/domains/submissionScoreboard/api';
 import { subscribeScoreboardUpdates } from '@/domains/submissionScoreboard/presentationSync';
 import { queuedPresentationRefresh } from '@/domains/submissionScoreboard/presentationRefresh';
-import useScoreboardRowMotion from '@/domains/submissionScoreboard/useScoreboardRowMotion';
-import { scoreboardRankSections } from '@/domains/submissionScoreboard/scoreboardRankSections';
-import type {
-  OperatorPresentationScoreboardSection,
-  ScoreboardProblemScore,
-  ScoreboardRow,
-} from '@/domains/submissionScoreboard/types';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import { formatApiError } from '@/shared/api/errors';
 import PresentationDisplaySettings from '@/components/operator/PresentationDisplaySettings';
@@ -31,7 +25,15 @@ import { usePresentationDisplayPreferences } from '@/domains/submissionScoreboar
 import { usePresentationAnnouncements } from '@/domains/submissionScoreboard/usePresentationAnnouncements';
 import { presentationFreezeCountdown } from '@/domains/submissionScoreboard/presentationAnnouncements';
 import { usePresentationSound } from '@/domains/submissionScoreboard/presentationSound';
-import { usePresentationReleaseSounds } from '@/domains/submissionScoreboard/usePresentationReleaseSounds';
+import { usePresentationReleaseMotion } from '@/domains/submissionScoreboard/usePresentationReleaseMotion';
+import { presentationRevealMovedTeamIds } from '@/domains/submissionScoreboard/presentationReleaseMotion';
+import PresentationDivisionBoard from '@/components/presentation/PresentationDivisionBoard';
+import PresentationCenterStage from '@/components/presentation/PresentationCenterStage';
+import PresentationStageHeader from '@/components/presentation/PresentationStageHeader';
+import usePresentationRevealOrigin from '@/components/presentation/usePresentationRevealOrigin';
+import usePresentationAutoScroll from '@/components/presentation/usePresentationAutoScroll';
+import PresentationSoundPrompt from '@/components/presentation/PresentationSoundPrompt';
+import './PresentationStagePage.css';
 
 function useNow(intervalMs = 250) {
   const [now, setNow] = useState(() => Date.now());
@@ -60,307 +62,14 @@ function timeLeftLabel(target?: string | null, now = Date.now()) {
   return `${seconds}s`;
 }
 
-function splitContestTitle(title?: string | null) {
-  const fallback = '스코어보드';
-  const normalized = (title || fallback).trim();
-  const [first = fallback, ...rest] = normalized.split(/\s+/);
-
-  return {
-    primary: first,
-    secondary: rest.join(' '),
-  };
-}
-
-function sortedProblemCodes(section: OperatorPresentationScoreboardSection) {
-  const codes = new Set<string>();
-  section.problems.forEach((problem) => codes.add(problem.problem_code));
-  section.rows.forEach((row) => {
-    row.problem_scores.forEach((score) => codes.add(score.problem_code));
-  });
-
-  return Array.from(codes).sort(compareProblemCodes);
-}
-
-function problemScoreByCode(row: ScoreboardRow) {
-  return new Map(
-    row.problem_scores.map((score) => [score.problem_code, score]),
-  );
-}
-
-function solvedLabel(score?: ScoreboardProblemScore) {
-  if (!score) return '';
-  if (score.solved) {
-    return score.wrong_attempts > 0 ? (
-      `+${score.wrong_attempts}`
-    ) : (
-      <InterfaceIcon name="check" size={14} label="정답" />
-    );
-  }
-  if (score.attempts > 0) return `-${score.attempts}`;
-  return '';
-}
-
-function penaltyLabel(value?: number | null) {
-  if (value === undefined || value === null) return '-';
-  return value.toLocaleString('ko-KR');
-}
-
-function PresentationScoreCell({
-  score,
-  scoringMode,
-}: {
-  score?: ScoreboardProblemScore;
-  scoringMode?: ContestScoringMode;
-}) {
-  if (scoringMode === 'ioi') {
-    if (!score || (!score.attempts && !score.pending_attempts && !score.score))
-      return (
-        <span className="presentation-score is-empty text-white/20">-</span>
-      );
-    const value = score.score ?? 0;
-    const full = value === (score.max_score ?? 100);
-    const pending = !full && score.pending_attempts;
-    return (
-      <span
-        className="inline-flex flex-wrap items-center justify-center gap-1"
-        title={`${formatScore(value)} / 100점${pending ? ` · 미공개 제출 ${pending}건` : ''}`}
-      >
-        <span
-          className={`presentation-score inline-flex h-6 min-w-8 items-center justify-center rounded-lg px-1.5 text-[0.68rem] font-black ${full ? 'is-solved bg-emerald-300 text-slate-950' : value > 0 ? 'is-partial bg-violet-300 text-slate-950' : 'is-empty bg-white/10 text-white/60'}`}
-        >
-          {formatScore(value)}
-        </span>
-        {pending ? (
-          <span className="presentation-score is-pending text-[0.6rem] font-bold text-amber-200">
-            ?{pending}
-          </span>
-        ) : null}
-      </span>
-    );
-  }
-  if (score?.pending_attempts && !score.solved) {
-    return (
-      <span
-        className="presentation-score is-pending inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-amber-200 px-1.5 text-[0.68rem] font-black text-amber-950"
-        title={`미공개 제출 ${score.pending_attempts}건`}
-        aria-label={`미공개 제출 ${score.pending_attempts}건`}
-      >
-        ?{score.pending_attempts}
-      </span>
-    );
-  }
-  const label = solvedLabel(score);
-  if (!label) {
-    return <span className="presentation-score is-empty text-white/20">-</span>;
-  }
-
-  return (
-    <span
-      className={[
-        'inline-flex h-6 min-w-8 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-black',
-        score?.solved
-          ? 'presentation-score is-solved bg-emerald-300 text-slate-950'
-          : 'presentation-score is-wrong bg-rose-300 text-slate-950 ring-1 ring-rose-100/35',
-      ].join(' ')}
-    >
-      {label}
-    </span>
-  );
-}
-
-function PresentationDivisionBoard({
-  section,
-  scoringMode = section.scoring_mode ?? 'icpc',
-}: {
-  section: OperatorPresentationScoreboardSection;
-  scoringMode?: ContestScoringMode;
-}) {
-  const points = scoringMode === 'ioi';
-  const problemCodes = useMemo(() => sortedProblemCodes(section), [section]);
-  const gridMinWidth = Math.max(560, 380 + problemCodes.length * 48);
-  const bodyRef = useScoreboardRowMotion(section.rows, 450);
-  const rankSections = scoreboardRankSections(section.rows);
-  const lastEvent = section.release?.resolver?.last_event;
-
-  return (
-    <section className="presentation-board min-w-0 overflow-hidden rounded-[0.85rem] border border-indigo-300/15 bg-slate-950/55 p-[clamp(0.8rem,1.4vw,1.2rem)] shadow-[0_1.25rem_4rem_rgba(0,0,0,0.28)] backdrop-blur">
-      <header className="presentation-board-header flex items-end justify-between gap-3 pb-3">
-        <div className="min-w-0">
-          <p className="presentation-board-meta text-[0.6rem] font-black tracking-[0.28em] text-violet-300 uppercase">
-            Division
-          </p>
-          <h2 className="presentation-board-title truncate text-[clamp(1.35rem,2.4vw,2.45rem)] leading-none font-black tracking-normal text-white">
-            {section.division.name}
-          </h2>
-        </div>
-        <span
-          className={[
-            'presentation-board-status inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black',
-            section.frozen
-              ? 'is-frozen border-amber-300/40 bg-amber-300/10 text-amber-100'
-              : 'border-violet-300/25 bg-violet-300/10 text-violet-100',
-          ].join(' ')}
-        >
-          <span className="size-2 rounded-full bg-current" />
-          {section.release?.mode === 'all'
-            ? '최종 순위'
-            : section.release?.strategy === 'immediate' &&
-                section.release.mode === 'partial'
-              ? '프리즈 유지'
-              : section.release?.mode === 'partial'
-                ? '순위 공개 중'
-                : section.frozen
-                  ? '프리즈'
-                  : '라이브'}
-        </span>
-      </header>
-
-      {section.release?.resolver && section.release.mode !== 'not_started' ? (
-        <p className="presentation-reveal-progress mb-3 text-xs font-semibold text-violet-200/80">
-          팀·문제 공개 {section.release.resolver.step} /{' '}
-          {section.release.resolver.total_steps}
-          <span className="ml-3">
-            남은 문제 {section.release.resolver.pending_count}개
-          </span>
-        </p>
-      ) : null}
-      <div className="presentation-board-scroll overflow-x-auto">
-        <table
-          className="presentation-board-table w-full border-collapse text-left"
-          style={{ minWidth: `${gridMinWidth}px` }}
-        >
-          <thead>
-            <tr className="border-y border-white/10 text-[0.62rem] font-black tracking-normal text-white/85 uppercase">
-              <th className="w-16 px-3 py-3">Rank</th>
-              <th className="min-w-48 px-3 py-3">Team</th>
-              <th className="w-16 px-2 py-3 text-center">
-                {points ? 'Score' : 'Solved'}
-              </th>
-              {problemCodes.map((code) => (
-                <th className="w-12 px-1 py-3 text-center" key={code}>
-                  {code}
-                </th>
-              ))}
-              {!points ? (
-                <th className="w-20 px-3 py-3 text-center">Time</th>
-              ) : null}
-            </tr>
-          </thead>
-          <tbody ref={bodyRef}>
-            {rankSections.flatMap((rankSection) => [
-              ...(rankSection.label
-                ? [
-                    <tr key={`rank-section-${rankSection.key}`}>
-                      <th
-                        colSpan={(points ? 3 : 4) + problemCodes.length}
-                        className="border-y border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-semibold text-white/75"
-                        data-scoreboard-rank-section={rankSection.key}
-                      >
-                        {rankSection.label}
-                      </th>
-                    </tr>,
-                  ]
-                : []),
-              ...rankSection.rows.map((row) => {
-                if (row.is_revealed === false)
-                  return (
-                    <tr
-                      key={row.team_id}
-                      data-scoreboard-row={row.team_id}
-                      className="presentation-board-row is-waiting border-b border-white/10 bg-white/[0.03]"
-                    >
-                      <td
-                        className="presentation-board-rank px-3 py-4 text-lg font-black text-violet-300"
-                        aria-label={
-                          row.rank_is_final === false
-                            ? `프리즈 ${row.rank}위`
-                            : undefined
-                        }
-                      >
-                        {row.rank_is_final === false ? (
-                          <span className="presentation-board-rank-label mb-1 block text-[0.6rem] font-medium text-white/60">
-                            프리즈
-                          </span>
-                        ) : null}
-                        {row.rank}
-                      </td>
-                      <td
-                        colSpan={(points ? 2 : 3) + problemCodes.length}
-                        className="presentation-board-meta px-3 py-4 text-sm font-bold text-white/35"
-                      >
-                        공개 대기
-                      </td>
-                    </tr>
-                  );
-                const scores = problemScoreByCode(row);
-
-                return (
-                  <tr
-                    className={`presentation-board-row border-b border-white/5 last:border-b-0 ${lastEvent?.team_id === row.team_id ? 'is-active bg-violet-500/25' : row.is_revealed ? 'is-revealed bg-violet-500/15' : 'odd:bg-white/[0.035]'}`}
-                    key={`${section.division.division_id}-${row.team_id ?? row.team_name}`}
-                    data-scoreboard-row={row.team_id ?? row.team_name}
-                  >
-                    <td
-                      className="presentation-board-rank px-3 py-2.5 text-[clamp(0.9rem,1.3vw,1.15rem)] font-black text-violet-300"
-                      aria-label={
-                        row.rank_is_final === undefined
-                          ? undefined
-                          : `${row.rank_is_final ? '확정' : '프리즈'} ${row.rank}위`
-                      }
-                    >
-                      {row.rank_is_final === false ? (
-                        <span className="presentation-board-rank-label mb-1 block text-[0.6rem] font-medium text-white/60">
-                          프리즈
-                        </span>
-                      ) : null}
-                      {row.rank}
-                    </td>
-                    <td className="max-w-64 px-3 py-2.5">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="presentation-board-team truncate text-[clamp(0.8rem,1vw,0.92rem)] font-semibold text-white">
-                          {row.team_name}
-                        </span>
-                        <ScoreboardMedal release={section.release} row={row} />
-                      </span>
-                      {row.rank_is_final === undefined &&
-                      row.is_finalized &&
-                      section.release?.mode !== 'all' ? (
-                        <span className="presentation-board-meta mt-0.5 block text-[0.6rem] font-medium text-emerald-300">
-                          결과 공개 완료
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="presentation-board-solved px-2 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                      {points ? formatScore(row.total_score) : row.solved}
-                    </td>
-                    {problemCodes.map((code) => (
-                      <td className="px-1 py-1.5 text-center" key={code}>
-                        <PresentationScoreCell
-                          score={scores.get(code)}
-                          scoringMode={scoringMode}
-                        />
-                      </td>
-                    ))}
-                    {!points ? (
-                      <td className="presentation-board-penalty px-3 py-2.5 text-center text-[clamp(0.9rem,1.15vw,1.05rem)] font-black text-white/65">
-                        {penaltyLabel(row.penalty)}
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              }),
-            ])}
-          </tbody>
-        </table>
-      </div>
-
-      {section.rows.length === 0 ? (
-        <p className="presentation-board-meta px-5 py-8 text-center text-sm font-bold text-white/50">
-          표시할 팀이 없습니다.
-        </p>
-      ) : null}
-    </section>
-  );
+function scheduleClockTime(value?: string) {
+  if (!value || !Number.isFinite(new Date(value).getTime())) return '-';
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(value));
 }
 
 export default function OperatorScoreboardPresentationPage() {
@@ -397,8 +106,19 @@ export function OperatorScoreboardPresentationContent({
   token: string;
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { theme, fontScale, setTheme, setFontScale } =
-    usePresentationDisplayPreferences();
+  const displayRef = useRef<HTMLElement>(null);
+  const {
+    theme,
+    fontScale,
+    autoScrollVertical,
+    autoScrollHorizontal,
+    setTheme,
+    setFontScale,
+    setAutoScrollVertical,
+    setAutoScrollHorizontal,
+  } = usePresentationDisplayPreferences();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [soundPromptOpen, setSoundPromptOpen] = useState(false);
   const sound = usePresentationSound();
   const divisionIds = useMemo(
     () => [...new Set(searchParams.getAll('divisionId').filter(Boolean))],
@@ -467,13 +187,27 @@ export function OperatorScoreboardPresentationContent({
     };
   }, [client, contestId, displayOnly, queryKey, refetch, token]);
   const contest = presentationQuery.data?.contest;
-  const sections = presentationQuery.data?.sections ?? [];
-  const visibleSections = divisionIds.length
-    ? sections.filter((section) =>
-        divisionIds.includes(section.division.division_id),
-      )
-    : sections;
-  const titleParts = splitContestTitle(contest?.title);
+  const sections = useMemo(
+    () =>
+      (presentationQuery.data?.sections ?? []).map((section) => ({
+        ...section,
+        scoring_mode:
+          section.scoring_mode ??
+          presentationQuery.data?.scoring_mode ??
+          contest?.scoring_mode ??
+          'icpc',
+      })),
+    [presentationQuery.data, contest?.scoring_mode],
+  );
+  const visibleSections = useMemo(
+    () =>
+      divisionIds.length
+        ? sections.filter((section) =>
+            divisionIds.includes(section.division.division_id),
+          )
+        : sections,
+    [sections, divisionIds],
+  );
   const timerState = contest ? contestTimerState(contest, now, true) : null;
   const freezeCountdown = presentationFreezeCountdown(contest, now);
   const { activeAnnouncement, dismiss } = usePresentationAnnouncements({
@@ -492,39 +226,54 @@ export function OperatorScoreboardPresentationContent({
     style: { '--presentation-font-scale': fontScale } as CSSProperties,
   };
   const displaySettings = (
-    <PresentationDisplaySettings
-      theme={theme}
-      fontScale={fontScale}
-      onThemeChange={setTheme}
-      onFontScaleChange={setFontScale}
-      availableDivisions={availableDivisions}
-      selectedDivisionIds={divisionIds}
-      onDivisionIdsChange={(ids) => {
-        const next = new URLSearchParams(searchParams);
-        next.delete('divisionId');
-        ids.forEach((id) => next.append('divisionId', id));
-        setSearchParams(next, { replace: true });
-      }}
-      soundEnabled={sound.enabled}
-      soundVolume={sound.volume}
-      onSoundVolumeChange={sound.setVolume}
-      onSoundEnabledChange={(enabled) => {
-        if (enabled) void sound.enable();
-        else sound.disable();
-      }}
-      onTestSound={() => void sound.test()}
-      soundStatus={
-        !sound.supported
-          ? '이 브라우저는 효과음을 지원하지 않습니다.'
-          : !sound.enabled
-            ? '효과음이 꺼져 있습니다.'
-            : sound.volume === 0
-              ? '음량이 0%로 설정되어 있습니다.'
-              : sound.unlocked
-                ? '효과음 사용 중'
-                : '화면을 한 번 클릭하면 효과음이 활성화됩니다.'
-      }
-    />
+    <>
+      <PresentationDisplaySettings
+        theme={theme}
+        fontScale={fontScale}
+        onThemeChange={setTheme}
+        onFontScaleChange={setFontScale}
+        autoScrollVertical={autoScrollVertical}
+        autoScrollHorizontal={autoScrollHorizontal}
+        onAutoScrollVerticalChange={setAutoScrollVertical}
+        onAutoScrollHorizontalChange={setAutoScrollHorizontal}
+        onOpenChange={setSettingsOpen}
+        availableDivisions={availableDivisions}
+        selectedDivisionIds={divisionIds}
+        onDivisionIdsChange={(ids) => {
+          const next = new URLSearchParams(searchParams);
+          next.delete('divisionId');
+          ids.forEach((id) => next.append('divisionId', id));
+          setSearchParams(next, { replace: true });
+        }}
+        soundEnabled={sound.enabled}
+        soundVolume={sound.volume}
+        onSoundVolumeChange={sound.setVolume}
+        onSoundEnabledChange={(enabled) => {
+          if (enabled) void sound.enable();
+          else sound.disable();
+        }}
+        onTestSound={() => void sound.test()}
+        soundStatus={
+          !sound.supported
+            ? '이 브라우저는 효과음을 지원하지 않습니다.'
+            : !sound.enabled
+              ? '효과음이 꺼져 있습니다.'
+              : sound.volume === 0
+                ? '음량이 0%로 설정되어 있습니다.'
+                : sound.unlocked
+                  ? '효과음 사용 중'
+                  : '화면을 한 번 클릭하면 효과음이 활성화됩니다.'
+        }
+      />
+      <PresentationSoundPrompt
+        key={contestId}
+        contestId={contestId}
+        supported={sound.supported}
+        onEnable={sound.enable}
+        onLater={sound.disable}
+        onOpenChange={setSoundPromptOpen}
+      />
+    </>
   );
   const startsAt = contest?.start_at ? new Date(contest.start_at).getTime() : 0;
   const isEnded = Boolean(
@@ -534,7 +283,13 @@ export function OperatorScoreboardPresentationContent({
         new Date(contest.end_at).getTime() <= now)),
   );
   const isBeforeContestStart = !isEnded && Boolean(startsAt && startsAt > now);
-  usePresentationReleaseSounds({
+  const releaseMotion = usePresentationReleaseMotion({
+    scopeKey: JSON.stringify([
+      contestId,
+      displayOnly,
+      queryIdentity,
+      divisionIds,
+    ]),
     contestId,
     sections: visibleSections,
     ended: isEnded,
@@ -543,12 +298,42 @@ export function OperatorScoreboardPresentationContent({
     suppressed: Boolean(
       timerState?.showPresentationCountdown ||
       freezeCountdown !== null ||
-      activeAnnouncement,
+      activeAnnouncement ||
+      presentationQuery.error,
     ),
   });
-  const shellClassName = isBeforeContestStart
-    ? 'mx-auto grid min-h-[calc(100vh-clamp(1.5rem,2.8vw,2.8rem))] w-full max-w-[118rem] content-center gap-[clamp(1rem,2vw,2rem)]'
-    : 'mx-auto grid w-full max-w-[118rem] gap-[clamp(0.75rem,1.3vw,1.35rem)]';
+  const shellClassName = `presentation-stage-shell ${isBeforeContestStart ? 'is-before-start' : ''}`;
+  const rankMoving =
+    releaseMotion.stage === 'highlighting' || releaseMotion.stage === 'moving';
+  const movedTeamIds = useMemo(
+    () =>
+      releaseMotion.reveal
+        ? presentationRevealMovedTeamIds(releaseMotion.reveal)
+        : [],
+    [releaseMotion.reveal],
+  );
+  usePresentationRevealOrigin(
+    displayRef,
+    releaseMotion.reveal,
+    releaseMotion.stage,
+  );
+  usePresentationAutoScroll(displayRef, {
+    verticalEnabled: autoScrollVertical,
+    horizontalEnabled: autoScrollHorizontal,
+    paused: Boolean(
+      !contest ||
+      isBeforeContestStart ||
+      settingsOpen ||
+      soundPromptOpen ||
+      presentationQuery.error ||
+      timerState?.showPresentationCountdown ||
+      freezeCountdown !== null ||
+      activeAnnouncement ||
+      releaseMotion.reveal ||
+      releaseMotion.stage !== 'board',
+    ),
+    scopeKey: JSON.stringify([contestId, queryIdentity, divisionIds]),
+  });
 
   useEffect(() => {
     if (contest?.title) {
@@ -629,7 +414,8 @@ export function OperatorScoreboardPresentationContent({
   return (
     <section
       {...frameProperties}
-      className="presentation-display fixed inset-0 z-[100] overflow-auto bg-[#090b14] px-[clamp(0.75rem,1.4vw,1.4rem)] py-[clamp(0.75rem,1.4vw,1.4rem)] text-white"
+      className="presentation-display presentation-stage-display fixed inset-0 z-[100] overflow-hidden bg-[#090b14] px-[clamp(0.75rem,1.4vw,1.4rem)] py-[clamp(0.75rem,1.4vw,1.4rem)] text-white"
+      ref={displayRef}
     >
       {displaySettings}
       {activeAnnouncement ? (
@@ -690,88 +476,31 @@ export function OperatorScoreboardPresentationContent({
         </div>
       ) : null}
       <div className={shellClassName}>
-        <header
-          className={[
-            'presentation-hero relative isolate overflow-hidden rounded-[1.25rem] border border-indigo-300/10 bg-[radial-gradient(circle_at_50%_100%,rgba(59,56,255,0.42),transparent_42%),linear-gradient(115deg,#070914_0%,#11154b_54%,#0d1848_100%)] shadow-[0_1.5rem_5rem_rgba(0,0,0,0.38)]',
-            isBeforeContestStart
-              ? 'is-before-start px-[clamp(1.5rem,4vw,5rem)] py-[clamp(2rem,5vw,6rem)]'
-              : 'px-[clamp(1rem,2vw,2rem)] py-[clamp(1rem,1.8vw,2rem)]',
-          ].join(' ')}
-        >
-          <div className="presentation-hero-decoration pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(30deg,transparent_48%,rgba(255,255,255,0.18)_49%,rgba(255,255,255,0.18)_51%,transparent_52%),linear-gradient(150deg,transparent_48%,rgba(255,255,255,0.14)_49%,rgba(255,255,255,0.14)_51%,transparent_52%)] [background-size:6.5rem_3.75rem] opacity-20" />
-          <div
-            className={
-              isBeforeContestStart
-                ? 'grid justify-items-center gap-[clamp(1rem,2vw,2rem)] text-center'
-                : 'grid gap-[clamp(0.85rem,1.6vw,1.8rem)] xl:grid-cols-[minmax(18rem,1fr)_minmax(30rem,0.78fr)] xl:items-center'
-            }
-          >
-            <div className="min-w-0">
-              <p
-                className={[
-                  'presentation-hero-kicker font-black text-violet-300 uppercase',
-                  isBeforeContestStart
-                    ? 'text-[clamp(0.8rem,1.3vw,1.2rem)] tracking-[0.34em]'
-                    : 'text-[clamp(0.58rem,0.65vw,0.72rem)] tracking-[0.28em]',
-                ].join(' ')}
-              >
-                ZOJ Presentation Scoreboard
-              </p>
-              <h1
-                className={[
-                  'presentation-hero-title grid gap-1 leading-[0.92] font-black tracking-normal text-white uppercase',
-                  isBeforeContestStart
-                    ? 'mt-5 text-[clamp(4rem,11vw,12rem)]'
-                    : 'mt-2 text-[clamp(2.15rem,4.8vw,5rem)]',
-                ].join(' ')}
-              >
-                <span className="zoj-truncate-safe whitespace-nowrap">
-                  {titleParts.primary}
-                </span>
-                {titleParts.secondary ? (
-                  <span
-                    className={[
-                      'presentation-hero-secondary zoj-truncate-safe bg-gradient-to-r from-white via-violet-100 to-violet-500 bg-clip-text whitespace-nowrap text-transparent',
-                      isBeforeContestStart
-                        ? 'pl-0'
-                        : 'pl-[clamp(0.75rem,2.8vw,2.25rem)]',
-                    ].join(' ')}
-                  >
-                    {titleParts.secondary}
-                  </span>
-                ) : null}
-              </h1>
-            </div>
+        <PresentationStageHeader
+          title={contest?.title || '프레젠테이션 스코어보드'}
+          scoringMode={
+            contest?.scoring_mode ?? presentationQuery.data?.scoring_mode
+          }
+          beforeStart={isBeforeContestStart}
+          ended={isEnded}
+          timing={[
             {
-              <div className="grid gap-[clamp(0.65rem,1.2vw,1.2rem)] md:grid-cols-2">
-                <TimePanel
-                  label="스코어보드 프리즈"
-                  time={formatDateTime(contest?.freeze_at)}
-                  value={
-                    contest && new Date(contest.freeze_at).getTime() <= now
-                      ? visibleSections.every((section) => !section.frozen)
-                        ? '공개됨'
-                        : visibleSections.some(
-                              (section) =>
-                                section.release?.mode === 'partial' &&
-                                section.release.strategy !== 'immediate',
-                            )
-                          ? '결과 공개 중'
-                          : '프리즈 유지'
-                      : timeLeftLabel(contest?.freeze_at, now)
-                  }
-                />
-                <TimePanel
-                  label="대회 종료"
-                  time={formatDateTime(contest?.end_at)}
-                  value={
-                    isEnded ? '대회 종료' : timeLeftLabel(contest?.end_at, now)
-                  }
-                />
-              </div>
-            }
-          </div>
-        </header>
+              label: '스코어보드 프리즈',
+              time: formatDateTime(contest?.freeze_at),
+              value:
+                contest && new Date(contest.freeze_at).getTime() <= now
+                  ? scheduleClockTime(contest.freeze_at)
+                  : timeLeftLabel(contest?.freeze_at, now),
+            },
+            {
+              label: '대회 종료',
+              time: formatDateTime(contest?.end_at),
+              value: isEnded
+                ? scheduleClockTime(contest?.end_at)
+                : timeLeftLabel(contest?.end_at, now),
+            },
+          ]}
+        />
 
         {presentationQuery.error && contest ? (
           <div className="presentation-message is-error rounded border border-rose-400/40 bg-rose-500/15 px-5 py-4 text-sm font-black text-rose-100">
@@ -789,11 +518,61 @@ export function OperatorScoreboardPresentationContent({
         ) : null}
 
         {!isBeforeContestStart ? (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,34rem),1fr))] gap-[clamp(0.75rem,1.3vw,1.35rem)]">
-            {visibleSections.map((section) => (
+          <div
+            className="presentation-stage-boards"
+            data-reveal-stage={releaseMotion.stage}
+            data-large-type={fontScale > 1.5}
+            inert={Boolean(
+              releaseMotion.reveal &&
+              (releaseMotion.stage === 'suspense' ||
+                releaseMotion.stage === 'result'),
+            )}
+            aria-hidden={Boolean(
+              releaseMotion.reveal &&
+              (releaseMotion.stage === 'suspense' ||
+                releaseMotion.stage === 'result'),
+            )}
+          >
+            {releaseMotion.sections.map((section) => (
               <PresentationDivisionBoard
                 key={section.division.division_id}
                 section={section}
+                fontScale={fontScale}
+                revealFocused={
+                  releaseMotion.stage === 'focusing' &&
+                  releaseMotion.reveal?.divisionId ===
+                    section.division.division_id
+                }
+                focusTeamIds={
+                  releaseMotion.reveal
+                    ? releaseMotion.reveal.divisionId ===
+                      section.division.division_id
+                      ? releaseMotion.stage === 'focusing'
+                        ? releaseMotion.reveal.teams
+                            .map((team) => team.team_id)
+                            .filter((id): id is string => Boolean(id))
+                        : rankMoving
+                          ? movedTeamIds
+                          : []
+                      : []
+                    : []
+                }
+                rankMoving={
+                  rankMoving &&
+                  releaseMotion.reveal?.divisionId ===
+                    section.division.division_id
+                }
+                activeProblemCode={
+                  releaseMotion.reveal
+                    ? releaseMotion.stage === 'focusing' &&
+                      releaseMotion.reveal.divisionId ===
+                        section.division.division_id
+                      ? (releaseMotion.reveal.section.release?.resolver
+                          ?.last_event?.problem_code ?? null)
+                      : null
+                    : null
+                }
+                activeTeamId={null}
                 scoringMode={
                   section.scoring_mode ??
                   presentationQuery.data?.scoring_mode ??
@@ -812,30 +591,17 @@ export function OperatorScoreboardPresentationContent({
           </div>
         ) : null}
       </div>
+      {releaseMotion.reveal &&
+      (releaseMotion.stage === 'suspense' ||
+        releaseMotion.stage === 'result' ||
+        releaseMotion.stage === 'returning') ? (
+        <PresentationCenterStage
+          key={releaseMotion.reveal.key}
+          reveal={releaseMotion.reveal}
+          stage={releaseMotion.stage}
+          contestTitle={contest?.title || '프레젠테이션 스코어보드'}
+        />
+      ) : null}
     </section>
-  );
-}
-
-function TimePanel({
-  label,
-  time,
-  value,
-}: {
-  label: string;
-  time: string;
-  value: string;
-}) {
-  return (
-    <div className="presentation-time-panel grid min-h-[clamp(5.4rem,8vw,7.25rem)] content-center border border-white/10 bg-white/[0.07] px-[clamp(0.8rem,1.5vw,1.15rem)] py-[clamp(0.8rem,1.5vw,1.15rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <p className="presentation-time-label text-center text-[clamp(0.7rem,0.85vw,0.9rem)] font-black tracking-normal text-white/55">
-        {label}
-      </p>
-      <p className="presentation-time-time mt-1.5 text-center text-[clamp(0.68rem,0.78vw,0.82rem)] font-bold text-white/75">
-        {time}
-      </p>
-      <p className="presentation-time-value mt-1.5 text-center text-[clamp(1.4rem,2.65vw,2.8rem)] leading-none font-black tracking-normal text-violet-500">
-        {value}
-      </p>
-    </div>
   );
 }

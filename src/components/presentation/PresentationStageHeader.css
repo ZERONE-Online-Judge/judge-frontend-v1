@@ -1,0 +1,158 @@
+/* Retain the original hero and theme rules from the presentation page. */
+.presentation-stage-header .presentation-title-frame {
+  --presentation-title-min: 12;
+  --presentation-title-slot-font: clamp(
+    24px,
+    min(4.2vw, 6dvh),
+    calc(5 * var(--presentation-resolution-size, 16px))
+  );
+  --presentation-title-requested-font: calc(
+    var(--presentation-title-slot-font) * var(--presentation-font-scale, 1)
+  );
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--presentation-title-slot-font) * 1.84 + 0.25rem);
+  overflow: hidden;
+}
+.presentation-stage-header.is-before-start .presentation-title-frame {
+  --presentation-title-slot-font: clamp(4rem, 11vw, 12rem);
+}
+.presentation-stage-header .presentation-title-fit-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  font-size: var(--presentation-title-requested-font);
+  line-height: 0.92;
+  white-space: nowrap;
+}
+.presentation-stage-header .presentation-title-frame .presentation-hero-title {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+.presentation-stage-header .presentation-hero-title > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.presentation-stage-header [data-title-layout='flow'] .presentation-hero-title {
+  display: block;
+  text-wrap: balance;
+}
+.presentation-stage-header
+  [data-title-layout='flow']
+  .presentation-hero-title
+  > span {
+  display: inline;
+  padding-left: 0;
+}
+.presentation-stage-header [data-title-fit='minimum'] .presentation-hero-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* The hero is supporting context; reserve the remaining viewport for scores. */
+.presentation-display .presentation-stage-header:not(.is-before-start) {
+  padding: clamp(10px, min(1.6vw, 2dvh), 32px);
+}
+.presentation-stage-header:not(.is-before-start) > div:last-child {
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.78fr);
+  align-items: center;
+  gap: clamp(8px, min(1.5vw, 1.8dvh), 24px);
+}
+.presentation-stage-header:not(.is-before-start)
+  > div:last-child
+  > div:last-child {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, min(1vw, 1.4dvh), 16px);
+}
+.presentation-display .presentation-stage-header .presentation-time-panel {
+  min-height: clamp(56px, min(9vw, 12dvh), 116px);
+  padding: clamp(6px, min(1vw, 1.4dvh), 16px);
+}
+.presentation-display .presentation-stage-header .presentation-time-label {
+  font-size: calc(
+    clamp(
+        10px,
+        min(0.85vw, 1.5dvh),
+        calc(0.9 * var(--presentation-resolution-size, 16px))
+      ) *
+      clamp(1, var(--presentation-font-scale, 1), 1.2)
+  );
+  line-height: 1.2;
+}
+.presentation-display .presentation-stage-header .presentation-time-time {
+  margin-top: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: calc(
+    clamp(
+        10px,
+        min(0.78vw, 1.4dvh),
+        calc(0.82 * var(--presentation-resolution-size, 16px))
+      ) *
+      clamp(1, var(--presentation-font-scale, 1), 1.1)
+  );
+  line-height: 1.2;
+}
+.presentation-display .presentation-stage-header .presentation-time-value {
+  margin-top: 4px;
+  font-size: calc(
+    clamp(
+        20px,
+        min(2.65vw, 4.5dvh),
+        calc(2.8 * var(--presentation-resolution-size, 16px))
+      ) *
+      clamp(1, var(--presentation-font-scale, 1), 1.25)
+  );
+  line-height: 1;
+}
+@media (max-width: 1100px) {
+  .presentation-stage-header:not(.is-before-start) > div:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .presentation-stage-header:not(.is-before-start) .presentation-title-frame {
+    --presentation-title-slot-font: clamp(22px, min(5vw, 4.5dvh), 42px);
+  }
+}
+@media (max-height: 760px), (max-width: 640px) {
+  .presentation-display .presentation-stage-header:not(.is-before-start) {
+    padding: 8px;
+  }
+  .presentation-stage-header:not(.is-before-start) > div:last-child {
+    gap: 6px;
+  }
+  .presentation-stage-header:not(.is-before-start) .presentation-title-frame {
+    --presentation-title-slot-font: clamp(20px, min(4vw, 4.5dvh), 34px);
+  }
+  .presentation-display .presentation-stage-header .presentation-time-panel {
+    min-height: 52px;
+    padding: 6px;
+  }
+}
+
+@media (max-width: 640px) and (max-height: 640px) {
+  .presentation-display .presentation-stage-header:not(.is-before-start) {
+    padding: 6px;
+  }
+  .presentation-stage-header:not(.is-before-start) > div:last-child {
+    gap: 4px;
+  }
+  .presentation-stage-header:not(.is-before-start) .presentation-title-frame {
+    --presentation-title-slot-font: 18px;
+  }
+  .presentation-display .presentation-stage-header .presentation-time-panel {
+    padding: 4px;
+  }
+  .presentation-display .presentation-stage-header .presentation-time-time,
+  .presentation-display .presentation-stage-header .presentation-time-value {
+    margin-top: 2px;
+  }
+}

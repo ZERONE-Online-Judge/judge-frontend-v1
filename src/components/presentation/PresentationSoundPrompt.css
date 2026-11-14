@@ -1,0 +1,103 @@
+.presentation-sound-prompt {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 230;
+  width: min(25rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border: 1px solid var(--presentation-border, #353a50);
+  border-radius: 1rem;
+  background: var(--presentation-panel, #161b2d);
+  color: var(--presentation-text, #f7f8ff);
+  box-shadow: 0 12px 44px rgb(0 0 0 / 24%);
+  font-size: clamp(
+    1rem,
+    calc(1rem * var(--presentation-font-scale, 1)),
+    1.2rem
+  );
+  line-height: 1.55;
+  text-align: left;
+  overflow-wrap: anywhere;
+  animation: presentation-sound-prompt-in 180ms ease-out both;
+}
+.presentation-sound-prompt__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.presentation-sound-prompt__heading svg {
+  flex: none;
+  color: var(--presentation-accent, #b8adff);
+}
+.presentation-sound-prompt h2 {
+  margin: 0;
+  font-size: clamp(
+    1.15rem,
+    calc(1.15rem * var(--presentation-font-scale, 1)),
+    1.4rem
+  );
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+.presentation-sound-prompt p {
+  margin: 0.7rem 0 0;
+  color: var(--presentation-muted, #b8bfd6);
+  word-break: keep-all;
+}
+.presentation-sound-prompt p[role='alert'] {
+  color: var(--presentation-wrong-bg, #ffb5b8);
+}
+.presentation-display[data-presentation-theme='light']
+  .presentation-sound-prompt
+  p[role='alert'] {
+  color: var(--presentation-wrong-text, #a31038);
+}
+.presentation-sound-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.presentation-sound-prompt button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--presentation-border, #353a50);
+  border-radius: 0.65rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.presentation-sound-prompt button.presentation-sound-prompt__enable {
+  border-color: var(--presentation-accent, #b8adff);
+  background: var(--presentation-accent, #b8adff);
+  color: var(--presentation-bg, #090c15);
+}
+.presentation-sound-prompt button:focus-visible {
+  outline: 3px solid var(--presentation-accent, #b8adff);
+  outline-offset: 3px;
+}
+.presentation-sound-prompt button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@keyframes presentation-sound-prompt-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .presentation-sound-prompt {
+    animation: none;
+  }
+}

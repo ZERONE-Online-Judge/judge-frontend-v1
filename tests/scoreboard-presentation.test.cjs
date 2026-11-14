@@ -208,6 +208,9 @@ function source(relative) {
 const Presentation = source(
   'pages/operator/OperatorScoreboardPresentationPage.tsx',
 ).default;
+const { PRESENTATION_RESULT_MAX_DURATION } = source(
+  'domains/submissionScoreboard/presentationReleaseMotion.ts',
+);
 const OperatorPage = source(
   'pages/operator/OperatorScoreboardPage.tsx',
 ).default;
@@ -320,6 +323,53 @@ async function dispatchUpdate(contestId = 'contest') {
   await flush();
 }
 
+function presentationMotionClock() {
+  const nativeTimeout = window.setTimeout;
+  const nativeClearTimeout = window.clearTimeout;
+  const nativeNow = Date.now;
+  let now = nativeNow();
+  let nextId = 0;
+  const timers = new Map();
+  window.setTimeout = (callback, delay, ...args) => {
+    // Scheduling the effect can itself consume part of the deadline under a
+    // parallel test load, so capture the remaining delay rather than requiring
+    // it to equal the full stage duration.
+    if (delay >= 0 && delay <= PRESENTATION_RESULT_MAX_DURATION) {
+      const id = --nextId;
+      timers.set(id, {
+        at: Math.max(now, nativeNow()) + delay,
+        callback: () => callback(...args),
+      });
+      return id;
+    }
+    return nativeTimeout.call(window, callback, delay, ...args);
+  };
+  window.clearTimeout = (id) => {
+    if (!timers.delete(id)) nativeClearTimeout.call(window, id);
+  };
+  return {
+    async advance() {
+      const [id, timer] =
+        [...timers].sort((a, b) => a[1].at - b[1].at)[0] ?? [];
+      assert.ok(timer, 'The current presentation stage owns a timer');
+      timers.delete(id);
+      now = timer.at;
+      Date.now = () => now;
+      try {
+        await act(async () => timer.callback());
+      } finally {
+        Date.now = nativeNow;
+      }
+    },
+    restore() {
+      timers.clear();
+      window.setTimeout = nativeTimeout;
+      window.clearTimeout = nativeClearTimeout;
+      Date.now = nativeNow;
+    },
+  };
+}
+
 test('presentation problem columns use natural code order despite conflicting display orders', async () => {
   customBoards.a = {
     division: divisions[0],
@@ -357,7 +407,10 @@ test('ended presentation displays the selected division without any release cont
   assertDisplayPreferencesOnly(display);
   assert.equal(releaseReads, 0);
   assert.equal(updateCalls.length, 0);
-  assert.match(display.textContent, /공개 대기/);
+  assert.equal(
+    display.querySelectorAll('[aria-label="미공개 참가팀"]').length,
+    2,
+  );
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
 });
 
@@ -389,7 +442,10 @@ test('operator rank release refreshes a separate presentation client and leaves 
   assert.ok(presentationReads > readsBeforeRelease);
   assert.match(display.textContent, /a-team-2/);
   assert.doesNotMatch(display.textContent, /a-team-1|b-team/);
-  assert.match(display.textContent, /공개 대기/);
+  assert.equal(
+    display.querySelectorAll('[aria-label="미공개 참가팀"]').length,
+    1,
+  );
   assert.equal(display.querySelector('h1'), displayTitle);
   assertDisplayPreferencesOnly(display);
   assert.equal(releases.b.revealed_count, 0);
@@ -563,7 +619,9 @@ test('presentation displays exactly the requested divisions, including multiple 
   assert.match(missing.textContent, /표시할 유형이 없습니다/);
 });
 
-test('resolver presentation retains team names and moves existing rows as results arrive without controls', async () => {
+test('resolver presentation focuses the old board, announces its result, then moves the same rows after returning', async (t) => {
+  const clock = presentationMotionClock();
+  t.after(clock.restore);
   const baseRow = {
     division: 'A 유형',
     submission_count: 1,
@@ -612,7 +670,6 @@ test('resolver presentation retains team names and moves existing rows as result
   assert.match(display.textContent, /Alpha/);
   assert.match(display.textContent, /Beta/);
   assert.match(display.textContent, /\?1/);
-  assert.match(display.textContent, /팀·문제 공개 0 \/ 1/);
   assert.equal(display.querySelector('[role="status"]'), null);
   assert.equal(display.querySelectorAll('svg[role="img"]').length, 0);
   assert.doesNotMatch(display.textContent, /공개 대기|아직 공개되지 않은 순위/);
@@ -659,14 +716,88 @@ test('resolver presentation retains team names and moves existing rows as result
     },
   };
   await dispatchUpdate();
+  assert.equal(
+    display.querySelector('.presentation-stage-boards').dataset.revealStage,
+    'focusing',
+  );
+  assert.equal(
+    display.querySelector('tbody tr').dataset.scoreboardRow,
+    'alpha',
+  );
+  assert.equal(display.querySelector('[data-scoreboard-row="beta"]'), beta);
+  await clock.advance();
+  const spotlight = display.querySelector('.presentation-center-stage');
+  assert.ok(spotlight);
+  assert.equal(spotlight.dataset.kind, 'resolver');
+  assert.equal(spotlight.dataset.stage, 'suspense');
+  assert.equal(spotlight.dataset.tone, 'pending');
+  assert.match(spotlight.textContent, /결과는/);
+  assert.equal(spotlight.querySelector('.presentation-center-verdict'), null);
+  assert.equal(spotlight.querySelector('.presentation-center-metrics'), null);
+  assert.equal(display.querySelector('[data-scoreboard-row="beta"]'), beta);
+  await clock.advance();
+  assert.equal(spotlight.dataset.stage, 'result');
+  assert.match(spotlight.textContent, /Beta/);
+  assert.match(spotlight.textContent, /정답입니다/);
+  assert.equal(
+    display.querySelector('tbody tr').dataset.scoreboardRow,
+    'alpha',
+  );
+  assert.equal(display.querySelector('[data-scoreboard-row="beta"]'), beta);
+  await clock.advance();
+  assert.equal(spotlight.dataset.stage, 'returning');
+  assert.equal(
+    display.querySelector('tbody tr').dataset.scoreboardRow,
+    'alpha',
+  );
+  await clock.advance();
+  assert.equal(display.querySelector('.presentation-center-stage'), null);
+  assert.equal(display.querySelector('[data-scoreboard-row="beta"]'), beta);
+  assert.equal(
+    display.querySelector('.presentation-stage-boards').dataset.revealStage,
+    'holding',
+  );
+  assert.equal(
+    display.querySelector('tbody tr').dataset.scoreboardRow,
+    'alpha',
+  );
+  assert.equal(display.querySelector('[data-rank-moving="true"]'), null);
+  await clock.advance();
+  assert.equal(
+    display.querySelector('.presentation-stage-boards').dataset.revealStage,
+    'highlighting',
+  );
+  assert.equal(
+    display.querySelector('tbody tr').dataset.scoreboardRow,
+    'alpha',
+  );
+  assert.deepEqual(
+    [...display.querySelectorAll('[data-rank-moving="true"]')],
+    [beta],
+  );
+  await clock.advance();
+  assert.equal(
+    display.querySelector('.presentation-stage-boards').dataset.revealStage,
+    'moving',
+  );
   assert.equal(display.querySelector('[data-scoreboard-row="beta"]'), beta);
   assert.equal(display.querySelector('tbody tr').dataset.scoreboardRow, 'beta');
+  assert.deepEqual(
+    [...display.querySelectorAll('[data-rank-moving="true"]')],
+    [beta],
+  );
+  await clock.advance();
+  assert.equal(
+    display.querySelector('.presentation-stage-boards').dataset.revealStage,
+    'board',
+  );
+  assert.equal(display.querySelector('[data-rank-moving="true"]'), null);
+  assert.equal(display.querySelector('[data-active-team="true"]'), null);
   assert.doesNotMatch(
     display.textContent,
     /2위 → 1위|모든 결과 공개 완료|Beta · A번/,
   );
   assert.equal(display.querySelector('[role="status"]'), null);
-  assert.match(display.textContent, /최종 순위/);
   assert.equal(
     beta.querySelector('svg[role="img"]').getAttribute('aria-label'),
     '1위 금메달',
@@ -678,6 +809,7 @@ test('resolver presentation retains team names and moves existing rows as result
     '2위 은메달',
   );
   assert.doesNotMatch(display.textContent, /\?1/);
+  await clock.advance();
   assertDisplayPreferencesOnly(display);
   assert.equal(updateCalls.length, 0);
 });
@@ -716,7 +848,7 @@ test('manual presentation keeps a published fifth place fixed and labels the rem
   );
   assert.deepEqual(
     [...display.querySelectorAll('[data-scoreboard-rank-section]')].map(
-      (item) => item.textContent,
+      (item) => item.getAttribute('aria-label'),
     ),
     ['확정 순위', '미공개 · 프리즈 순위'],
   );
@@ -725,13 +857,16 @@ test('manual presentation keeps a published fifth place fixed and labels the rem
   );
   assert.equal(fifthElement.firstElementChild.textContent, '5');
   assert.equal(
-    fifthElement.firstElementChild.getAttribute('aria-label'),
+    fifthElement
+      .querySelector('[aria-label="확정 5위"]')
+      .getAttribute('aria-label'),
     '확정 5위',
   );
   assert.equal(
     display
       .querySelector('[data-scoreboard-row="Frozen first"]')
-      .firstElementChild.getAttribute('aria-label'),
+      .querySelector('[aria-label="프리즈 1위"]')
+      .getAttribute('aria-label'),
     '프리즈 1위',
   );
   assert.doesNotMatch(display.textContent, /결과 공개 완료/);
@@ -751,7 +886,12 @@ test('manual presentation keeps a published fifth place fixed and labels the rem
     display.querySelector('[data-scoreboard-rank-section="final"]'),
     null,
   );
-  assert.match(display.textContent, /미공개 · 프리즈 순위/);
+  assert.equal(
+    display
+      .querySelector('[data-scoreboard-rank-section="frozen"]')
+      .getAttribute('aria-label'),
+    '미공개 · 프리즈 순위',
+  );
 
   // Cached payloads that predate the metadata retain their ordinary table.
   const legacyRow = { ...frozen };
@@ -775,8 +915,11 @@ test('selected division reports fully public even while another division is froz
     Presentation,
     '/operator/contests/contest/scoreboard/presentation?divisionId=a',
   );
-  assert.match(display.textContent, /최종 순위/);
-  assert.match(display.textContent, /공개됨/);
+  assert.equal(
+    display.querySelectorAll('[aria-label="미공개 참가팀"]').length,
+    0,
+  );
+  assert.equal(display.querySelectorAll('svg[role="img"]').length, 2);
   assert.doesNotMatch(display.textContent, /프리즈 \/ 공개 진행/);
 });
 
@@ -940,7 +1083,6 @@ test('immediate undo presentation keeps the frozen table without medals or relea
     Presentation,
     '/operator/contests/contest/scoreboard/presentation?divisionId=a',
   );
-  assert.match(display.textContent, /프리즈 유지/);
   assert.match(display.textContent, /프리즈 팀/);
   assert.doesNotMatch(
     display.textContent,
@@ -1247,14 +1389,14 @@ test('display settings change local appearance and selected divisions without pu
     pendingPresentationRead = null;
     await flush();
   }
-  assert.equal(display.querySelectorAll('.presentation-board').length, 2);
+  assert.equal(display.querySelectorAll('.presentation-stage-board').length, 2);
   await act(async () =>
     settings.querySelectorAll('input[type="checkbox"]')[0].click(),
   );
   await flush();
-  assert.equal(display.querySelectorAll('.presentation-board').length, 1);
+  assert.equal(display.querySelectorAll('.presentation-stage-board').length, 1);
   assert.match(
-    display.querySelector('.presentation-board-title').textContent,
+    display.querySelector('.presentation-stage-board__title').textContent,
     /B 유형/,
   );
   assert.equal(updateCalls.length, 0);

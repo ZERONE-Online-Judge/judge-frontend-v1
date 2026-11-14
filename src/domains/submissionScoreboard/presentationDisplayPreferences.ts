@@ -4,12 +4,19 @@ export type PresentationTheme = 'dark' | 'light' | 'contrast';
 export type PresentationDisplayPreferences = {
   theme: PresentationTheme;
   fontScale: number;
+  autoScrollVertical: boolean;
+  autoScrollHorizontal: boolean;
 };
 
 export const PRESENTATION_DISPLAY_PREFERENCES_KEY =
   'zoj.presentation.display-preferences.v1';
 export const DEFAULT_PRESENTATION_DISPLAY_PREFERENCES: PresentationDisplayPreferences =
-  { theme: 'dark', fontScale: 1 };
+  {
+    theme: 'dark',
+    fontScale: 1,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
+  };
 
 export function normalizePresentationDisplayPreferences(
   value: unknown,
@@ -25,6 +32,8 @@ export function normalizePresentationDisplayPreferences(
       typeof raw.fontScale === 'number' && Number.isFinite(raw.fontScale)
         ? Math.round(Math.min(3, Math.max(0.8, raw.fontScale)) * 10) / 10
         : 1,
+    autoScrollVertical: raw.autoScrollVertical !== false,
+    autoScrollHorizontal: raw.autoScrollHorizontal !== false,
   };
 }
 
@@ -73,5 +82,31 @@ export function usePresentationDisplayPreferences() {
     );
   }, []);
   const resetFontScale = useCallback(() => setFontScale(1), [setFontScale]);
-  return { ...preferences, setTheme, setFontScale, resetFontScale };
+  const setAutoScrollVertical = useCallback((autoScrollVertical: boolean) => {
+    setPreferences((previous) =>
+      normalizePresentationDisplayPreferences({
+        ...previous,
+        autoScrollVertical,
+      }),
+    );
+  }, []);
+  const setAutoScrollHorizontal = useCallback(
+    (autoScrollHorizontal: boolean) => {
+      setPreferences((previous) =>
+        normalizePresentationDisplayPreferences({
+          ...previous,
+          autoScrollHorizontal,
+        }),
+      );
+    },
+    [],
+  );
+  return {
+    ...preferences,
+    setTheme,
+    setFontScale,
+    resetFontScale,
+    setAutoScrollVertical,
+    setAutoScrollHorizontal,
+  };
 }

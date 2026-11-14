@@ -90,6 +90,8 @@ async function mount(overrides = {}) {
       ...state,
       onThemeChange: state.setTheme,
       onFontScaleChange: state.setFontScale,
+      onAutoScrollVerticalChange: state.setAutoScrollVertical,
+      onAutoScrollHorizontalChange: state.setAutoScrollHorizontal,
       availableDivisions: divisions,
       selectedDivisionIds: selected,
       onDivisionIdsChange: (ids) => {
@@ -134,20 +136,54 @@ test('display preferences reject corrupt storage, normalize bounds and preserve 
   const normalize = preferences.normalizePresentationDisplayPreferences;
   assert.deepEqual(
     normalize({ theme: 'light', fontScale: 4, token: 'must-not-be-saved' }),
-    { theme: 'light', fontScale: 3 },
+    {
+      theme: 'light',
+      fontScale: 3,
+      autoScrollVertical: true,
+      autoScrollHorizontal: true,
+    },
   );
   assert.deepEqual(normalize({ theme: 'contrast', fontScale: 0.21 }), {
     theme: 'contrast',
     fontScale: 0.8,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
   });
   assert.deepEqual(normalize({ theme: 'bad', fontScale: '1.5' }), {
     theme: 'dark',
     fontScale: 1,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
   });
   assert.deepEqual(normalize({ theme: 'dark', fontScale: NaN }), {
     theme: 'dark',
     fontScale: 1,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
   });
+  assert.deepEqual(
+    normalize({
+      theme: 'light',
+      fontScale: 1.5,
+      autoScrollVertical: true,
+      autoScrollHorizontal: true,
+    }),
+    {
+      theme: 'light',
+      fontScale: 1.5,
+      autoScrollVertical: true,
+      autoScrollHorizontal: true,
+    },
+  );
+  assert.deepEqual(
+    normalize({ autoScrollVertical: 'true', autoScrollHorizontal: 1 }),
+    {
+      theme: 'dark',
+      fontScale: 1,
+      autoScrollVertical: true,
+      autoScrollHorizontal: true,
+    },
+  );
   window.localStorage.setItem(
     preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
     '{broken',
@@ -167,7 +203,12 @@ test('theme and size survive reloads while other presentation windows keep indep
         preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
       ),
     ),
-    { theme: 'light', fontScale: 1.4 },
+    {
+      theme: 'light',
+      fontScale: 1.4,
+      autoScrollVertical: true,
+      autoScrollHorizontal: true,
+    },
   );
   await act(() => root.unmount());
   root = createRoot(host);
@@ -190,6 +231,8 @@ test('theme and size survive reloads while other presentation windows keep indep
   assert.deepEqual(preferences.readPresentationDisplayPreferences(), {
     theme: 'light',
     fontScale: 1.4,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
   });
   const currentTab = window.sessionStorage.getItem(
     preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
@@ -198,6 +241,8 @@ test('theme and size survive reloads while other presentation windows keep indep
   assert.deepEqual(preferences.readPresentationDisplayPreferences(), {
     theme: 'contrast',
     fontScale: 0.9,
+    autoScrollVertical: true,
+    autoScrollHorizontal: true,
   });
   window.sessionStorage.setItem(
     preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
@@ -223,15 +268,86 @@ test('display preferences still work when browser storage is disabled', async ()
   await mount();
   await act(() => state.setTheme('contrast'));
   await act(() => state.setFontScale(1.5));
+  await act(() => state.setAutoScrollVertical(true));
+  await act(() => state.setAutoScrollHorizontal(true));
   assert.equal(state.theme, 'contrast');
   assert.equal(state.fontScale, 1.5);
+  assert.equal(state.autoScrollVertical, true);
+  assert.equal(state.autoScrollHorizontal, true);
+});
+
+test('table scroll switches default on and explicit off preferences persist independently', async () => {
+  window.localStorage.setItem(
+    preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
+    JSON.stringify({ theme: 'contrast', fontScale: 1.5 }),
+  );
+  await mount();
+  assert.equal(
+    state.autoScrollVertical,
+    true,
+    'Legacy preferences receive the current default',
+  );
+  assert.equal(state.autoScrollHorizontal, true);
+  await click(button('화면 설정'));
+  const vertical = button('세로 자동 스크롤');
+  const horizontal = button('가로 자동 스크롤');
+  assert.equal(vertical.getAttribute('role'), 'switch');
+  assert.equal(horizontal.getAttribute('role'), 'switch');
+  assert.equal(vertical.getAttribute('aria-checked'), 'true');
+  assert.equal(horizontal.getAttribute('aria-checked'), 'true');
+  assert.match(
+    document.getElementById(vertical.getAttribute('aria-describedby'))
+      .textContent,
+    /각 유형의 표에서 넘치는 내용/,
+  );
+  await click(vertical);
+  assert.equal(state.autoScrollVertical, false);
+  assert.equal(state.autoScrollHorizontal, true);
+  await click(horizontal);
+  assert.equal(state.autoScrollHorizontal, false);
+  assert.equal(state.theme, 'contrast');
+  assert.equal(state.fontScale, 1.5);
+  assert.equal(
+    host.querySelectorAll('input[type="checkbox"]').length,
+    divisions.length,
+    'Table scroll switches do not become division checkboxes',
+  );
+  const expected = {
+    theme: 'contrast',
+    fontScale: 1.5,
+    autoScrollVertical: false,
+    autoScrollHorizontal: false,
+  };
+  for (const storage of ['sessionStorage', 'localStorage'])
+    assert.deepEqual(
+      JSON.parse(
+        window[storage].getItem(
+          preferences.PRESENTATION_DISPLAY_PREFERENCES_KEY,
+        ),
+      ),
+      expected,
+    );
+  await act(() => root.unmount());
+  root = createRoot(host);
+  await mount();
+  assert.equal(state.autoScrollVertical, false);
+  assert.equal(state.autoScrollHorizontal, false);
+  await act(() => state.resetFontScale());
+  assert.equal(state.autoScrollVertical, false);
+  assert.equal(state.autoScrollHorizontal, false);
+  await act(() => state.setAutoScrollVertical(true));
+  assert.equal(state.autoScrollVertical, true);
+  assert.equal(state.autoScrollHorizontal, false);
 });
 
 test('settings are closed by default and Escape restores trigger focus', async () => {
-  await mount();
+  const openChanges = [];
+  await mount({ onOpenChange: (open) => openChanges.push(open) });
+  assert.deepEqual(openChanges, [false]);
   assert.equal(host.querySelector('[role="dialog"]'), null);
   assert.equal(button('화면 설정').getAttribute('aria-expanded'), 'false');
   await click(button('화면 설정'));
+  assert.deepEqual(openChanges, [false, true]);
   assert.equal(document.activeElement.getAttribute('role'), 'dialog');
   await act(() =>
     document.dispatchEvent(
@@ -244,6 +360,7 @@ test('settings are closed by default and Escape restores trigger focus', async (
   );
   assert.equal(host.querySelector('[role="dialog"]'), null);
   assert.equal(document.activeElement, button('화면 설정'));
+  assert.deepEqual(openChanges, [false, true, false]);
 });
 
 test('only chosen divisions remain visible and the last selection cannot be removed', async () => {
@@ -386,7 +503,8 @@ test('fullscreen uses the display container in a user gesture and reports browse
 });
 
 test('outside clicks and keyboard focus dismiss the non-modal settings', async () => {
-  await mount();
+  const openChanges = [];
+  await mount({ onOpenChange: (open) => openChanges.push(open) });
   await click(button('화면 설정'));
   await act(() =>
     document
@@ -397,6 +515,31 @@ test('outside clicks and keyboard focus dismiss the non-modal settings', async (
   await click(button('화면 설정'));
   await act(() => document.getElementById('outside').focus());
   assert.equal(host.querySelector('[role="dialog"]'), null);
+  assert.deepEqual(openChanges, [false, true, false, true, false]);
+});
+
+test('close, trigger toggle, fullscreen and unmount report that the settings are no longer open', async () => {
+  const openChanges = [];
+  await mount({ onOpenChange: (open) => openChanges.push(open) });
+  await click(button('화면 설정'));
+  await click(button('화면 설정 닫기'));
+  await click(button('화면 설정'));
+  await click(button('화면 설정'));
+  assert.deepEqual(openChanges, [false, true, false, true, false]);
+  await click(button('화면 설정'));
+  Object.defineProperty(document, 'fullscreenElement', {
+    configurable: true,
+    value: host,
+  });
+  await act(() => document.dispatchEvent(new window.Event('fullscreenchange')));
+  assert.equal(openChanges.at(-1), false);
+  delete document.fullscreenElement;
+  await act(() => document.dispatchEvent(new window.Event('fullscreenchange')));
+  await click(button('화면 설정'));
+  assert.equal(openChanges.at(-1), true);
+  await act(() => root.unmount());
+  assert.equal(openChanges.at(-1), false);
+  root = createRoot(host);
 });
 
 test('fullscreen escape notice disappears after three seconds without leaving any controls', async () => {

@@ -92,6 +92,11 @@ export default function PresentationAccountCard({
             selectionPending={popupDisabled}
           />
         ) : null}
+        <p className="text-sm leading-6 text-slate-500">
+          발표 화면의 화면 설정에서 유형·테마·글자 크기·표 자동 스크롤을 바꿀 수
+          있습니다. 자동 스크롤은 기본적으로 켜져 있으며, 각 유형의 표에서
+          넘치는 내용만 이동합니다.
+        </p>
       </div>
     </ManagementPanel>
   );

@@ -9,6 +9,11 @@ type Props = {
   fontScale: number;
   onThemeChange: (theme: PresentationTheme) => void;
   onFontScaleChange: (scale: number) => void;
+  autoScrollVertical: boolean;
+  autoScrollHorizontal: boolean;
+  onAutoScrollVerticalChange: (enabled: boolean) => void;
+  onAutoScrollHorizontalChange: (enabled: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   availableDivisions: Division[];
   /** An empty selection represents all available divisions. */
   selectedDivisionIds: string[];
@@ -32,6 +37,11 @@ export default function PresentationDisplaySettings({
   fontScale,
   onThemeChange,
   onFontScaleChange,
+  autoScrollVertical,
+  autoScrollHorizontal,
+  onAutoScrollVerticalChange,
+  onAutoScrollHorizontalChange,
+  onOpenChange,
   availableDivisions,
   selectedDivisionIds,
   onDivisionIdsChange,
@@ -43,6 +53,8 @@ export default function PresentationDisplaySettings({
   soundStatus,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
+  const openChangeRef = useRef(onOpenChange);
   const [fullscreen, setFullscreen] = useState(
     Boolean(document.fullscreenElement),
   );
@@ -65,6 +77,19 @@ export default function PresentationDisplaySettings({
   const allSelected =
     availableDivisions.length > 0 &&
     checkedIds.length === availableDivisions.length;
+
+  useEffect(() => {
+    openRef.current = open;
+    openChangeRef.current = onOpenChange;
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
+  useEffect(
+    () => () => {
+      if (openRef.current) openChangeRef.current?.(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     const update = () => {
@@ -302,6 +327,47 @@ export default function PresentationDisplaySettings({
               <span>작게 80%</span>
               <span>크게 300%</span>
             </div>
+          </div>
+          <div className="presentation-settings-group">
+            <div className="presentation-settings-label-row">
+              <span>자동 스크롤</span>
+            </div>
+            <button
+              className="presentation-sound-toggle"
+              type="button"
+              role="switch"
+              aria-label="세로 자동 스크롤"
+              aria-checked={autoScrollVertical}
+              aria-describedby={`${id}-autoscroll-hint`}
+              onClick={() => onAutoScrollVerticalChange(!autoScrollVertical)}
+            >
+              <span>
+                <strong>세로 자동 스크롤</strong>
+              </span>
+              <i aria-hidden="true" />
+            </button>
+            <button
+              className="presentation-sound-toggle"
+              type="button"
+              role="switch"
+              aria-label="가로 자동 스크롤"
+              aria-checked={autoScrollHorizontal}
+              aria-describedby={`${id}-autoscroll-hint`}
+              onClick={() =>
+                onAutoScrollHorizontalChange(!autoScrollHorizontal)
+              }
+            >
+              <span>
+                <strong>가로 자동 스크롤</strong>
+              </span>
+              <i aria-hidden="true" />
+            </button>
+            <p
+              id={`${id}-autoscroll-hint`}
+              className="presentation-settings-hint"
+            >
+              각 유형의 표에서 넘치는 내용을 천천히 보여줍니다.
+            </p>
           </div>
           <div className="presentation-settings-group">
             <div className="presentation-settings-label-row">

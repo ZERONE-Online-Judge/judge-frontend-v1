@@ -22,7 +22,7 @@ const { act } = React;
 const { createRoot } = require('react-dom/client');
 const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 const h = React.createElement;
-let calls, batches, host, root, client;
+let calls, batches, host, root, client, originalResult, candidateResult;
 const mocks = {
   '@/components/operator/OperatorShell': {
     OperatorPanel: ({ title, children }) =>
@@ -37,16 +37,8 @@ const mocks = {
           submission_id: 'original',
           language: 'cpp17',
           submitted_at: '2026-10-11T00:00:00Z',
-          original_result: {
-            status: 'wrong_answer',
-            runtime_ms: 10,
-            memory_kb: 100,
-          },
-          candidate_result: {
-            status: 'accepted',
-            runtime_ms: 20,
-            memory_kb: 200,
-          },
+          original_result: structuredClone(originalResult),
+          candidate_result: structuredClone(candidateResult),
           changed: true,
         },
       ],
@@ -131,6 +123,8 @@ function example(status = 'ready') {
 beforeEach(() => {
   calls = [];
   batches = [example()];
+  originalResult = { status: 'wrong_answer', runtime_ms: 10, memory_kb: 100 };
+  candidateResult = { status: 'accepted', runtime_ms: 20, memory_kb: 200 };
   host = document.createElement('main');
   document.body.append(host);
   root = createRoot(host);
@@ -270,4 +264,125 @@ test('bulk requests require a reason and respect team and language scope', async
     target: { problem_id: 'problem', team_id: 'team', language: 'python313' },
     reason: 'Fix checker',
   });
+});
+
+function resultContainers() {
+  return [
+    document.querySelector('article .grid.grid-cols-2 > div:last-child'),
+    document.querySelector('tbody tr td:last-child'),
+  ];
+}
+async function refreshComparison() {
+  await act(async () =>
+    client.invalidateQueries({ queryKey: ['operator', 'rejudging'] }),
+  );
+  await settle();
+}
+test('comparison exposes actual preparation and judging progress in both responsive layouts', async () => {
+  batches = [example('pending')];
+  candidateResult = {
+    status: 'preparing',
+    progress_current: 0,
+    progress_total: 15,
+    runtime_ms: null,
+    memory_kb: null,
+  };
+  await render();
+  await open();
+  for (const container of resultContainers()) {
+    assert.ok(container);
+    assert.match(container.textContent, /채점 준비 중/);
+    assert.match(container.textContent, /0\/15 · 0%/);
+    assert.doesNotMatch(container.textContent, /— · -/);
+  }
+  assert.equal(button('새 결과 반영').disabled, true);
+
+  candidateResult = {
+    ...candidateResult,
+    status: 'judging',
+    progress_current: 6,
+  };
+  await refreshComparison();
+  for (const container of resultContainers()) {
+    assert.match(container.textContent, /6\/15 · 40%/);
+    assert.equal(container.querySelector('[style]')?.style.width, '40%');
+  }
+
+  candidateResult = {
+    ...candidateResult,
+    progress_current: 9,
+    progress_phase: 'tle_confirmation',
+  };
+  await refreshComparison();
+  for (const container of resultContainers()) {
+    assert.match(container.textContent, /시간 초과 재확인 중/);
+    assert.match(container.textContent, /9\/15 · 60%/);
+    assert.equal(container.querySelector('[style]')?.style.width, '60%');
+  }
+
+  batches = [example('ready')];
+  candidateResult = {
+    status: 'accepted',
+    progress_current: 15,
+    progress_total: 15,
+    progress_phase: null,
+    runtime_ms: 25,
+    memory_kb: 200,
+  };
+  await refreshComparison();
+  for (const container of resultContainers()) {
+    assert.match(container.textContent, /맞았습니다/);
+    assert.match(container.textContent, /25ms/);
+    assert.doesNotMatch(container.textContent, /\d+%|채점 중|재확인/);
+    assert.equal(container.querySelector('[style]'), null);
+  }
+  assert.equal(button('새 결과 반영').disabled, false);
+});
+
+test('comparison does not invent progress when the testcase count is unknown', async () => {
+  batches = [example('pending')];
+  candidateResult = {
+    status: 'judging',
+    progress_current: null,
+    progress_total: null,
+  };
+  await render();
+  await open();
+  for (const container of resultContainers()) {
+    assert.match(container.textContent, /채점 중/);
+    assert.doesNotMatch(container.textContent, /\d+%|\d+\/\d+/);
+  }
+});
+
+test('comparison renders each IOI total once while retaining subtask details', async () => {
+  const score = (value, status) => ({
+    status,
+    scoring_mode: 'ioi',
+    score: value,
+    max_score: 100,
+    runtime_ms: 10,
+    memory_kb: 100,
+    subtask_results: [
+      {
+        subtask_id: 'small',
+        name: '작은 입력',
+        score: value,
+        max_score: 100,
+        status,
+      },
+    ],
+  });
+  originalResult = score(25, 'time_limit_exceeded');
+  candidateResult = score(100, 'accepted');
+  await render();
+  await open();
+  for (const cell of document.querySelectorAll(
+    'article .grid.grid-cols-2 > div, tbody tr td:nth-child(n + 2)',
+  )) {
+    const summary = cell.cloneNode(true);
+    summary.querySelectorAll('details').forEach((details) => details.remove());
+    const total = summary.textContent.match(/\d+ \/ 100점/g) ?? [];
+    assert.equal(total.length, 1, cell.textContent);
+    assert.match(cell.textContent, /서브태스크별 점수/);
+  }
 });

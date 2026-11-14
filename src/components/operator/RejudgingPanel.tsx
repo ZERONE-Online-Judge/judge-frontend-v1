@@ -16,7 +16,8 @@ import type {
   RejudgingTarget,
 } from '@/domains/submissionScoreboard/rejudging';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
-import { formatApiError } from '@/shared/api/errors';
+import { formatApiError, isApiClientError } from '@/shared/api/errors';
+import { isSubmissionPending } from '@/domains/submissionScoreboard/status';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
@@ -322,11 +323,25 @@ function ComparisonModal({
       offset,
     ],
     queryFn: () => getRejudging(contestId, token, id, offset),
+    refetchOnMount: 'always',
+    placeholderData: undefined,
     refetchInterval: (current) =>
-      visible && current.state.data?.status === 'pending' ? 3_000 : false,
+      visible &&
+      !(
+        isApiClientError(current.state.error) &&
+        [401, 403, 404].includes(current.state.error.status)
+      ) &&
+      current.state.data?.status === 'pending'
+        ? 1_000
+        : false,
     refetchIntervalInBackground: false,
+    retry: false,
   });
-  const batch = query.data;
+  const batch =
+    isApiClientError(query.error) &&
+    [401, 403, 404].includes(query.error.status)
+      ? undefined
+      : query.data;
   const decision = useMutation({
     mutationFn: (action: 'apply' | 'cancel') =>
       decideRejudging(contestId, token, id, action),
@@ -392,7 +407,7 @@ function ComparisonModal({
             >
               <strong>{rejudgingStatusLabel[batch.status]}</strong>
               <span className="text-sm">
-                완료 {batch.completed}/{batch.total} · 판정·점수 변경{' '}
+                제출 완료 {batch.completed}/{batch.total} · 판정·점수 변경{' '}
                 {batch.changed_verdicts}개
               </span>
             </div>
@@ -564,18 +579,25 @@ function ComparisonModal({
 }
 
 function ResultCell({ result }: { result: RejudgingResult }) {
+  const pending = isSubmissionPending(result.status);
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       {result.status === 'cancelled' ? (
         <span className="text-xs font-semibold text-slate-500">채점 취소</span>
       ) : (
-        <SubmissionStatusBadge submission={result} compact />
+        <SubmissionStatusBadge
+          submission={result}
+          compact={!pending}
+          showScore={false}
+        />
       )}
       <SubmissionScoreDetails submission={result} compact />
-      <p className="text-xs text-slate-600">
-        {result.runtime_ms == null ? '—' : `${result.runtime_ms}ms`} ·{' '}
-        {formatMemoryKb(result.memory_kb)}
-      </p>
+      {!pending ? (
+        <p className="text-xs text-slate-600">
+          {result.runtime_ms == null ? '—' : `${result.runtime_ms}ms`} ·{' '}
+          {formatMemoryKb(result.memory_kb)}
+        </p>
+      ) : null}
       {result.failed_testcase_order != null ? (
         <p className="text-xs text-rose-700">
           실패 테스트 #{result.failed_testcase_order}

@@ -11,6 +11,7 @@ import type { SubmissionProgressState } from '@/domains/submissionScoreboard/typ
 type SubmissionStatusBadgeProps = {
   submission?: SubmissionProgressState | null;
   compact?: boolean;
+  showScore?: boolean;
 };
 
 const toneClasses: Record<string, string> = {
@@ -34,6 +35,7 @@ const progressClasses: Record<string, string> = {
 export default function SubmissionStatusBadge({
   submission,
   compact = false,
+  showScore = true,
 }: SubmissionStatusBadgeProps) {
   const status = submission?.status;
   const tone = submissionStatusTone(status);
@@ -42,7 +44,8 @@ export default function SubmissionStatusBadge({
     submission ? { ...submission, progress_phase: null } : submission,
   );
   const progressPercent = submissionProgressPercent(submission) ?? 0;
-  const scoreLabel = submission ? submissionScoreLabel(submission) : null;
+  const scoreLabel =
+    showScore && submission ? submissionScoreLabel(submission) : null;
 
   return (
     <span

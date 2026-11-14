@@ -9,13 +9,7 @@ import {
   canRejudgeSubmission,
   type RejudgingTarget,
 } from '@/domains/submissionScoreboard/rejudging';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   keepPreviousData,
@@ -46,19 +40,21 @@ import {
   rejudgeSystemError,
   getOperatorSubmissionFilters,
   listOperatorSubmissionsPage,
-  waitOperatorSubmissionStatus,
+  waitOperatorSubmissions,
 } from '@/domains/submissionScoreboard/api';
 import type {
   Submission,
   SubmissionKindFilter,
 } from '@/domains/submissionScoreboard/types';
-import { isSubmissionPending } from '@/domains/submissionScoreboard/status';
-import { formatApiError } from '@/shared/api/errors';
+import { formatApiError, isApiClientError } from '@/shared/api/errors';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
-import SubmissionStatusBadge from '@/shared/ui/SubmissionStatusBadge';
+import OperatorSubmissionResult from '@/components/operator/OperatorSubmissionResult';
+import SubmissionRejudgingHistory from '@/components/operator/SubmissionRejudgingHistory';
+import { needsSubmissionLiveUpdate } from '@/domains/submissionScoreboard/liveSubmissions';
+import { useSubmissionLiveUpdates } from '@/domains/submissionScoreboard/useSubmissionLiveUpdates';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
 import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
 import '@/components/contest/submissions/SubmissionRecency.css';
@@ -167,7 +163,6 @@ function OperatorSubmissionsContent({
   const isVisible = useDocumentVisibility();
   const queryClient = useQueryClient();
   const queryIdentity = tokenQueryIdentity(token);
-  const waitingIds = useRef(new Set<string>());
   const divisionStorageKey = operatorSubmissionDivisionStorageKey(contestId);
   const problemStorageKey = operatorSubmissionProblemStorageKey(contestId);
   const teamStorageKey = operatorSubmissionTeamStorageKey(contestId);
@@ -233,6 +228,7 @@ function OperatorSubmissionsContent({
         submissionKind: submissionKind === 'all' ? undefined : submissionKind,
       }),
     placeholderData: keepPreviousData,
+    refetchOnMount: 'always',
     refetchInterval: isVisible ? SUBMISSIONS_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
@@ -320,43 +316,26 @@ function OperatorSubmissionsContent({
     }
   }, [filteredTeams, filtersQuery.isSuccess, teamId, teamStorageKey]);
 
-  useEffect(() => {
-    if (!isVisible) return;
-
-    (submissionsQuery.data?.data ?? [])
-      .filter((submission) => isSubmissionPending(submission.status))
-      .forEach((submission) => {
-        if (waitingIds.current.has(submission.submission_id)) return;
-
-        waitingIds.current.add(submission.submission_id);
-        void waitOperatorSubmissionStatus(
-          contestId,
-          submission.submission_id,
-          token,
-          {
-            pollIntervalSeconds: 0.5,
-            waitSeconds: 4,
-          },
-        )
-          .then(() => {
-            void queryClient.invalidateQueries({
-              queryKey: ['operator', 'submissions', contestId],
-            });
-            void queryClient.invalidateQueries({
-              queryKey: ['operator', 'dashboard', contestId],
-            });
-          })
-          .catch(() => undefined)
-          .finally(() => {
-            waitingIds.current.delete(submission.submission_id);
-          });
-      });
-  }, [contestId, isVisible, queryClient, submissionsQuery.data, token]);
-
-  const submissions = submissionsQuery.data?.data ?? [];
+  const submissions = useSubmissionLiveUpdates({
+    submissions: submissionsQuery.data?.data ?? [],
+    listUpdatedAt: submissionsQuery.dataUpdatedAt,
+    scope: JSON.stringify([
+      'operator',
+      contestId,
+      queryIdentity,
+      submissionKind,
+      divisionId,
+      problemId,
+      teamId,
+      currentCursor,
+    ]),
+    enabled: isVisible && !submissionsQuery.isPlaceholderData,
+    waitForUpdates: (ids, signal) =>
+      waitOperatorSubmissions(contestId, ids, token, signal),
+  });
   const page = submissionsQuery.data?.page;
   const pendingCount = submissions.filter((submission) =>
-    isSubmissionPending(submission.status),
+    needsSubmissionLiveUpdate(submission),
   ).length;
   const problemById = useMemo(
     () =>
@@ -391,6 +370,8 @@ function OperatorSubmissionsContent({
     : null;
   const selectedSubmissionQuery = useQuery({
     enabled: Boolean(selectedSubmissionId),
+    refetchOnMount: 'always',
+    placeholderData: undefined,
     queryKey: [
       'operator',
       'submission-detail',
@@ -401,9 +382,16 @@ function OperatorSubmissionsContent({
     queryFn: () =>
       getOperatorSubmission(contestId, selectedSubmissionId, token),
     refetchInterval: (query) =>
-      isVisible && isSubmissionPending(query.state.data?.status)
-        ? 3_000
+      isVisible &&
+      !(
+        isApiClientError(query.state.error) &&
+        [401, 403, 404].includes(query.state.error.status)
+      ) &&
+      query.state.data &&
+      needsSubmissionLiveUpdate(query.state.data)
+        ? 1_000
         : false,
+    retry: false,
     refetchIntervalInBackground: false,
   });
 
@@ -751,6 +739,8 @@ function OperatorSubmissionsContent({
 
       {selectedSubmissionId ? (
         <SubmissionDetailModal
+          contestId={contestId}
+          token={token}
           onRejudge={
             canRejudge
               ? (submissionId) => {
@@ -765,7 +755,12 @@ function OperatorSubmissionsContent({
           isLoading={selectedSubmissionQuery.isLoading}
           onClose={() => setSelectedSubmissionId('')}
           problemById={problemById}
-          submission={selectedSubmissionQuery.data}
+          submission={
+            isApiClientError(selectedSubmissionQuery.error) &&
+            [401, 403, 404].includes(selectedSubmissionQuery.error.status)
+              ? undefined
+              : selectedSubmissionQuery.data
+          }
         />
       ) : null}
       {selectedProblemPreview ? (
@@ -1010,7 +1005,7 @@ function OperatorSubmissionsTable({
                   )}
                 </td>
                 <td className={cellClass}>
-                  <SubmissionStatusBadge submission={submission} />
+                  <OperatorSubmissionResult submission={submission} />
                   {onRetry && submission.status === 'system_error' ? (
                     <button
                       type="button"
@@ -1256,6 +1251,8 @@ function TeamDetailModal({
 }
 
 function SubmissionDetailModal({
+  contestId,
+  token,
   onRejudge,
   onRetry,
   retryPending,
@@ -1265,6 +1262,8 @@ function SubmissionDetailModal({
   problemById,
   submission,
 }: {
+  contestId: string;
+  token: string;
   onRejudge?: (submissionId: string) => void;
   onRetry?: (submissionId: string) => void;
   retryPending: boolean;
@@ -1356,7 +1355,14 @@ function SubmissionDetailModal({
                 submission.max_memory_kb,
             )}
             codeLength={codeLength(submission)}
-          />
+          >
+            <SubmissionRejudgingHistory
+              key={`history:${submission.submission_id}`}
+              contestId={contestId}
+              submissionId={submission.submission_id}
+              token={token}
+            />
+          </SubmissionDetailContent>
         ) : null}
       </div>
     </ModalDialog>

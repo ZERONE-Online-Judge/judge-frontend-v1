@@ -1,4 +1,9 @@
-import type { Rejudging, RejudgingDetail, RejudgingTarget } from './rejudging';
+import type {
+  Rejudging,
+  RejudgingDetail,
+  RejudgingTarget,
+  SubmissionRejudgingHistory,
+} from './rejudging';
 import type { RejudgingNotificationPage } from './rejudgingNotifications';
 import type {
   OperatorScoreboardResponse,
@@ -292,6 +297,52 @@ export function waitOperatorSubmissionStatus(
 
   return apiRequest<Submission>(
     `/operator/contests/${contestId}/submissions/${submissionId}/status:wait?${search}`,
+    token,
+  );
+}
+
+function submissionWaitSearch(submissionIds: string[]) {
+  const search = new URLSearchParams({ wait_seconds: '2' });
+  for (const id of [...new Set(submissionIds)].slice(0, 20)) {
+    search.append('submission_id', id);
+  }
+  return search;
+}
+
+export function waitOperatorSubmissions(
+  contestId: string,
+  submissionIds: string[],
+  token: string,
+  signal?: AbortSignal,
+) {
+  return apiRequest<Submission[]>(
+    `/operator/contests/${contestId}/submissions:wait?${submissionWaitSearch(submissionIds)}`,
+    token,
+    { signal },
+  );
+}
+
+export function waitParticipantSubmissions(
+  contestId: string,
+  submissionIds: string[],
+  token: string,
+  signal?: AbortSignal,
+) {
+  return apiRequest<Submission[]>(
+    `/contests/${contestId}/submissions:wait?${submissionWaitSearch(submissionIds)}`,
+    token,
+    { signal },
+  );
+}
+
+export function getSubmissionRejudgings(
+  contestId: string,
+  submissionId: string,
+  token: string,
+  offset = 0,
+) {
+  return apiRequest<SubmissionRejudgingHistory>(
+    `/operator/contests/${contestId}/submissions/${submissionId}/rejudgings?offset=${offset}&limit=10`,
     token,
   );
 }

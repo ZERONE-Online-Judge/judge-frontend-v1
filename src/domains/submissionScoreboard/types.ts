@@ -30,6 +30,9 @@ export type SubtaskResult = {
 };
 
 export type Submission = {
+  /** Candidate grading stays separate from the published result until applied. */
+  rejudging_progress?: RejudgingProgress | null;
+  rejudged?: boolean;
   scoring_mode?: ContestScoringMode;
   score?: number | null;
   max_score?: number | null;
@@ -85,6 +88,16 @@ export type Submission = {
     name: string;
     email?: string;
   } | null;
+};
+
+export type RejudgingProgress = {
+  rejudging_id: string;
+  batch_status?: 'pending' | 'ready' | 'blocked';
+  status: string;
+  progress_current?: number | null;
+  progress_total?: number | null;
+  progress_percent?: number | null;
+  progress_phase?: 'tle_confirmation' | null;
 };
 
 export type SubmissionProgressState = Pick<

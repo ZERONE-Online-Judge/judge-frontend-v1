@@ -26,7 +26,11 @@ import {
   getContestProblems,
   getDivisionProblems,
 } from '@/domains/problemManagement/api';
-import { listSubmissionsPage } from '@/domains/submissionScoreboard/api';
+import {
+  listSubmissionsPage,
+  waitParticipantSubmissions,
+} from '@/domains/submissionScoreboard/api';
+import { useSubmissionLiveUpdates } from '@/domains/submissionScoreboard/useSubmissionLiveUpdates';
 import { getSubmission } from '@/domains/submissionScoreboard/api';
 import { isSubmissionPending } from '@/domains/submissionScoreboard/status';
 import type { Submission } from '@/domains/submissionScoreboard/types';
@@ -208,6 +212,7 @@ function ContestSubmissionsContent({
         },
       );
     },
+    refetchOnMount: 'always',
     refetchInterval: (query) => {
       if (!isDocumentVisible) return false;
 
@@ -218,12 +223,39 @@ function ContestSubmissionsContent({
           isSubmissionPending(submission.status),
         );
 
-      return pollDelay(hasPendingSubmission ? 3_000 : 15_000);
+      return pollDelay(
+        hasPendingSubmission && !shouldUseParticipantScope ? 3_000 : 20_000,
+      );
     },
     refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
   });
-  const submissions = submissionsQuery.data?.data ?? [];
+  const submissions = useSubmissionLiveUpdates({
+    submissions: submissionsQuery.data?.data ?? [],
+    listUpdatedAt: submissionsQuery.dataUpdatedAt,
+    scope: JSON.stringify([
+      'participant',
+      filter,
+      currentCursor,
+      shouldUseParticipantScope,
+    ]),
+    enabled:
+      canViewSubmissions &&
+      isDocumentVisible &&
+      shouldUseParticipantScope &&
+      !submissionsQuery.isPlaceholderData,
+    waitForUpdates: async (ids, signal) => {
+      const session = await ensureParticipantSession();
+      signal.throwIfAborted();
+      if (!session) throw new Error('로그인이 필요합니다.');
+      return waitParticipantSubmissions(
+        contestId,
+        ids,
+        session.accessToken,
+        signal,
+      );
+    },
+  });
   const page = submissionsQuery.data?.page;
   const problems = sortProblemsByCode(problemsQuery.data ?? []);
   const availableProblems = effectiveDivisionId

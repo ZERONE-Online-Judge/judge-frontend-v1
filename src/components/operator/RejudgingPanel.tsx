@@ -59,6 +59,13 @@ export default function RejudgingPanel({
     refetchIntervalInBackground: false,
   });
   const refresh = () => {
+    for (const key of [
+      'submissions',
+      'submission-detail',
+      'submission-rejudgings',
+    ]) {
+      void client.invalidateQueries({ queryKey: ['operator', key, contestId] });
+    }
     void client.invalidateQueries({
       queryKey: ['operator', 'rejudgings', contestId],
     });

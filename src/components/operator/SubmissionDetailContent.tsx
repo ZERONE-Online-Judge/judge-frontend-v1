@@ -1,6 +1,6 @@
 import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import BoundedText from '@/shared/ui/BoundedText';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { parseVerificationDetails } from '@/domains/problemManagement/verificationDetails';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
 import {
@@ -30,6 +30,7 @@ export default function SubmissionDetailContent({
   runtime,
   memory,
   codeLength,
+  children,
 }: {
   submission: Submission;
   owner: string;
@@ -37,6 +38,7 @@ export default function SubmissionDetailContent({
   runtime: string;
   memory: string;
   codeLength: string;
+  children?: ReactNode;
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
     'idle',
@@ -103,6 +105,8 @@ export default function SubmissionDetailContent({
           </div>
         ) : null}
       </section>
+
+      {children}
 
       <section aria-label="소스 코드" className="min-w-0">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-3">

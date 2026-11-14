@@ -55,6 +55,18 @@ export type RejudgingDetail = Rejudging & {
   limit: number;
   has_next: boolean;
 };
+export type SubmissionRejudgingHistory = {
+  items: (Rejudging & {
+    original_result: RejudgingResult;
+    candidate_result: RejudgingResult;
+    changed: boolean;
+    rejudging_progress?: Submission['rejudging_progress'];
+  })[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_next: boolean;
+};
 export const rejudgingStatusLabel: Record<Rejudging['status'], string> = {
   pending: '재채점 진행 중',
   ready: '결과 반영 대기',
@@ -65,6 +77,7 @@ export const rejudgingStatusLabel: Record<Rejudging['status'], string> = {
 export function canRejudgeSubmission(submission?: Submission) {
   return Boolean(
     submission &&
+    !submission.rejudging_progress &&
     [
       'accepted',
       'wrong_answer',

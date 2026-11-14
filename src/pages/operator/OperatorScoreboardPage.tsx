@@ -996,6 +996,27 @@ function OperatorScoreboardContent({
         }
         title={participantView ? '순위표 · 참가자 기준' : '순위표'}
       >
+        {contest ? (
+          <p
+            aria-label="프리즈 후 제출 횟수 표시 설정"
+            className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-slate-500"
+          >
+            <span>프리즈 후 제출 횟수</span>
+            <strong
+              className={`rounded-md px-2 py-1 font-semibold whitespace-nowrap ${contest.freeze_submission_count_visible !== false ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}
+              title={
+                contest.freeze_submission_count_visible !== false
+                  ? '프리즈로 가려진 미공개 제출 횟수를 ?n으로 표시합니다.'
+                  : '프리즈 이후 제출 횟수를 숨기고 공개된 기존 기록만 표시합니다.'
+              }
+            >
+              {contest.freeze_submission_count_visible !== false
+                ? '표시 (?n)'
+                : '숨김'}
+            </strong>
+            <span className="text-slate-400">참가자·발표 화면 기준</span>
+          </p>
+        ) : null}
         {canManage && liveView && contest && ended && divisionId ? (
           <ScoreboardReleaseControl
             scoringMode={contest?.scoring_mode}

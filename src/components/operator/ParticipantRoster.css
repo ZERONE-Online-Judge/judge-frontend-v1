@@ -358,30 +358,9 @@ summary.participant-member-row:hover .participant-member-chevron {
   overflow-wrap: anywhere;
 }
 
-.participant-member-logout {
-  min-height: 36px;
-  border-radius: 6px;
-  color: #be123c;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.participant-member-logout:hover {
-  color: #9f1239;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.participant-member-logout:disabled {
-  cursor: wait;
-  opacity: 0.5;
-}
-
 .participant-roster-actions button:focus-visible,
 .participant-member-access-actions button:focus-visible,
-summary.participant-member-row:focus-visible,
-.participant-member-logout:focus-visible {
+summary.participant-member-row:focus-visible {
   border-radius: 6px;
   outline: 2px solid #6366f1;
   outline-offset: 3px;
@@ -454,7 +433,6 @@ summary.participant-member-row:focus-visible,
 
 @media (pointer: coarse) {
   .participant-roster-actions button,
-  .participant-member-logout,
   .participant-member-access-actions button,
   .participant-member-chevron {
     min-width: 44px;

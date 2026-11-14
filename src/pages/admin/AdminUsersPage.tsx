@@ -19,6 +19,7 @@ import { formatDateTime } from '@/shared/lib/dateTime';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import Select from '@/shared/ui/Select';
 import { SessionDescriptionList } from '@/shared/ui/SessionEnvironment';
+import SessionActivityTime from '@/shared/ui/SessionActivityTime';
 import './AdminUsersPage.css';
 
 const roleLabels: Record<string, string> = {
@@ -492,9 +493,10 @@ function UserDetail({
                       <div>
                         <dt>최근 대회 로그인</dt>
                         <dd>
-                          {item.last_login_at
-                            ? formatDateTime(item.last_login_at)
-                            : '로그인 이력 없음'}
+                          <SessionActivityTime
+                            value={item.last_login_at}
+                            emptyText="로그인 이력 없음"
+                          />
                         </dd>
                       </div>
                       <div>

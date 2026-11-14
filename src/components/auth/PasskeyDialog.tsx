@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import PageNotice from '@/shared/ui/PageNotice';
+import SessionActivityTime from '@/shared/ui/SessionActivityTime';
 import { formatUserApiError, isApiClientError } from '@/shared/api/errors';
 import {
   getPasskeys,
@@ -233,9 +234,12 @@ export default function PasskeyDialog({
                     {new Date(item.created_at * 1000).toLocaleDateString(
                       'ko-KR',
                     )}
-                    {item.last_used_at
-                      ? ` · 최근 사용 ${new Date(item.last_used_at * 1000).toLocaleDateString('ko-KR')}`
-                      : ''}
+                    {item.last_used_at ? (
+                      <>
+                        {' · 최근 사용 '}
+                        <SessionActivityTime value={item.last_used_at * 1000} />
+                      </>
+                    ) : null}
                   </small>
                 </div>
                 <ModalButton

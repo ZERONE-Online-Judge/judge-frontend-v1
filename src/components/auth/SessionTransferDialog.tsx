@@ -5,40 +5,13 @@ import {
   type SessionEnvironmentData,
 } from '@/shared/lib/sessionEnvironment';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
+import SessionActivityTime from '@/shared/ui/SessionActivityTime';
 import './SessionTransferDialog.css';
 
 function validDate(value?: string | null) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
-}
-
-function activityLabel(value?: string | null) {
-  const date = validDate(value);
-  if (!date) return null;
-  const calendar = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  });
-  const clock = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
-  const day =
-    calendar.format(date) === calendar.format(new Date())
-      ? '오늘'
-      : calendar.format(date);
-  const full =
-    new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      dateStyle: 'long',
-      timeStyle: 'short',
-    }).format(date) + ' (KST)';
-  return { value: date.toISOString(), text: `${day} ${clock}`, full };
 }
 
 function OutlineIcon({
@@ -101,13 +74,12 @@ function DeviceIcon({
 }
 
 function ActivityTime({ value }: { value?: string | null }) {
-  const label = activityLabel(value);
-  return label ? (
-    <time dateTime={label.value} title={label.full} aria-label={label.full}>
-      {label.text}
-    </time>
-  ) : (
-    <span>활동 시간 정보 없음</span>
+  return (
+    <SessionActivityTime
+      value={value}
+      compact
+      emptyText="활동 시간 정보 없음"
+    />
   );
 }
 

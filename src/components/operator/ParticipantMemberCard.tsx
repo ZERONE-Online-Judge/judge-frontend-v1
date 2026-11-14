@@ -2,14 +2,13 @@ import InterfaceIcon from '@/components/common/InterfaceIcon';
 import type { TeamMember } from '@/domains/teamParticipation/types';
 import { formatDateTime } from '@/shared/lib/dateTime';
 import SessionEnvironment from '@/shared/ui/SessionEnvironment';
+import SessionActivityTime from '@/shared/ui/SessionActivityTime';
 import SessionPlatformIcon from './SessionPlatformIcon';
 import './ParticipantRoster.css';
 
 export default function ParticipantMemberCard({
   member,
   pending,
-  onRevoke,
-  canRevoke = true,
   teamBlocked = false,
   teamWithdrawn = false,
   canManageAccess = false,
@@ -17,8 +16,6 @@ export default function ParticipantMemberCard({
 }: {
   member: TeamMember;
   pending: boolean;
-  onRevoke: () => void;
-  canRevoke?: boolean;
   teamBlocked?: boolean;
   teamWithdrawn?: boolean;
   canManageAccess?: boolean;
@@ -89,7 +86,7 @@ export default function ParticipantMemberCard({
         </span>
         <span className="participant-member-last-used">
           <span className="sr-only">마지막 사용 </span>
-          {lastUsed ? formatDateTime(lastUsed) : '기록 없음'}
+          <SessionActivityTime value={lastUsed} emptyText="기록 없음" />
         </span>
       </div>
     </>
@@ -127,17 +124,6 @@ export default function ParticipantMemberCard({
                   <span>환경 정보 없음</span>
                 )}
               </div>
-              {canRevoke && member.team_member_id ? (
-                <button
-                  className="participant-member-logout"
-                  disabled={pending}
-                  title="이 계정의 모든 기기에서 로그아웃합니다"
-                  onClick={onRevoke}
-                  type="button"
-                >
-                  {pending ? '로그아웃 중…' : '계정 로그아웃'}
-                </button>
-              ) : null}
             </div>
           </details>
         ) : (

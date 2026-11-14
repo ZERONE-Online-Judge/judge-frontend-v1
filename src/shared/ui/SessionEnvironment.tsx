@@ -4,6 +4,7 @@ import {
   type SessionEnvironmentData,
 } from '@/shared/lib/sessionEnvironment';
 import { formatDateTime } from '@/shared/lib/dateTime';
+import SessionActivityTime from '@/shared/ui/SessionActivityTime';
 
 export default function SessionEnvironment({
   environment,
@@ -56,7 +57,10 @@ export function SessionDescriptionList({
             <span className="text-slate-500">{scopes[session.scope]}</span>
           </div>
           <p className="text-slate-600">
-            마지막 사용 {sessionTime(session.last_seen_at || session.issued_at)}
+            마지막 사용{' '}
+            <SessionActivityTime
+              value={session.last_seen_at || session.issued_at}
+            />
           </p>
           <p className="text-slate-500">
             로그인 {sessionTime(session.issued_at)}

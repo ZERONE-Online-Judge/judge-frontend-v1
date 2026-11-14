@@ -194,8 +194,8 @@ test('guide covers every shipped operator tab and links have unique article iden
 });
 test('search finds detailed instructions and requires every keyword', () => {
   assert.ok(
-    searchOperatorGuide('강제 로그아웃').some(
-      (r) => r.article.id === 'force-logout',
+    searchOperatorGuide('마지막 활동').some(
+      (r) => r.article.id === 'session-status',
     ),
   );
   assert.ok(
@@ -232,14 +232,14 @@ test('unauthenticated visitors cannot open the operator guide', async () => {
   assert.ok(host.querySelector('a[href="/login"]'));
 });
 test('deep links open the requested article without unrelated autoplay controls', async () => {
-  await render('?section=participants&article=force-logout');
-  const article = host.querySelector('#guide-force-logout');
+  await render('?section=participants&article=session-status');
+  const article = host.querySelector('#guide-session-status');
   assert.equal(
     article.querySelector('h3 button').getAttribute('aria-expanded'),
     'true',
   );
   assert.equal(article.querySelector('[id^="guide-body"]').hidden, false);
-  assert.match(article.textContent, /다른 대회의 세션도 영향을/);
+  assert.match(article.textContent, /마지막 사용 시각 옆의 상대시간/);
   assert.equal(host.querySelector('.og-player'), null);
   assert.equal(host.querySelector('.og-overview-art'), null);
 });

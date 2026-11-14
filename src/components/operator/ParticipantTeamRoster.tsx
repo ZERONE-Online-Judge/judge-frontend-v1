@@ -18,7 +18,6 @@ export default function ParticipantTeamRoster({
   canManage,
   onEdit,
   onDelete,
-  onRevoke,
   onTeamAccess,
   onMemberAccess,
   onWithdrawal,
@@ -29,7 +28,6 @@ export default function ParticipantTeamRoster({
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onRevoke: (member: TeamMember) => void;
   onTeamAccess?: () => void;
   onMemberAccess?: (member: TeamMember) => void;
   onWithdrawal?: () => void;
@@ -131,8 +129,6 @@ export default function ParticipantTeamRoster({
             key={member.team_member_id ?? member.email}
             member={member}
             pending={pending}
-            canRevoke={canManage}
-            onRevoke={() => onRevoke(member)}
             teamBlocked={Boolean(team.access_blocked)}
             teamWithdrawn={Boolean(team.withdrawn)}
             canManageAccess={canManage && Boolean(onMemberAccess)}

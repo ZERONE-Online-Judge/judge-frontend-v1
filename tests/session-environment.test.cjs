@@ -251,8 +251,7 @@ test('session descriptions retain timestamps, handle unknown legacy data, and wr
   );
 });
 
-test('operator member cards show the member session environment and retain account logout', async () => {
-  let revoked = 0;
+test('operator member cards show session environments without account logout controls', async () => {
   await mount(
     h(Member, {
       member: {
@@ -267,7 +266,6 @@ test('operator member cards show the member session environment and retain accou
         ],
       },
       pending: false,
-      onRevoke: () => revoked++,
     }),
   );
   const disclosure = host.querySelector('details');
@@ -281,12 +279,12 @@ test('operator member cards show the member session environment and retain accou
   assert.equal(disclosure.open, true);
   assert.ok(host.textContent.includes('Chrome · Windows'));
   assert.ok(host.textContent.includes('Safari · iOS · 모바일'));
-  await act(async () =>
-    [...host.querySelectorAll('button')]
-      .find((item) => item.textContent === '계정 로그아웃')
-      .click(),
+  assert.equal(
+    [...host.querySelectorAll('button')].some((item) =>
+      item.textContent.includes('로그아웃'),
+    ),
+    false,
   );
-  assert.equal(revoked, 1);
 });
 
 test('active legacy member sessions show unknown and inactive members do not display stale metadata', async () => {
@@ -296,7 +294,7 @@ test('active legacy member sessions show unknown and inactive members do not dis
     role: 'leader',
     active_sessions: 1,
   };
-  await mount(h(Member, { member, pending: false, onRevoke: () => {} }));
+  await mount(h(Member, { member, pending: false }));
   assert.ok(host.textContent.includes('환경 정보 없음'));
   await act(async () =>
     root.render(
@@ -307,7 +305,6 @@ test('active legacy member sessions show unknown and inactive members do not dis
           sessions: [description(iphone)],
         },
         pending: false,
-        onRevoke: () => {},
       }),
     ),
   );

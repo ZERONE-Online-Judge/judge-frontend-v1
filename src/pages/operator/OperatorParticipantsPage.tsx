@@ -33,7 +33,6 @@ import {
   deleteParticipantTeam,
   formatParticipantTeamError,
   listParticipantTeams,
-  revokeParticipantMemberSessions,
   updateParticipantMemberAccess,
   updateParticipantTeamAccess,
   updateParticipantTeamWithdrawal,
@@ -195,12 +194,6 @@ function OperatorParticipantsContent({
   const deleteTeamMutation = useMutation({
     mutationFn: (team: ParticipantTeam) =>
       deleteParticipantTeam(contestId, team.participant_team_id, token),
-    onSuccess: invalidateParticipants,
-  });
-
-  const revokeSessionMutation = useMutation({
-    mutationFn: ({ memberId, teamId }: { memberId: string; teamId: string }) =>
-      revokeParticipantMemberSessions(contestId, teamId, memberId, token),
     onSuccess: invalidateParticipants,
   });
 
@@ -388,21 +381,6 @@ function OperatorParticipantsContent({
         />
       ) : null}
 
-      {revokeSessionMutation.error ? (
-        <ErrorBox
-          error={revokeSessionMutation.error}
-          fallback="계정을 로그아웃하지 못했습니다"
-        />
-      ) : null}
-      {revokeSessionMutation.isSuccess ? (
-        <p
-          role="status"
-          className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
-        >
-          해당 계정의 모든 로그인 세션을 해제했습니다.
-        </p>
-      ) : null}
-
       {canManageParticipants && dashboardQuery.data ? (
         <ParticipantDivisionsPanel
           contestId={contestId}
@@ -537,7 +515,6 @@ function OperatorParticipantsContent({
                   }
                   pending={
                     createTeamMutation.isPending ||
-                    revokeSessionMutation.isPending ||
                     accessMutation.isPending ||
                     withdrawalMutation.isPending
                   }
@@ -549,13 +526,6 @@ function OperatorParticipantsContent({
                   onMemberAccess={(member) =>
                     openAccessDialog({ team, member })
                   }
-                  onRevoke={(member) => {
-                    if (member.team_member_id)
-                      revokeSessionMutation.mutate({
-                        memberId: member.team_member_id,
-                        teamId: team.participant_team_id,
-                      });
-                  }}
                 />
               ))
             ) : (

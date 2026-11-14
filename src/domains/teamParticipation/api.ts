@@ -278,19 +278,6 @@ export function updateParticipantTeamMember(
   );
 }
 
-export function revokeParticipantMemberSessions(
-  contestId: string,
-  participantTeamId: string,
-  teamMemberId: string,
-  token: string,
-) {
-  return apiRequest<TeamMember>(
-    `/operator/contests/${contestId}/participants/${participantTeamId}/members/${teamMemberId}/sessions:revoke`,
-    token,
-    { method: 'POST' },
-  );
-}
-
 export function updateParticipantTeamAccess(
   contestId: string,
   participantTeamId: string,

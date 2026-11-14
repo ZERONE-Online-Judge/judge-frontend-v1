@@ -146,7 +146,6 @@ function rosterProps(overrides = {}) {
     canManage: true,
     onEdit: () => {},
     onDelete: () => {},
-    onRevoke: () => {},
     ...overrides,
   };
 }
@@ -195,12 +194,8 @@ test('the team roster keeps identity and all members together, sorting the leade
   assert.equal(deleted, 1);
 });
 
-test('active session details start closed, toggle natively, and retain account logout', async () => {
-  const activeMember = member();
-  let revoked;
-  await render(
-    h(Roster, rosterProps({ onRevoke: (value) => (revoked = value) })),
-  );
+test('active session details start closed and remain inspectable without account logout', async () => {
+  await render(h(Roster, rosterProps()));
   const details = host.querySelector('details');
   assert.ok(details);
   assert.equal(details.open, false);
@@ -213,8 +208,7 @@ test('active session details start closed, toggle natively, and retain account l
   assert.equal(details.open, true);
   assert.ok(details.textContent.includes('Chrome · Windows'));
   assert.match(details.textContent, /로그인/);
-  await click(button(/계정 로그아웃/));
-  assert.deepEqual(revoked, activeMember);
+  assert.equal(button(/로그아웃/), undefined);
   await click(summary);
   assert.equal(details.open, false);
 });
@@ -235,7 +229,6 @@ test('the session badge uses stored platform icons, including tablets and legacy
       h(Member, {
         member: member({ sessions: [session(os)] }),
         pending: false,
-        onRevoke: () => {},
       }),
     );
     const summary = host.querySelector('summary');
@@ -250,7 +243,6 @@ test('the session badge uses stored platform icons, including tablets and legacy
     h(Member, {
       member: member({ sessions: undefined }),
       pending: false,
-      onRevoke: () => {},
     }),
   );
   assert.ok(
@@ -267,7 +259,6 @@ test('inactive members never expose stale session details, device icons, or logo
     h(Member, {
       member: member({ active_sessions: 0, sessions: [session('iOS')] }),
       pending: false,
-      onRevoke: () => assert.fail('Inactive account cannot be revoked'),
     }),
   );
   assert.equal(host.querySelector('details'), null);
@@ -278,7 +269,7 @@ test('inactive members never expose stale session details, device icons, or logo
 });
 
 test('an open session closes after replacement and disappears after revocation', async () => {
-  const props = { pending: false, onRevoke: () => {} };
+  const props = { pending: false };
   await render(h(Member, { ...props, member: member() }));
   await click(host.querySelector('summary'));
   assert.equal(host.querySelector('details').open, true);
@@ -310,7 +301,6 @@ test('read-only operators can inspect session details but have no editing, delet
         canManage: false,
         onEdit: denied,
         onDelete: denied,
-        onRevoke: denied,
       }),
     ),
   );
@@ -320,21 +310,6 @@ test('read-only operators can inspect session details but have no editing, delet
   assert.equal(host.querySelector('details').open, true);
   assert.ok(host.textContent.includes('Chrome · Windows'));
   assert.equal(button(/계정 로그아웃/), undefined);
-});
-
-test('pending session revocation disables repeated logout requests', async () => {
-  await render(
-    h(Member, {
-      member: member(),
-      pending: true,
-      onRevoke: () => assert.fail('Pending revocation cannot be repeated'),
-    }),
-  );
-  await click(host.querySelector('summary'));
-  const revoke = button(/로그아웃/);
-  assert.ok(revoke);
-  assert.equal(revoke.disabled, true);
-  await click(revoke);
 });
 
 test('team and individual access controls remain independent and keep the leader first', async () => {

@@ -53,6 +53,7 @@ let session,
   assetReads,
   rejectCreate,
   rejectWait,
+  reviewIdentity,
   currentLocation;
 function deferred() {
   let resolve, reject;
@@ -65,7 +66,7 @@ function deferred() {
 const mocks = {
   '@/utils/Icons': { SvgIcon: () => null },
   '@/domains/identityAccess/queryIdentity': {
-    tokenQueryIdentity: (token) => 'identity:' + token,
+    tokenQueryIdentity: () => reviewIdentity,
   },
   '@/domains/identityAccess/sessionStore': {
     useSessionStore: (selector) => selector({ generalSession: session }),
@@ -182,6 +183,7 @@ beforeEach(() => {
   assetReads = [];
   rejectCreate = false;
   rejectWait = false;
+  reviewIdentity = 'reviewer:full-access';
   document.body.innerHTML = '';
   window.localStorage.clear();
   container = document.createElement('div');
@@ -232,6 +234,10 @@ async function flush() {
     async () => new Promise((resolve) => global.setTimeout(resolve, 10)),
   );
 }
+async function leaveReview() {
+  await act(async () => root.render(null));
+  await flush();
+}
 function button(text) {
   return [...container.querySelectorAll('button')].find(
     (b) => b.textContent.trim() === text,
@@ -273,6 +279,22 @@ const submission = (id, status = 'waiting') => ({
   language: 'cpp17',
   submitted_at: new Date().toISOString(),
 });
+function reviewHistory() {
+  return [...container.querySelectorAll('section')].find((section) =>
+    section.querySelector('h3')?.textContent.includes('이번 검수의 제출 이력'),
+  );
+}
+async function createCompletedRun(sourceCode, id, status = 'accepted') {
+  await input(editor(), sourceCode);
+  await click(button('테스트 제출'));
+  await act(async () =>
+    creates.at(-1).gate.resolve({
+      ...submission(id, status),
+      problem_id: 'a1',
+    }),
+  );
+  await flush();
+}
 
 test('problem viewers read and navigate statements without review or editorial controls', async () => {
   session.operatorSession.staff.contest_scopes.contest = [
@@ -486,8 +508,207 @@ test('drafts survive remounts but do not leak to a different reviewer', async ()
   session.operatorSession.staff.email = 'another@test';
   session.account.email = 'another@test';
   session.operatorSession.accessToken = 'another-token';
+  reviewIdentity = 'another-reviewer:full-access';
   await render();
   assert.equal(editor().value, '');
+});
+
+test('completed review attempts survive leaving and returning to the tab', async () => {
+  await render();
+  await createCompletedRun('accepted solution', 'first-review');
+  await createCompletedRun('wrong solution', 'second-review', 'wrong_answer');
+  assert.match(reviewHistory().textContent, /제출 이력 2건/);
+  assert.match(result().textContent, /틀렸습니다/);
+  await leaveReview();
+  await render();
+  assert.equal(creates.length, 2);
+  assert.equal(waits.length, 0);
+  assert.match(reviewHistory().textContent, /제출 이력 2건/);
+  assert.match(result().textContent, /틀렸습니다/);
+  const previous = [...reviewHistory().querySelectorAll('button')].find(
+    (item) => item.textContent.includes('#1'),
+  );
+  await click(previous);
+  assert.match(result().textContent, /맞았습니다/);
+  assert.match(result().textContent, /accepted solution/);
+  assert.doesNotMatch(result().textContent, /wrong solution/);
+});
+
+test('returning to a pending review resumes its existing submission without another POST', async () => {
+  await render();
+  await input(editor(), 'pending solution');
+  await click(button('테스트 제출'));
+  await act(async () => creates[0].gate.resolve(submission('a-submit')));
+  await flush();
+  assert.equal(waits.length, 1);
+  await leaveReview();
+  await render();
+  assert.equal(creates.length, 1);
+  assert.equal(waits.length, 2);
+  assert.equal(waits[1].submissionId, 'a-submit');
+  await act(async () =>
+    waits[1].gate.resolve(submission('a-submit', 'accepted')),
+  );
+  await flush();
+  assert.match(result().textContent, /맞았습니다/);
+  assert.match(reviewHistory().textContent, /제출 이력 1건/);
+  await act(async () =>
+    waits[0].gate.resolve(submission('a-submit', 'judging')),
+  );
+  await flush();
+  assert.match(
+    result().textContent,
+    /맞았습니다/,
+    'an abandoned poll must not overwrite the newer completed result',
+  );
+  assert.equal(waits.length, 2);
+});
+
+test('a create response received while away retains the submission ID for return', async () => {
+  await render();
+  await input(editor(), 'response while away');
+  await click(button('테스트 제출'));
+  await leaveReview();
+  await act(async () => creates[0].gate.resolve(submission('a-submit')));
+  await flush();
+  assert.equal(waits.length, 0, 'unmounted review must not keep polling');
+  await render();
+  assert.equal(creates.length, 1);
+  assert.equal(waits.length, 1);
+  assert.equal(waits[0].submissionId, 'a-submit');
+  await act(async () =>
+    waits[0].gate.resolve(submission('a-submit', 'accepted')),
+  );
+  await flush();
+  assert.match(result().textContent, /맞았습니다/);
+});
+
+test('returning before the original create response never resubmits the code', async () => {
+  await render();
+  await input(editor(), 'slow create response');
+  await click(button('테스트 제출'));
+  await leaveReview();
+  await render();
+  assert.match(result().textContent, /제출 중/);
+  assert.equal(creates.length, 1);
+  assert.equal(waits.length, 0);
+  await act(async () => creates[0].gate.resolve(submission('a-submit')));
+  await flush();
+  assert.equal(creates.length, 1);
+  assert.equal(waits.length, 1);
+  assert.equal(waits[0].submissionId, 'a-submit');
+  await act(async () =>
+    waits[0].gate.resolve(submission('a-submit', 'compile_error')),
+  );
+  await flush();
+  assert.match(result().textContent, /컴파일 에러/);
+});
+
+test('polling errors remain visible after return until explicitly retried', async () => {
+  await render();
+  await input(editor(), 'poll error solution');
+  rejectWait = true;
+  await click(button('테스트 제출'));
+  await act(async () => creates[0].gate.resolve(submission('a-submit')));
+  await flush();
+  assert.match(result().textContent, /요청 오류/);
+  assert.equal(waits.length, 1);
+  await leaveReview();
+  await render();
+  assert.match(result().textContent, /요청 오류/);
+  assert.equal(waits.length, 1, 'returning must not retry a failed wait loop');
+  assert.equal(creates.length, 1);
+  rejectWait = false;
+  await click(button('상태 다시 확인'));
+  assert.equal(waits.length, 2);
+  assert.equal(waits[1].submissionId, 'a-submit');
+  await act(async () =>
+    waits[1].gate.resolve(submission('a-submit', 'accepted')),
+  );
+  await flush();
+  assert.match(result().textContent, /맞았습니다/);
+});
+
+test('review history is isolated by reviewer, permission identity and contest', async () => {
+  await render();
+  await createCompletedRun('private reviewer solution', 'private-review');
+  await leaveReview();
+  session.operatorSession.staff.email = 'another@test';
+  session.account.email = 'another@test';
+  session.operatorSession.accessToken = 'another-token';
+  reviewIdentity = 'another-reviewer:full-access';
+  await render();
+  assert.equal(reviewHistory(), undefined);
+  assert.equal(result(), null);
+  assert.doesNotMatch(container.textContent, /private reviewer solution/);
+  await leaveReview();
+  session.operatorSession.staff.email = 'reviewer@test';
+  session.account.email = 'reviewer@test';
+  session.operatorSession.accessToken = 'token';
+  reviewIdentity = 'reviewer:changed-permissions';
+  await render();
+  assert.equal(reviewHistory(), undefined);
+  assert.equal(result(), null);
+  await leaveReview();
+  reviewIdentity = 'reviewer:full-access';
+  session.operatorSession.staff.contest_scopes.other = ['contest.*'];
+  await render('/operator/contests/other/problem-review');
+  assert.equal(reviewHistory(), undefined);
+  assert.equal(result(), null);
+  await leaveReview();
+  await render();
+  assert.match(reviewHistory().textContent, /제출 이력 1건/);
+  assert.match(result().textContent, /private reviewer solution/);
+  assert.equal(creates.length, 1);
+});
+
+test('refreshing an access token preserves history and polls with the new token', async () => {
+  await render();
+  await input(editor(), 'refresh-token solution');
+  await click(button('테스트 제출'));
+  await act(async () => creates[0].gate.resolve(submission('a-submit')));
+  await flush();
+  assert.equal(waits.length, 1);
+  await leaveReview();
+  session.operatorSession.accessToken = 'refreshed-token';
+  await render();
+  assert.equal(creates.length, 1);
+  assert.equal(waits.length, 2);
+  assert.equal(waits[1].submissionId, 'a-submit');
+  assert.equal(waits[1].token, 'refreshed-token');
+  await act(async () =>
+    waits[1].gate.resolve(submission('a-submit', 'accepted')),
+  );
+  await flush();
+  assert.match(result().textContent, /맞았습니다/);
+  assert.match(reviewHistory().textContent, /제출 이력 1건/);
+});
+
+test('a late create response cannot restore history after the session cache is cleared', async () => {
+  await render();
+  await input(editor(), 'discarded session solution');
+  await click(button('테스트 제출'));
+  await leaveReview();
+  client.clear();
+  await act(async () =>
+    creates[0].gate.resolve(submission('a-submit', 'accepted')),
+  );
+  await flush();
+  assert.equal(waits.length, 0);
+  assert.equal(
+    client
+      .getQueriesData({})
+      .some(
+        ([, value]) =>
+          Array.isArray(value) &&
+          value.some((run) => run.sourceCode === 'discarded session solution'),
+      ),
+    false,
+  );
+  await render();
+  assert.equal(reviewHistory(), undefined);
+  assert.equal(result(), null);
+  assert.equal(creates.length, 1);
 });
 
 test('problem view permission is required and unmount stops further polling', async () => {

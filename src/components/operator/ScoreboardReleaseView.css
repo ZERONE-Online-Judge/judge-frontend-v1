@@ -206,7 +206,7 @@
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
-.scoreboard-release__progress-labels strong > span {
+.scoreboard-release__progress-labels strong > .scoreboard-release__step-total {
   font-weight: 450;
   color: #7e889b;
   font-size: 17px;

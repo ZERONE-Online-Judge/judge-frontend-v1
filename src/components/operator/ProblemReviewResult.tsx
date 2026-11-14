@@ -10,6 +10,11 @@ import {
   submissionStatusLabel,
 } from '@/domains/submissionScoreboard/status';
 import { formatMemoryKb } from '@/shared/lib/formatters';
+import {
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 
 export default function ProblemReviewResult({
   run,
@@ -22,6 +27,7 @@ export default function ProblemReviewResult({
   const detail = parseVerificationDetails(submission?.judge_message);
   const pending = run.phase === 'submitting' || run.phase === 'judging';
   const percent = submissionProgressPercent(submission);
+  const progressScope = `${run.id}:${submission?.submission_id ?? 'request'}:${submission?.progress_total ?? ''}`;
   const label =
     run.phase === 'error'
       ? '요청 오류'
@@ -41,25 +47,32 @@ export default function ProblemReviewResult({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">채점 결과</h3>
-        <span
-          role="status"
+        <ResultTransition
+          as="span"
+          stateKey={`${run.id}:${label}`}
           className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}
         >
-          {label}
-        </span>
+          <span role="status">{label}</span>
+        </ResultTransition>
       </div>
       {submission ? <SubmissionScoreDetails submission={submission} /> : null}
       {pending ? (
         <div className="grid gap-2">
-          <progress
-            aria-label="검수 채점 진행률"
-            className="h-2 w-full accent-indigo-600"
-            max={100}
-            value={percent ?? undefined}
+          <MotionProgress
+            label="검수 채점 진행률"
+            className="h-2 w-full bg-slate-100"
+            scope={progressScope}
+            value={percent}
+            valueText={submissionProgressText(submission)}
           />
           <p className="text-xs text-slate-500">
-            {submissionProgressText(submission) ||
-              '채점 서버 응답을 기다리고 있습니다.'}
+            <MotionProgressText
+              scope={progressScope}
+              text={
+                submissionProgressText(submission) ||
+                '채점 서버 응답을 기다리고 있습니다.'
+              }
+            />
           </p>
         </div>
       ) : null}

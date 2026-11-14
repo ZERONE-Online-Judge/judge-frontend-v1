@@ -1,3 +1,8 @@
+import {
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 import { submissionScoreLabel } from '@/domains/submissionScoreboard/scoring';
 import {
   isSubmissionPending,
@@ -43,7 +48,7 @@ export default function SubmissionStatusBadge({
   const progressText = submissionProgressText(
     submission ? { ...submission, progress_phase: null } : submission,
   );
-  const progressPercent = submissionProgressPercent(submission) ?? 0;
+  const scope = `${submission?.submission_id ?? ''}:${submission?.progress_total ?? ''}`;
   const scoreLabel =
     showScore && submission ? submissionScoreLabel(submission) : null;
 
@@ -57,7 +62,9 @@ export default function SubmissionStatusBadge({
             : 'inline-flex min-w-0 flex-wrap items-center gap-3'
       }
     >
-      <span
+      <ResultTransition
+        as="span"
+        stateKey={`${status}:${submission?.progress_phase ?? ''}`}
         className={[
           'inline-flex min-h-7 items-center rounded-full border px-3 py-1 text-xs font-bold break-keep',
           toneClasses[tone],
@@ -67,7 +74,7 @@ export default function SubmissionStatusBadge({
         submission?.progress_phase === 'tle_confirmation'
           ? '시간 초과 재확인 중'
           : submissionStatusLabel(status)}
-      </span>
+      </ResultTransition>
       {scoreLabel ? (
         <strong className="text-xs font-semibold whitespace-nowrap text-indigo-700 tabular-nums">
           {scoreLabel}
@@ -76,20 +83,16 @@ export default function SubmissionStatusBadge({
       {pending && progressText && !compact && (
         <span className="grid min-w-24 gap-1">
           <span className="text-xs font-medium text-slate-500">
-            {progressText}
+            <MotionProgressText text={progressText} scope={scope} />
           </span>
-          <span
-            className="h-1.5 overflow-hidden rounded-full bg-slate-100"
-            aria-hidden="true"
-          >
-            <span
-              className={[
-                'block h-full rounded-full',
-                progressClasses[tone],
-              ].join(' ')}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </span>
+          <MotionProgress
+            value={submissionProgressPercent(submission)}
+            label="채점 진행률"
+            valueText={progressText}
+            scope={scope}
+            className="h-1.5 bg-slate-100"
+            fillClassName={progressClasses[tone]}
+          />
         </span>
       )}
     </span>

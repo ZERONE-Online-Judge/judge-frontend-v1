@@ -1,5 +1,10 @@
 import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
+import {
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import VerificationTestResults from '@/components/operator/VerificationTestResults';
@@ -464,6 +469,7 @@ function VerificationResultSummary({
   const failed = isComplete && !passed;
   const progressText = submissionProgressText(result.submission);
   const progressPercent = submissionProgressPercent(result.submission);
+  const progressScope = `${result.id}:${result.submission?.submission_id ?? 'request'}:${result.execution?.total ?? result.submission?.progress_total ?? ''}`;
   const rechecking =
     actualStatus === 'judging' &&
     result.submission?.progress_phase === 'tle_confirmation';
@@ -480,7 +486,8 @@ function VerificationResultSummary({
 
   return (
     <div aria-live="polite" className="grid min-w-0 gap-2">
-      <div
+      <ResultTransition
+        stateKey={`${progressScope}:${currentLabel}:${passed ? 'passed' : failed ? 'failed' : 'pending'}`}
         className={
           result.execution
             ? 'hidden'
@@ -541,41 +548,33 @@ function VerificationResultSummary({
             테스트케이스 #{testcaseOrder}
           </span>
         ) : null}
-      </div>
+      </ResultTransition>
       {isWorking || result.execution ? (
         <div className="grid w-full gap-1.5">
-          <div
-            aria-label={`${result.filename} 진행도`}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={
+          <MotionProgress
+            label={`${result.filename} 진행도`}
+            scope={progressScope}
+            value={
               result.execution
                 ? Math.round(
                     (100 * result.execution.completed) /
                       Math.max(1, result.execution.total),
                   )
-                : (progressPercent ?? undefined)
+                : progressPercent
             }
-            aria-valuetext={progressText || currentLabel}
-            role="progressbar"
-            className="h-1.5 overflow-hidden rounded-full bg-slate-100"
-          >
-            <div
-              className={`h-full rounded-full bg-indigo-500 transition-all duration-300 ${progressPercent === null ? 'motion-safe:animate-pulse' : ''}`}
-              style={{
-                width: result.execution
-                  ? `${(100 * result.execution.completed) / Math.max(1, result.execution.total)}%`
-                  : progressPercent === null
-                    ? '25%'
-                    : `${progressPercent}%`,
-              }}
-            />
-          </div>
+            valueText={progressText || currentLabel}
+            className="h-1.5 bg-slate-100"
+          />
           <p className="text-xs font-normal text-slate-500">
-            {result.execution
-              ? `${isWorking ? (rechecking ? '시간 초과 재확인 중' : '전체 테스트 채점 중') : result.execution.full_suite_complete ? '검증 종료' : '검증 중단'} · 판정 확인 ${result.execution.completed} / ${result.execution.total}개 · ${Math.round((100 * result.execution.completed) / Math.max(1, result.execution.total))}%`
-              : progressText ||
-                verificationStageHelp(result.stage, actualStatus)}
+            <MotionProgressText
+              scope={progressScope}
+              text={
+                result.execution
+                  ? `${isWorking ? (rechecking ? '시간 초과 재확인 중' : '전체 테스트 채점 중') : result.execution.full_suite_complete ? '검증 종료' : '검증 중단'} · 판정 확인 ${result.execution.completed} / ${result.execution.total}개 · ${Math.round((100 * result.execution.completed) / Math.max(1, result.execution.total))}%`
+                  : progressText ||
+                    verificationStageHelp(result.stage, actualStatus)
+              }
+            />
           </p>
         </div>
       ) : null}

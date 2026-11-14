@@ -1,3 +1,4 @@
+import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import Select from '@/shared/ui/Select';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
@@ -117,12 +118,22 @@ export default function RejudgingPanel({
               </span>
               <span className="grid shrink-0 gap-1 text-right">
                 <span className="text-sm font-semibold text-indigo-700">
-                  {rejudgingStatusLabel[batch.status]}
+                  <ResultTransition as="span" stateKey={batch.status}>
+                    {rejudgingStatusLabel[batch.status]}
+                  </ResultTransition>
                 </span>
                 <span className="text-xs text-slate-500">
-                  완료 {batch.completed}/{batch.total} · 판정·점수 변경{' '}
-                  {batch.changed_verdicts}개 · 결과 비교{' '}
-                  <InterfaceIcon name="arrowRight" />
+                  완료{' '}
+                  <MotionNumber
+                    scope={batch.rejudging_id}
+                    value={batch.completed}
+                  />
+                  /{batch.total} · 판정·점수 변경{' '}
+                  <MotionNumber
+                    scope={batch.rejudging_id}
+                    value={batch.changed_verdicts}
+                  />
+                  개 · 결과 비교 <InterfaceIcon name="arrowRight" />
                 </span>
               </span>
             </button>
@@ -405,10 +416,23 @@ function ComparisonModal({
               role="status"
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-indigo-50 p-4 text-indigo-900"
             >
-              <strong>{rejudgingStatusLabel[batch.status]}</strong>
+              <strong>
+                <ResultTransition as="span" stateKey={batch.status}>
+                  {rejudgingStatusLabel[batch.status]}
+                </ResultTransition>
+              </strong>
               <span className="text-sm">
-                제출 완료 {batch.completed}/{batch.total} · 판정·점수 변경{' '}
-                {batch.changed_verdicts}개
+                제출 완료{' '}
+                <MotionNumber
+                  scope={batch.rejudging_id}
+                  value={batch.completed}
+                />
+                /{batch.total} · 판정·점수 변경{' '}
+                <MotionNumber
+                  scope={batch.rejudging_id}
+                  value={batch.changed_verdicts}
+                />
+                개
               </span>
             </div>
             <p className="text-sm text-slate-600">

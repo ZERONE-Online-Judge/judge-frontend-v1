@@ -8,6 +8,11 @@ import type {
   ScoreboardRelease,
   ScoreboardReleaseAction,
 } from '@/domains/submissionScoreboard/types';
+import {
+  MotionNumber,
+  MotionProgress,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 import './ScoreboardReleaseView.css';
 
 export default function ScoreboardReleaseView({
@@ -40,6 +45,7 @@ export default function ScoreboardReleaseView({
       : message;
   const resolver = release?.resolver;
   const effectiveStrategy = release?.strategy ?? strategy;
+  const motionScope = `${divisionName}:${effectiveStrategy}:${resolver?.total_steps ?? ''}`;
   const isResolver = effectiveStrategy === 'resolver';
   const immediate = effectiveStrategy === 'immediate';
   const manualAll = effectiveStrategy === 'manual_all';
@@ -100,10 +106,12 @@ export default function ScoreboardReleaseView({
                   : '순위별 공개'}
           </span>
         </h3>
-        <span className="scoreboard-release__status" role="status">
-          <span aria-hidden="true" />
-          {status}
-        </span>
+        <ResultTransition as="span" stateKey={status}>
+          <span className="scoreboard-release__status" role="status">
+            <span aria-hidden="true" />
+            {status}
+          </span>
+        </ResultTransition>
       </header>
 
       {!release ? (
@@ -152,35 +160,53 @@ export default function ScoreboardReleaseView({
           <div className="scoreboard-release__progress-labels">
             <p>
               <strong>
-                {resolver.step}
-                <span> / {resolver.total_steps}</span>
+                <MotionNumber value={resolver.step} scope={motionScope} />
+                <span className="scoreboard-release__step-total">
+                  {' '}
+                  / {resolver.total_steps}
+                </span>
               </strong>
               <span>팀·문제 공개</span>
             </p>
-            <span>남은 팀·문제 {resolver.pending_count}개</span>
+            <span>
+              남은 팀·문제{' '}
+              <MotionNumber
+                value={resolver.pending_count}
+                scope={motionScope}
+              />
+              개
+            </span>
           </div>
-          <progress
-            aria-label="팀·문제 공개 진행률"
+          <MotionProgress
+            label="팀·문제 공개 진행률"
             max={Math.max(1, resolver.total_steps)}
             value={resolver.step}
+            scope={motionScope}
+            valueText={`${resolver.step} / ${resolver.total_steps}팀·문제 공개`}
+            className="h-[5px] w-full rounded bg-[#edeaf4]"
+            fillClassName="bg-[#9a88bf]"
           />
           {lastEvent ? (
-            <div className="scoreboard-release__event" role="status">
-              <p>
-                <strong>{lastEvent.team_name}</strong>
-                <span> · {lastEvent.problem_code}번</span>
-                <span className="scoreboard-release__verdict">
-                  {scoringMode === 'ioi' && lastEvent.to_score != null
-                    ? `${formatScore(lastEvent.from_score ?? 0)} → ${formatScore(lastEvent.to_score)}점`
-                    : submissionStatusLabel(lastEvent.status)}
+            <ResultTransition
+              stateKey={`${motionScope}:${resolver.step}:${lastEvent.team_name}:${lastEvent.problem_code}:${lastEvent.status}`}
+            >
+              <div className="scoreboard-release__event" role="status">
+                <p>
+                  <strong>{lastEvent.team_name}</strong>
+                  <span> · {lastEvent.problem_code}번</span>
+                  <span className="scoreboard-release__verdict">
+                    {scoringMode === 'ioi' && lastEvent.to_score != null
+                      ? `${formatScore(lastEvent.from_score ?? 0)} → ${formatScore(lastEvent.to_score)}점`
+                      : submissionStatusLabel(lastEvent.status)}
+                  </span>
+                </p>
+                <span className="scoreboard-release__rank">
+                  {lastEvent.from_rank === lastEvent.to_rank
+                    ? `${lastEvent.to_rank}위 유지`
+                    : `${lastEvent.from_rank}위 → ${lastEvent.to_rank}위`}
                 </span>
-              </p>
-              <span className="scoreboard-release__rank">
-                {lastEvent.from_rank === lastEvent.to_rank
-                  ? `${lastEvent.to_rank}위 유지`
-                  : `${lastEvent.from_rank}위 → ${lastEvent.to_rank}위`}
-              </span>
-            </div>
+              </div>
+            </ResultTransition>
           ) : (
             <p className="scoreboard-release__description">
               다음 문제를 공개하면 참가자·발표 화면의 순위가 함께 갱신됩니다.
@@ -193,7 +219,11 @@ export default function ScoreboardReleaseView({
         <div className="scoreboard-release__ranks">
           <p className="scoreboard-release__team-progress">
             <strong>
-              {release.revealed_count} / {release.total_count}팀
+              <MotionNumber
+                value={release.revealed_count}
+                scope={motionScope}
+              />{' '}
+              / {release.total_count}팀
             </strong>{' '}
             공개 완료
           </p>
@@ -222,9 +252,18 @@ export default function ScoreboardReleaseView({
           {complete ? (
             <p className="scoreboard-release__complete-summary">
               <strong>
-                {release.revealed_count} / {release.total_count}팀
+                <MotionNumber
+                  value={release.revealed_count}
+                  scope={motionScope}
+                />{' '}
+                / {release.total_count}팀
               </strong>
-              <span>결과 공개 완료</span>
+              <ResultTransition
+                as="span"
+                stateKey={`${motionScope}:${release.mode}`}
+              >
+                결과 공개 완료
+              </ResultTransition>
               {isResolver && resolver ? (
                 <span className="scoreboard-release__problem-total">
                   팀·문제 {resolver.total_steps}개

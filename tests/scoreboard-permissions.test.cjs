@@ -652,12 +652,14 @@ test('resolver shows progress and the last outcome until all results are public'
   );
   assert.match(container.textContent, /A번맞았습니다/);
   assert.match(container.textContent, /2위 → 1위/);
-  assert.equal(container.querySelector('progress').value, 1);
-  assert.equal(container.querySelector('progress').max, 2);
+  const progress = container.querySelector('[role="progressbar"]');
+  assert.equal(progress.getAttribute('aria-valuenow'), '50');
+  assert.equal(progress.getAttribute('aria-valuemax'), '100');
+  assert.equal(progress.getAttribute('aria-valuetext'), '1 / 2팀·문제 공개');
   await click(button('다음 문제 공개'));
   assert.deepEqual(changes[2].body, { action: 'next', expected_step: 1 });
   assert.doesNotMatch(container.textContent, /A번 맞았습니다|2위 → 1위/);
-  assert.equal(container.querySelector('progress'), null);
+  assert.equal(container.querySelector('[role="progressbar"]'), null);
   assert.match(container.textContent, /결과 공개 완료/);
   assert.equal(button('다음 문제 공개'), undefined);
 });

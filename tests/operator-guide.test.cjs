@@ -437,11 +437,19 @@ test('resolver and immediate practice use the real release controls without cont
   assert.ok(button('결과 순차 공개 시작', practice));
   await click(button('결과 순차 공개 시작', practice));
   const progress = () =>
-    practice.querySelector('progress[aria-label="팀·문제 공개 진행률"]');
-  assert.equal(progress().value, 0);
+    practice.querySelector(
+      '[role="progressbar"][aria-label="팀·문제 공개 진행률"]',
+    );
+  assert.match(
+    progress().getAttribute('aria-valuetext'),
+    /^0 \/ \d+팀·문제 공개$/,
+  );
   const frozen = practice.querySelector('table').textContent;
   await click(button('다음 문제 공개', practice));
-  assert.equal(progress().value, 1);
+  assert.match(
+    progress().getAttribute('aria-valuetext'),
+    /^1 \/ \d+팀·문제 공개$/,
+  );
   assert.ok(practice.querySelector('.scoreboard-release__event'));
   assert.notEqual(practice.querySelector('table').textContent, frozen);
   await click(button('되돌리기', practice));
@@ -450,7 +458,10 @@ test('resolver and immediate practice use the real release controls without cont
     /직전에 공개한 팀·문제의 제출 전체/,
   );
   await click(button('되돌리기', document.querySelector('dialog')));
-  assert.equal(progress().value, 0);
+  assert.match(
+    progress().getAttribute('aria-valuetext'),
+    /^0 \/ \d+팀·문제 공개$/,
+  );
   assert.equal(practice.querySelector('table').textContent, frozen);
   await click(mode('종료 즉시 전체 공개'));
   assert.equal(

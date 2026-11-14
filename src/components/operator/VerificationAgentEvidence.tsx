@@ -2,6 +2,7 @@ import BoundedText from '@/shared/ui/BoundedText';
 import { useState } from 'react';
 import VerificationMarkdown from '@/components/operator/VerificationMarkdown';
 import type { VerificationAnalysis } from '@/domains/problemManagement/verificationAi';
+import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 
 const verdicts: Record<string, string> = {
   waiting: '채점 대기',
@@ -77,9 +78,22 @@ export default function VerificationAgentEvidence({
             에이전트 작업 기록
           </span>
           <span className="text-xs leading-5 text-slate-500">
-            실제 채점 {analysis.executions?.length ?? 0}회 · 실험{' '}
-            {analysis.playground_runs?.length ?? 0}회 · 도구{' '}
-            {analysis.tool_count ?? 0}회
+            실제 채점{' '}
+            <MotionNumber
+              value={analysis.executions?.length ?? 0}
+              scope={analysis.analysis_id}
+            />
+            회 · 실험{' '}
+            <MotionNumber
+              value={analysis.playground_runs?.length ?? 0}
+              scope={analysis.analysis_id}
+            />
+            회 · 도구{' '}
+            <MotionNumber
+              value={analysis.tool_count ?? 0}
+              scope={analysis.analysis_id}
+            />
+            회
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
@@ -257,7 +271,12 @@ export default function VerificationAgentEvidence({
                                 : 'font-semibold text-amber-800'
                             }
                           >
-                            {verdicts[run.status] || run.status}
+                            <ResultTransition
+                              as="span"
+                              stateKey={`${run.submission_id}:${run.status}`}
+                            >
+                              {verdicts[run.status] || run.status}
+                            </ResultTransition>
                           </span>
                           {run.failed_testcase_order
                             ? ` · 실패 #${run.failed_testcase_order}`
@@ -392,7 +411,9 @@ export default function VerificationAgentEvidence({
                   <ol className="grid gap-2 text-sm text-slate-700">
                     {analysis.plan.map((step, i) => (
                       <li className="flex gap-2" key={i}>
-                        <span
+                        <ResultTransition
+                          as="span"
+                          stateKey={`${analysis.analysis_id}:${step.title}:${step.status}`}
                           className={
                             step.status === 'in_progress'
                               ? 'font-semibold text-indigo-700'
@@ -404,7 +425,7 @@ export default function VerificationAgentEvidence({
                             : step.status === 'in_progress'
                               ? '진행'
                               : '예정'}
-                        </span>
+                        </ResultTransition>
                         <span className="min-w-0 break-words">
                           {step.title}
                         </span>

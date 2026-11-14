@@ -1,3 +1,8 @@
+import {
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import BoundedText from '@/shared/ui/BoundedText';
 import { useState, type ReactNode } from 'react';
@@ -70,11 +75,13 @@ export default function SubmissionDetailContent({
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
           <div role="status" className="min-w-0">
             <p className="text-xs font-medium text-slate-500">채점 결과</p>
-            <h3
-              className={`mt-1 text-2xl font-semibold tracking-tight ${resultColors[submissionStatusTone(submission.status)]}`}
-            >
-              {submissionStatusLabel(submission.status)}
-            </h3>
+            <ResultTransition stateKey={submission.status}>
+              <h3
+                className={`mt-1 text-2xl font-semibold tracking-tight ${resultColors[submissionStatusTone(submission.status)]}`}
+              >
+                {submissionStatusLabel(submission.status)}
+              </h3>
+            </ResultTransition>
             {failedCase != null ? (
               <p className="mt-1.5 text-sm text-slate-600">
                 테스트케이스 #{failedCase}
@@ -92,15 +99,22 @@ export default function SubmissionDetailContent({
         </div>
         {pending ? (
           <div className="mt-5 grid gap-2">
-            <progress
-              aria-label="채점 진행률"
-              className="h-1.5 w-full accent-indigo-600"
-              max={100}
-              value={submissionProgressPercent(submission) ?? undefined}
+            <MotionProgress
+              label="채점 진행률"
+              className="h-1.5 w-full bg-slate-100"
+              fillClassName="bg-indigo-600"
+              scope={`${submission.submission_id}:${submission.progress_total ?? ''}`}
+              value={submissionProgressPercent(submission)}
+              valueText={submissionProgressText(submission)}
             />
             <p className="text-xs text-slate-500">
-              {submissionProgressText(submission) ||
-                '채점 결과를 기다리고 있습니다.'}
+              <MotionProgressText
+                scope={`${submission.submission_id}:${submission.progress_total ?? ''}`}
+                text={
+                  submissionProgressText(submission) ||
+                  '채점 결과를 기다리고 있습니다.'
+                }
+              />
             </p>
           </div>
         ) : null}

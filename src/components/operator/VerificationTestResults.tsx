@@ -12,6 +12,7 @@ import {
   type VerificationCasePreview,
 } from '@/domains/problemManagement/verificationExecution';
 import { submissionStatusLabel } from '@/domains/submissionScoreboard/status';
+import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 
 export default function VerificationTestResults({
   contestId,
@@ -84,7 +85,11 @@ export default function VerificationTestResults({
                 {verificationStatusCode(expectedStatus)}
               </td>
               <td className="px-3 py-3">
-                {execution.completed} / {execution.total}
+                <MotionNumber
+                  value={execution.completed}
+                  scope={`${submissionId}:${execution.total}`}
+                />{' '}
+                / {execution.total}
               </td>
               <td className="px-3 py-3">
                 {execution.observed_statuses
@@ -92,15 +97,20 @@ export default function VerificationTestResults({
                   .join(' · ') || '—'}
               </td>
               <td className="px-3 py-3">
-                {execution.full_suite_complete
-                  ? verificationExpectationMatches(
-                      expectedStatus,
-                      undefined,
-                      execution,
-                    )
-                    ? '일치'
-                    : '불일치'
-                  : '미완료'}
+                <ResultTransition
+                  as="span"
+                  stateKey={`${submissionId}:${execution.full_suite_complete}:${execution.observed_statuses.join(',')}`}
+                >
+                  {execution.full_suite_complete
+                    ? verificationExpectationMatches(
+                        expectedStatus,
+                        undefined,
+                        execution,
+                      )
+                      ? '일치'
+                      : '불일치'
+                    : '미완료'}
+                </ResultTransition>
               </td>
             </tr>
           </tbody>
@@ -156,9 +166,13 @@ export default function VerificationTestResults({
               className={`grid min-h-20 content-center justify-items-center gap-1 rounded-lg border px-1.5 py-2 text-xs transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:cursor-default ${tone}`}
             >
               <span className="opacity-70">#{index}</span>
-              <strong className="text-sm">
+              <ResultTransition
+                as="span"
+                stateKey={`${submissionId}:${index}:${item?.final_status ?? 'waiting'}`}
+                className="text-sm font-bold"
+              >
                 {item ? verificationStatusCode(item.final_status) : '대기'}
-              </strong>
+              </ResultTransition>
               <span>
                 {item?.runtime_ms !== null && item?.runtime_ms !== undefined
                   ? `${item.runtime_ms}ms`

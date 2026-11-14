@@ -1,11 +1,17 @@
 import SubmissionScoreDetails from './SubmissionScoreDetails';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   isSubmissionPending,
   submissionProgressPercent,
   submissionStatusLabel,
   submissionStatusTone,
 } from '@/domains/submissionScoreboard/status';
+import {
+  MotionNumber,
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 import type { SubmissionProgressState } from '@/domains/submissionScoreboard/types';
 
 type ContestSubmissionResultBadgeProps = {
@@ -38,7 +44,24 @@ function progressTarget(
 function elapsedSecondsSince(value?: string | null) {
   if (!value) return 0;
   const elapsed = Math.floor((Date.now() - new Date(value).getTime()) / 1000);
-  return Math.max(0, elapsed);
+  return Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
+}
+
+function ElapsedTime({ submittedAt }: { submittedAt?: string | null }) {
+  const [seconds, setSeconds] = useState(() =>
+    elapsedSecondsSince(submittedAt),
+  );
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSeconds(elapsedSecondsSince(submittedAt));
+    }, 1_000);
+    return () => window.clearInterval(interval);
+  }, [submittedAt]);
+  return (
+    <>
+      <MotionNumber value={seconds} scope={submittedAt ?? ''} />초
+    </>
+  );
 }
 
 export default function ContestSubmissionResultBadge({
@@ -52,89 +75,34 @@ export default function ContestSubmissionResultBadge({
       ? '시간 초과 재확인 중'
       : submissionStatusLabel(status);
   const detail = judgeMessage?.trim();
-  const targetProgress = useMemo(
-    () => progressTarget(submission, status),
-    [
-      status,
-      submission?.progress_current,
-      submission?.progress_percent,
-      submission?.progress_total,
-    ],
-  );
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
-    elapsedSecondsSince(submission?.submitted_at),
-  );
-  const visibleProgress =
-    status === 'judging' && targetProgress !== null
-      ? Math.max(
-          0,
-          Math.min(
-            99,
-            Math.round(
-              submission?.progress_phase === 'tle_confirmation'
-                ? targetProgress
-                : displayProgress,
-            ),
-          ),
-        )
-      : null;
-  const shouldShowElapsed =
-    isSubmissionPending(status) && visibleProgress === null;
-  const displayLabel =
-    isSubmissionPending(status) && visibleProgress !== null
-      ? `${label} - ${visibleProgress}%`
-      : shouldShowElapsed
-        ? `${label} ${elapsedSeconds}초`
-        : label;
-
-  useEffect(() => {
-    if (targetProgress === null) {
-      setDisplayProgress(0);
-      return;
-    }
-
-    setDisplayProgress((previous) => Math.min(previous, targetProgress));
-    const interval = window.setInterval(() => {
-      setDisplayProgress((previous) => {
-        const diff = targetProgress - previous;
-        if (Math.abs(diff) < 0.4) {
-          if (status === 'judging' && targetProgress < 95) {
-            return Math.min(95, previous + 0.08);
-          }
-
-          return targetProgress;
-        }
-
-        const step = Math.max(0.35, Math.abs(diff) * 0.16);
-        return previous + Math.sign(diff) * step;
-      });
-    }, 80);
-
-    return () => window.clearInterval(interval);
-  }, [status, targetProgress]);
-
-  useEffect(() => {
-    if (!isSubmissionPending(status)) return;
-
-    setElapsedSeconds(elapsedSecondsSince(submission?.submitted_at));
-    const interval = window.setInterval(() => {
-      setElapsedSeconds(elapsedSecondsSince(submission?.submitted_at));
-    }, 1_000);
-
-    return () => window.clearInterval(interval);
-  }, [status, submission?.submitted_at]);
+  const targetProgress = progressTarget(submission, status);
+  const pending = isSubmissionPending(status);
+  const scope = `${submission?.submission_id ?? submission?.submitted_at ?? ''}:${submission?.progress_total ?? ''}`;
 
   return (
     <div className="zoj-result-badge inline-flex max-w-full min-w-0 flex-col gap-2">
-      <span
+      <ResultTransition
+        as="span"
+        stateKey={`${status}:${submission?.progress_phase ?? ''}`}
         className={[
           'font-black decoration-1 underline-offset-2',
           toneClassNames[tone],
         ].join(' ')}
       >
-        {displayLabel}
-      </span>
+        {pending && targetProgress !== null ? (
+          <MotionProgressText
+            text={`${label} - ${targetProgress}%`}
+            scope={scope}
+          />
+        ) : pending ? (
+          <>
+            {label}{' '}
+            <ElapsedTime key={scope} submittedAt={submission?.submitted_at} />
+          </>
+        ) : (
+          label
+        )}
+      </ResultTransition>
       {submission ? (
         <SubmissionScoreDetails submission={submission} compact />
       ) : null}
@@ -148,13 +116,15 @@ export default function ContestSubmissionResultBadge({
           </pre>
         </details>
       ) : null}
-      {visibleProgress !== null ? (
-        <span className="h-1.5 w-24 overflow-hidden rounded-full bg-amber-100">
-          <span
-            className="block h-full rounded-full bg-amber-400 transition-[width] duration-200 ease-out"
-            style={{ width: `${visibleProgress}%` }}
-          />
-        </span>
+      {targetProgress !== null ? (
+        <MotionProgress
+          value={targetProgress}
+          scope={scope}
+          label="채점 진행률"
+          valueText={`${targetProgress}%`}
+          className="h-1.5 w-24 bg-amber-100"
+          fillClassName="bg-amber-400"
+        />
       ) : null}
     </div>
   );

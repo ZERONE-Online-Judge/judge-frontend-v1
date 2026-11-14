@@ -20,6 +20,7 @@ import type {
 import { formatApiError } from '@/shared/api/errors';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import Select from '@/shared/ui/Select';
+import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 import CollapsibleEditor from './CollapsibleEditor';
 
 type Validation = {
@@ -294,6 +295,20 @@ function ParticipantBulkImportContent({
   const displayedPage = Math.min(page, pages);
   const offset = (displayedPage - 1) * 10;
   const editingBlocked = busy || sourceDirty || reading;
+  const motionScope = `${contestId}:${rows.map((row) => row.team.team_name).join('\n')}`;
+  const motionState = busy
+    ? 'registering'
+    : result
+      ? 'result'
+      : reading
+        ? 'reading'
+        : sourceDirty
+          ? 'editing'
+          : current?.error
+            ? 'error'
+            : current?.data
+              ? 'checked'
+              : 'checking';
   const dirty = !!text.trim() || (!result && !!rows.length);
   useEffect(() => {
     if (!dirty) return;
@@ -395,8 +410,17 @@ function ParticipantBulkImportContent({
           ) : null}
           {result && !open ? (
             <p role="status" className="text-sm text-slate-700">
-              최근 결과: {result.data.created.length}팀 등록 ·{' '}
-              {result.data.errors.length}팀 실패
+              최근 결과:{' '}
+              <MotionNumber
+                value={result.data.created.length}
+                scope={motionScope}
+              />
+              팀 등록 ·{' '}
+              <MotionNumber
+                value={result.data.errors.length}
+                scope={motionScope}
+              />
+              팀 실패
             </p>
           ) : null}
           <button
@@ -436,7 +460,12 @@ function ParticipantBulkImportContent({
                   disabled={busy || !valid}
                   onClick={() => void register()}
                 >
-                  {busy ? '등록 중…' : `확인한 ${rows.length}팀 등록`}
+                  <ResultTransition
+                    as="span"
+                    stateKey={busy ? 'registering' : 'ready'}
+                  >
+                    {busy ? '등록 중…' : `확인한 ${rows.length}팀 등록`}
+                  </ResultTransition>
                 </ModalButton>
               )}
             </>
@@ -457,8 +486,21 @@ function ParticipantBulkImportContent({
                   role="status"
                   className="rounded-lg bg-indigo-50 p-3 text-sm font-semibold text-indigo-800"
                 >
-                  {result.data.created.length}팀 등록 완료 ·{' '}
-                  {result.data.errors.length}팀 등록 실패
+                  <ResultTransition
+                    as="span"
+                    stateKey={`${motionScope}:${motionState}`}
+                  >
+                    <MotionNumber
+                      value={result.data.created.length}
+                      scope={motionScope}
+                    />
+                    팀 등록 완료 ·{' '}
+                    <MotionNumber
+                      value={result.data.errors.length}
+                      scope={motionScope}
+                    />
+                    팀 등록 실패
+                  </ResultTransition>
                 </p>
                 {result.uncertain ? (
                   <p role="alert" className="text-sm text-rose-700">
@@ -542,10 +584,30 @@ function ParticipantBulkImportContent({
             ) : (
               <>
                 <p className="text-sm text-slate-700">
-                  전체 {rows.length}팀 ·{' '}
-                  {current?.data
-                    ? `등록 가능 ${current.data.summary.ready}팀 · 오류 ${current.data.summary.invalid}팀`
-                    : '내용을 확인하고 있습니다.'}
+                  <ResultTransition
+                    as="span"
+                    stateKey={`${motionScope}:${motionState}`}
+                  >
+                    전체{' '}
+                    <MotionNumber value={rows.length} scope={motionScope} />팀 ·{' '}
+                    {current?.data ? (
+                      <>
+                        등록 가능{' '}
+                        <MotionNumber
+                          value={current.data.summary.ready}
+                          scope={motionScope}
+                        />
+                        팀 · 오류{' '}
+                        <MotionNumber
+                          value={current.data.summary.invalid}
+                          scope={motionScope}
+                        />
+                        팀
+                      </>
+                    ) : (
+                      '내용을 확인하고 있습니다.'
+                    )}
+                  </ResultTransition>
                 </p>
                 {draft?.corrections.length ? (
                   <div

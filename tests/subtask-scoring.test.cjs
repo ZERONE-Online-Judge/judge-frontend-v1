@@ -253,7 +253,8 @@ test('submission group detail preserves failure verdict and does not render hidd
       },
     }),
   );
-  assert.match(markup, /30 \/ 100점/);
+  const text = markup.replace(/<[^>]+>/g, '');
+  assert.match(text, /30 \/ 100점/);
   assert.match(markup, /틀렸습니다/);
   assert.match(markup, /#8/);
   assert.doesNotMatch(markup, /SECRET-TEST/);

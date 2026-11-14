@@ -13,6 +13,7 @@ import {
   type VerificationReport,
 } from '@/domains/problemManagement/verificationAi';
 import { formatApiError } from '@/shared/api/errors';
+import { ResultTransition } from '@/shared/ui/ProgressMotion';
 
 export default function VerificationAnalysisPanel({
   contestId,
@@ -109,7 +110,12 @@ export default function VerificationAnalysisPanel({
             } else setOpen(!open);
           }}
         >
-          {label}{' '}
+          <ResultTransition
+            as="span"
+            stateKey={`${analysis?.analysis_id ?? submissionId}:${status ?? ''}`}
+          >
+            {label}
+          </ResultTransition>{' '}
           <span aria-hidden="true">
             <InterfaceIcon name={open ? 'chevronUp' : 'chevronDown'} />
           </span>
@@ -144,7 +150,12 @@ export default function VerificationAnalysisPanel({
               role="status"
               className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-900"
             >
-              {analysis.stop_reason.message}
+              <ResultTransition
+                as="span"
+                stateKey={`${analysis.analysis_id}:${analysis.stop_reason.code}`}
+              >
+                {analysis.stop_reason.message}
+              </ResultTransition>
             </p>
           ) : null}
           {!canRequest ? (
@@ -170,12 +181,22 @@ export default function VerificationAnalysisPanel({
                   aria-hidden="true"
                   className="h-2 w-2 rounded-full bg-indigo-500 motion-safe:animate-pulse"
                 />
-                {status === 'queued' ? '분석 대기 중' : '분석 진행 중'}
+                <ResultTransition
+                  as="span"
+                  stateKey={`${analysis?.analysis_id}:${status}`}
+                >
+                  {status === 'queued' ? '분석 대기 중' : '분석 진행 중'}
+                </ResultTransition>
               </div>
               <p className="text-sm text-slate-600">
-                {status === 'queued'
-                  ? '분석 대기 중입니다. 대기 작업과 일일 사용 한도에 따라 시간이 걸릴 수 있습니다.'
-                  : `${analysis?.phase || '문제와 코드, 테스트케이스를 검토하고 있습니다.'} · 이 화면을 닫아도 계속됩니다.`}
+                <ResultTransition
+                  as="span"
+                  stateKey={`${analysis?.analysis_id}:${status}:${analysis?.phase ?? ''}`}
+                >
+                  {status === 'queued'
+                    ? '분석 대기 중입니다. 대기 작업과 일일 사용 한도에 따라 시간이 걸릴 수 있습니다.'
+                    : `${analysis?.phase || '문제와 코드, 테스트케이스를 검토하고 있습니다.'} · 이 화면을 닫아도 계속됩니다.`}
+                </ResultTransition>
               </p>
               <p className="text-xs text-slate-500">
                 분석이 끝나면 이곳에 요약과 권장 조치가 표시됩니다.
@@ -344,7 +365,11 @@ export function ReportBody({
           ) : null}
         </div>
         <div className="text-slate-950 [&_p]:text-base [&_p]:leading-8 [&_p]:font-medium">
-          <VerificationMarkdown>{report.summary}</VerificationMarkdown>
+          <ResultTransition
+            stateKey={`${analysis?.analysis_id ?? ''}:${report.conclusion ?? ''}:${report.summary}`}
+          >
+            <VerificationMarkdown>{report.summary}</VerificationMarkdown>
+          </ResultTransition>
         </div>
         {report.verdict_assessment ? (
           <div className="border-t border-slate-100 pt-2 text-slate-600">

@@ -55,6 +55,11 @@ import { formatUserApiError } from '@/shared/api/errors';
 import { loadCodeDraft, saveCodeDraft } from '@/shared/lib/codeDraftStorage';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import PageNotice from '@/shared/ui/PageNotice';
+import {
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 
 type ProblemView = 'combined' | 'problem' | 'submit' | 'editorial';
 type SubmitFeedbackStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -69,6 +74,7 @@ type SubmitVariables = {
 };
 type MockResult = Pick<
   Submission,
+  | 'submission_id'
   | 'status'
   | 'scoring_mode'
   | 'score'
@@ -123,7 +129,8 @@ function MockJudgeResult({
 
   if (!result) return null;
   const hasProgress = typeof result.progress_percent === 'number';
-  const progress = hasProgress ? (result.progress_percent ?? 0) : 100;
+  const progress = hasProgress ? (result.progress_percent ?? 0) : null;
+  const progressScope = `${result.submission_id}:${result.submitted_at}`;
   const queueText =
     result.status === 'waiting' && typeof result.queue_position === 'number'
       ? `큐 ${result.queue_position}번째`
@@ -140,7 +147,9 @@ function MockJudgeResult({
     <div className="rounded border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-black text-slate-950">모의채점 결과</span>
-        <span
+        <ResultTransition
+          as="span"
+          stateKey={`${progressScope}:${result.status}:${result.progress_phase ?? ''}`}
           className={[
             'rounded-full px-3 py-1 text-xs font-black',
             done
@@ -151,24 +160,24 @@ function MockJudgeResult({
           ].join(' ')}
         >
           {pendingLabel}
-        </span>
+        </ResultTransition>
       </div>
       <div className="mt-3">
         <SubmissionScoreDetails submission={result} />
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className={[
-            'h-full rounded-full bg-amber-400 transition-all duration-500',
-            !done && !hasProgress ? 'animate-pulse' : '',
-          ].join(' ')}
-          style={{
-            width: `${Math.max(0, Math.min(100, done || hasProgress ? progress : 35))}%`,
-          }}
-        />
-      </div>
+      <MotionProgress
+        className="mt-3 h-2 bg-slate-100"
+        fillClassName="bg-amber-400"
+        label="모의채점 진행률"
+        scope={progressScope}
+        value={done ? 100 : progress}
+        valueText={done ? '완료' : pendingText}
+      />
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
-        <span>{done ? '완료' : pendingText}</span>
+        <MotionProgressText
+          text={done ? '완료' : pendingText}
+          scope={progressScope}
+        />
         <span>시간 {result.runtime_ms ?? '-'} ms</span>
         <span>메모리 {formatMemoryKb(result.memory_kb)}</span>
       </div>

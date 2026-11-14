@@ -1058,6 +1058,66 @@ test('candidate badges use server execution assessments and never infer success 
   assert.equal(analysisRequests, 0);
 });
 
+test('AI stage and verdict transitions preserve expanded execution evidence', async () => {
+  const Evidence = source(
+    'components/operator/VerificationAgentEvidence.tsx',
+  ).default;
+  const analysis = {
+    analysis_id: 'motion-analysis',
+    engine_version: 2,
+    status: 'running',
+    plan: [{ title: '등록 테스트 실행', status: 'in_progress' }],
+    executions: [
+      {
+        submission_id: 'motion-execution',
+        artifact_id: 'original',
+        scope: 'all',
+        testcase_count: 15,
+        status: 'judging',
+        source: 'print(1)',
+        judge_message: '확인할 실행 기록',
+      },
+    ],
+  };
+  await act(async () => root.render(h(Evidence, { analysis })));
+  const record = document.querySelector('[aria-label="에이전트 작업 기록"]');
+  record.open = true;
+  const execution = [...record.querySelectorAll('details')].find((node) =>
+    node.querySelector('summary')?.textContent.includes('원본 코드'),
+  );
+  assert.ok(execution);
+  execution.open = true;
+  await act(async () => button(record, '실행 결과').click());
+  assert.match(execution.querySelector('summary').textContent, /채점 중/);
+
+  await act(async () =>
+    root.render(
+      h(Evidence, {
+        analysis: {
+          ...analysis,
+          status: 'succeeded',
+          plan: [{ title: '등록 테스트 실행', status: 'done' }],
+          executions: [{ ...analysis.executions[0], status: 'accepted' }],
+        },
+      }),
+    ),
+  );
+  assert.equal(
+    document.querySelector('[aria-label="에이전트 작업 기록"]'),
+    record,
+  );
+  assert.equal(record.open, true);
+  assert.equal(execution.isConnected, true);
+  assert.equal(execution.open, true);
+  assert.match(execution.querySelector('summary').textContent, /정답/);
+  assert.match(
+    record.querySelector('ol li').textContent,
+    /완료등록 테스트 실행/,
+  );
+  assert.equal(record.querySelector('[role="progressbar"]'), null);
+  assert.equal(analysisRequests, 0);
+});
+
 test('investigation report recommends test coverage without a repair template and displays checked probes', () => {
   const { renderToStaticMarkup } = require('react-dom/server');
   const { ReportBody } = source(

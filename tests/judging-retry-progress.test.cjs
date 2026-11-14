@@ -27,13 +27,22 @@ function source(relative) {
     const supported = [
       '@/domains/submissionScoreboard/status',
       '@/domains/submissionScoreboard/scoring',
+      '@/shared/ui/ProgressMotion',
+      '@/shared/hooks/useAnimatedValue',
+      '@/shared/hooks/useDocumentVisibility',
     ];
     if (!supported.includes(id))
       return new Proxy(
         { __esModule: true, default: () => null },
         { get: (target, name) => target[name] ?? (() => null) },
       );
-    return source(id.slice(2) + '.ts');
+    const relative = id.slice(2);
+    return source(
+      relative +
+        (fs.existsSync(path.resolve(__dirname, '../src', relative + '.tsx'))
+          ? '.tsx'
+          : '.ts'),
+    );
   };
   modules.set(filename, loaded);
   let code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
@@ -69,6 +78,7 @@ const pending = {
 };
 const render = (component, props) =>
   renderToStaticMarkup(React.createElement(component, props));
+const text = (html) => html.replace(/<[^>]*>/g, '');
 
 test('retry phase is descriptive and leaves the actual progress unchanged', () => {
   assert.equal(submissionProgressPercent(pending), 27);
@@ -93,7 +103,7 @@ test('retry phase is descriptive and leaves the actual progress unchanged', () =
 test('operator and compact badges show a single retry label and original counts', () => {
   const html = render(OperatorBadge, { submission: pending });
   assert.equal((html.match(/시간 초과 재확인 중/g) || []).length, 1);
-  assert.match(html, /4\/15 · 27%/);
+  assert.match(text(html), /4\/15 · 27%/);
   assert.doesNotMatch(html, /8\/15|31%/);
   assert.match(
     render(OperatorBadge, { submission: pending, compact: true }),
@@ -105,12 +115,12 @@ test('operator and compact badges show a single retry label and original counts'
   );
 });
 
-test('participant retries use actual percentage rather than the normal progress animation', () => {
+test('participant retries retain confirmed progress with the shared motion', () => {
   const html = render(ParticipantBadge, {
     status: 'judging',
     submission: pending,
   });
-  assert.match(html, /시간 초과 재확인 중 - 27%/);
+  assert.match(text(html), /시간 초과 재확인 중 - 27%/);
   assert.doesNotMatch(html, /재확인 중 - 0%/);
   assert.doesNotMatch(
     render(ParticipantBadge, {
@@ -144,6 +154,6 @@ test('full verification progress shows retries with the same immutable testcase 
       execution: { completed: 4, total: 15, full_suite_complete: false },
     },
   });
-  assert.match(html, /시간 초과 재확인 중 · 판정 확인 4 \/ 15개 · 27%/);
+  assert.match(text(html), /시간 초과 재확인 중 · 판정 확인 4 \/ 15개 · 27%/);
   assert.doesNotMatch(html, /판정 확인 8 \/ 15/);
 });

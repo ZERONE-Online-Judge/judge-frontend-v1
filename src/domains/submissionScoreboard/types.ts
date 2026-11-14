@@ -111,7 +111,12 @@ export type SubmissionProgressState = Pick<
 > &
   Pick<
     Partial<Submission>,
-    'submitted_at' | 'scoring_mode' | 'score' | 'max_score' | 'subtask_results'
+    | 'submission_id'
+    | 'submitted_at'
+    | 'scoring_mode'
+    | 'score'
+    | 'max_score'
+    | 'subtask_results'
   >;
 
 export type SubmissionCreateRequest = {

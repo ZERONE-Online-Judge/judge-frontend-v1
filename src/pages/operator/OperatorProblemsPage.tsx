@@ -118,6 +118,12 @@ import type {
 import { formatApiError } from '@/shared/api/errors';
 import { loadCodeDraft, saveCodeDraft } from '@/shared/lib/codeDraftStorage';
 import { formatMemoryKb } from '@/shared/lib/formatters';
+import {
+  MotionNumber,
+  MotionProgress,
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
 
 type ProblemForm = {
   allowedLanguages: JudgeLanguage[];
@@ -3315,22 +3321,18 @@ function UploadProgressModal({
       description="업로드와 검증이 끝날 때까지 기다려 주세요."
     >
       <div className="grid gap-3" role="status">
-        <div
-          className="h-3 overflow-hidden rounded-full bg-slate-100"
-          role="progressbar"
-          aria-label="테스트케이스 반영 진행률"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={safeProgress}
-        >
-          <div
-            className="h-full rounded-full bg-indigo-600 transition-all motion-reduce:transition-none"
-            style={{ width: `${safeProgress}%` }}
-          />
-        </div>
+        <MotionProgress
+          className="h-3 bg-slate-100"
+          label="테스트케이스 반영 진행률"
+          value={safeProgress}
+        />
         <div className="flex items-center justify-between gap-3 text-xs font-semibold text-slate-600">
-          <span>{message}</span>
-          <span>{safeProgress}%</span>
+          <ResultTransition as="span" stateKey={message}>
+            {message}
+          </ResultTransition>
+          <span>
+            <MotionNumber value={safeProgress} />%
+          </span>
         </div>
       </div>
     </ModalDialog>
@@ -3353,6 +3355,7 @@ function OperatorPreviewJudgeResult({
   const detail = parseJudgeDetail(submission.judge_message);
   const progressText = submissionProgressText(submission);
   const progressPercent = submissionProgressPercent(submission);
+  const progressScope = `${submission.submission_id}:${submission.progress_total ?? ''}`;
   const runtime = formatRuntime(
     submission.runtime_ms ?? submission.time_ms ?? submission.execution_time_ms,
   );
@@ -3370,11 +3373,23 @@ function OperatorPreviewJudgeResult({
             Judge result
           </p>
           <h3 className="text-lg font-semibold text-slate-950">
-            {submissionStatusLabel(submission.status)}
-            {progressText ? ` · ${progressText}` : ''}
+            <ResultTransition
+              as="span"
+              stateKey={`${progressScope}:${submission.status}:${submission.progress_phase ?? ''}`}
+            >
+              {submissionStatusLabel(submission.status)}
+            </ResultTransition>
+            {progressText ? (
+              <>
+                {' · '}
+                <MotionProgressText text={progressText} scope={progressScope} />
+              </>
+            ) : null}
           </h3>
         </div>
-        <span
+        <ResultTransition
+          as="span"
+          stateKey={`${progressScope}:${submission.status}`}
           className={[
             'rounded-full px-3 py-1 text-xs font-semibold',
             isSubmissionPending(submission.status)
@@ -3385,21 +3400,21 @@ function OperatorPreviewJudgeResult({
           ].join(' ')}
         >
           {submission.status}
-        </span>
+        </ResultTransition>
       </div>
 
       <SubmissionScoreDetails submission={submission} />
 
       {isSubmissionPending(submission.status) ? (
         <div className="grid gap-2">
-          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-amber-400 transition-all"
-              style={{
-                width: `${progressPercent ?? 0}%`,
-              }}
-            />
-          </div>
+          <MotionProgress
+            label="미리보기 채점 진행률"
+            className="h-2 bg-slate-100"
+            fillClassName="bg-amber-400"
+            value={progressPercent}
+            valueText={progressText}
+            scope={progressScope}
+          />
           <p className="text-xs font-medium text-slate-500">
             채점 서버 응답을 기다리는 중입니다.
           </p>

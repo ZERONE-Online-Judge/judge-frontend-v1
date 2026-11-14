@@ -45,6 +45,11 @@ import { formatApiError } from '@/shared/api/errors';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
+import {
+  MotionProgressText,
+  ResultTransition,
+} from '@/shared/ui/ProgressMotion';
+import type { ReactNode } from 'react';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
 import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
@@ -906,7 +911,10 @@ function SubmissionRow({
           status={submission.status}
         />
         <span className="zoj-break-anywhere mt-1 block text-xs font-medium text-slate-500">
-          {submissionProgressText(progressSubmission) || '-'}
+          <MotionProgressText
+            text={submissionProgressText(progressSubmission) || '-'}
+            scope={`${submission.submission_id}:${submission.progress_total ?? ''}`}
+          />
         </span>
       </td>
       <td className="border-r border-slate-100 px-4 py-4 align-top font-medium text-slate-700">
@@ -1012,7 +1020,14 @@ function SubmissionDetail({
         <DetailCard label="문제" value={entryProblemLabel(entry)} />
         <DetailCard
           label="결과"
-          value={submissionStatusLabel(submission.status)}
+          value={
+            <ResultTransition
+              as="span"
+              stateKey={`${submission.submission_id}:${submission.status}`}
+            >
+              {submissionStatusLabel(submission.status)}
+            </ResultTransition>
+          }
         />
         <DetailCard
           label="언어"
@@ -1020,7 +1035,12 @@ function SubmissionDetail({
         />
         <DetailCard
           label="진행"
-          value={submissionProgressText(progressSubmission) || '-'}
+          value={
+            <MotionProgressText
+              text={submissionProgressText(progressSubmission) || '-'}
+              scope={`${submission.submission_id}:${submission.progress_total ?? ''}`}
+            />
+          }
         />
         <DetailCard label="시간" value={formatDuration(runtime)} />
         <DetailCard label="메모리" value={formatMemoryKb(memory)} />
@@ -1083,7 +1103,7 @@ function formatDuration(value?: number | null) {
   return `${value} ms`;
 }
 
-function DetailCard({ label, value }: { label: string; value: string }) {
+function DetailCard({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
       <span className="text-xs font-semibold text-slate-500">{label}</span>

@@ -1,9 +1,9 @@
 import type { Submission } from '@/domains/submissionScoreboard/types';
 import {
-  formatScore,
   isIoiScoring,
   submissionScoreLabel,
 } from '@/domains/submissionScoreboard/scoring';
+import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 import {
   isSubmissionPending,
   submissionStatusLabel,
@@ -16,7 +16,8 @@ export default function SubmissionScoreDetails({
   submission: Pick<
     Submission,
     'scoring_mode' | 'score' | 'max_score' | 'status' | 'subtask_results'
-  >;
+  > &
+    Partial<Pick<Submission, 'submission_id'>>;
   compact?: boolean;
 }) {
   if (
@@ -25,12 +26,34 @@ export default function SubmissionScoreDetails({
   )
     return null;
   const groups = submission.subtask_results ?? [];
+  const scope = submission.submission_id ?? 'submission-score-details';
   return (
     <div className="grid min-w-0 gap-2" aria-label="제출 점수">
       <strong
         className={`tabular-nums ${compact ? 'text-sm' : 'text-xl'} ${submission.score == null ? 'text-slate-500' : submission.score === submission.max_score ? 'text-emerald-700' : 'text-indigo-700'}`}
       >
-        {submissionScoreLabel(submission)}
+        <ResultTransition as="span" stateKey={`${scope}:${submission.status}`}>
+          {submission.score == null ? (
+            submissionScoreLabel(submission)
+          ) : (
+            <>
+              <MotionNumber
+                value={submission.score}
+                scope={scope}
+                fractionDigits={Number.isInteger(submission.score) ? 0 : 2}
+              />{' '}
+              /{' '}
+              <MotionNumber
+                value={submission.max_score ?? 100}
+                scope={scope}
+                fractionDigits={
+                  Number.isInteger(submission.max_score ?? 100) ? 0 : 2
+                }
+              />
+              점
+            </>
+          )}
+        </ResultTransition>
       </strong>
       {submission.score == null ? (
         <p className="text-xs leading-5 text-slate-500">
@@ -59,15 +82,25 @@ export default function SubmissionScoreDetails({
                         : 'text-slate-700'
                     }
                   >
-                    {formatScore(group.score)} / {formatScore(group.max_score)}
+                    <MotionNumber
+                      value={group.score}
+                      scope={`${scope}:${group.subtask_id}`}
+                      fractionDigits={Number.isInteger(group.score) ? 0 : 2}
+                    />{' '}
+                    /{' '}
+                    <MotionNumber
+                      value={group.max_score}
+                      scope={`${scope}:${group.subtask_id}`}
+                      fractionDigits={Number.isInteger(group.max_score) ? 0 : 2}
+                    />
                     점
                   </strong>
-                  <span>
+                  <ResultTransition as="span" stateKey={group.status}>
                     {submissionStatusLabel(group.status)}
                     {group.failed_testcase_order != null
                       ? ` · #${group.failed_testcase_order}`
                       : ''}
-                  </span>
+                  </ResultTransition>
                 </span>
               </li>
             ))}

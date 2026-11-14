@@ -1,0 +1,48 @@
+.zoj-motion-progress {
+  overflow: hidden;
+  border-radius: 9999px;
+}
+.zoj-motion-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  will-change: width;
+}
+.zoj-result-enter {
+  animation: zoj-result-enter 220ms ease-out both;
+}
+.zoj-motion-indeterminate {
+  animation: zoj-progress-sweep 1.5s ease-in-out infinite;
+}
+@keyframes zoj-result-enter {
+  from {
+    opacity: 0.45;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes zoj-progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(335%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoj-result-enter,
+  .zoj-motion-indeterminate {
+    animation: none;
+    transform: none;
+  }
+  .zoj-motion-progress-fill {
+    will-change: auto;
+  }
+}
+
+.zoj-motion-number-visual::after {
+  content: attr(data-motion-value);
+}

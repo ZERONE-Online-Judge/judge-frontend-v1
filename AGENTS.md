@@ -23,3 +23,11 @@ fix(operators): Show correct contest role title
 Show reviewer roles ahead of general operator roles so the displayed
 title matches the permissions selected for the account.
 ```
+
+# Operating history
+
+- When adding or updating contest operating history on the ZOJ About
+  page, follow [the operating history standard](docs/ui-style.md#zoj-소개-운영-이력).
+- Add verified records to `src/data/operatingHistory.ts` and reuse
+  `OperatingHistoryTimeline`. Keep the approved vertical timeline;
+  do not introduce a different layout for an individual contest.

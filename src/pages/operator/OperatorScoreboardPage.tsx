@@ -193,6 +193,9 @@ function PenaltyBreakdownModal({
             <p className="text-indigo-700">
               문제별 계산: 정답 제출까지 걸린 분 + 정답 전 실패 횟수 × 20분
             </p>
+            <p className="text-indigo-700">
+              컴파일 오류·시스템 오류·채점 중인 제출은 실패 횟수에서 제외합니다.
+            </p>
           </div>
 
           {solvedScores.length ? (
@@ -258,8 +261,12 @@ function PenaltyBreakdownModal({
             </p>
             <p>
               미해결 문제의 실패 시도{' '}
-              {unsolvedAttemptCount.toLocaleString('ko-KR')}회는 총시간에 더하지
-              않고, 동점 정렬용 시도 수로만 사용됩니다.
+              {unsolvedAttemptCount.toLocaleString('ko-KR')}회는 총시간과 동점
+              순위에 영향을 주지 않습니다.
+            </p>
+            <p>
+              해결 수와 총시간이 같으면 마지막 정답 제출이 빠른 팀이 앞섭니다.
+              이 시각까지 같으면 공동 순위입니다.
             </p>
           </div>
         </div>

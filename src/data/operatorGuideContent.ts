@@ -906,6 +906,26 @@ export const operatorGuideCategories: GuideCategory[] = [
     ],
     articles: [
       {
+        id: 'icpc-ranking',
+        title: 'ICPC 순위와 컴파일 오류 집계',
+        summary:
+          '해결 문제 수, 총시간, 마지막 정답 제출 시각 순서로 비교합니다.',
+        steps: [
+          '해결한 문제가 많은 팀이 앞섭니다. 해결 수가 같으면 해결한 문제들의 총시간이 적은 팀이 앞섭니다.',
+          '문제별 시간은 첫 정답 제출까지의 대회 경과 시간에 정답 전 실패 1회당 20분을 더합니다. 컴파일 오류·시스템 오류·채점 중인 제출은 실패 횟수와 오답 페널티에서 제외합니다.',
+          '해결 수와 총시간이 모두 같으면 마지막 정답 제출 시각이 빠른 팀이 앞섭니다. 이 시각까지 같으면 공동 순위입니다. 미해결 문제의 실패 횟수는 총시간과 동점 순위에 영향을 주지 않습니다.',
+          '컴파일 오류도 제출 이력과 전체 제출 수에는 남습니다. 프리즈의 ?n은 판정과 관계없는 미공개 제출 수이므로 오답 횟수와 구분합니다.',
+        ],
+        effect:
+          '공개·운영·발표 순위와 가이드 체험에 같은 ICPC 순위 규칙을 적용합니다. IOI 점수제는 총점이 같으면 공동 순위입니다.',
+        references: [
+          {
+            label: 'ICPC Regional Rules · Scoring',
+            url: 'https://icpc.global/regionals/rules',
+          },
+        ],
+      },
+      {
         id: 'ioi-subtasks',
         title: 'IOI 점수제와 서브태스크 배점',
         summary:

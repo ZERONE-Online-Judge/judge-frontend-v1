@@ -213,14 +213,17 @@ function problemScore(
   };
 }
 
-function unresolvedAttempts(row: ScoreboardRow) {
-  return row.problem_scores.reduce(
-    (total, score) => total + (score.solved ? 0 : score.attempts),
-    0,
-  );
+function compareLastSolvedAt(a: ScoreboardRow, b: ScoreboardRow) {
+  const timestamp = (row: ScoreboardRow) => {
+    const value = Date.parse(row.last_solved_at ?? '');
+    return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+  };
+  const first = timestamp(a);
+  const second = timestamp(b);
+  return first === second ? 0 : first < second ? -1 : 1;
 }
 
-function rankRows(
+export function rankScoreboardPracticeRows(
   rows: ScoreboardRow[],
   scoringMode: ContestScoringMode = 'icpc',
 ) {
@@ -229,11 +232,11 @@ function rankRows(
       ? (b.total_score ?? 0) - (a.total_score ?? 0)
       : b.solved - a.solved ||
         (a.penalty ?? 0) - (b.penalty ?? 0) ||
-        unresolvedAttempts(a) - unresolvedAttempts(b);
+        compareLastSolvedAt(a, b);
   rows.sort(
     (a, b) =>
       scoreCompare(a, b) ||
-      (a.last_solved_at ?? 'z').localeCompare(b.last_solved_at ?? 'z') ||
+      compareLastSolvedAt(a, b) ||
       a.team_name.localeCompare(b.team_name, 'ko'),
   );
   let rank = 1;
@@ -249,7 +252,7 @@ function scoreRows(
   showCounts: boolean,
   scoringMode: ContestScoringMode = 'icpc',
 ) {
-  return rankRows(
+  return rankScoreboardPracticeRows(
     TEAMS.map((team): ScoreboardRow => {
       let submissionCount = 0;
       const problemScores = PRACTICE_PROBLEMS.map((problem) => {

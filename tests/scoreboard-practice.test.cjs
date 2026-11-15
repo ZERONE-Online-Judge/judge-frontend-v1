@@ -27,6 +27,7 @@ const {
   createScoreboardPractice: create,
   getScoreboardPractice: project,
   applyScoreboardPractice: apply,
+  rankScoreboardPracticeRows: rankRows,
 } = loaded.exports;
 
 const row = (board, name) =>
@@ -53,6 +54,118 @@ function deepFreeze(value) {
   }
   return value;
 }
+
+function rankingRow(name, overrides = {}) {
+  return {
+    team_id: name,
+    team_name: name,
+    rank: 0,
+    solved: 2,
+    penalty: 100,
+    last_solved_at: '2026-11-15T01:00:00Z',
+    submission_count: 2,
+    problem_scores: [],
+    ...overrides,
+  };
+}
+
+test('ICPC ranks by solved count, total time, then chronological last solve', () => {
+  const rows = rankRows([
+    rankingRow('fewer-solves', {
+      solved: 1,
+      penalty: 1,
+      last_solved_at: '2026-11-15T00:01:00Z',
+    }),
+    rankingRow('more-time', {
+      penalty: 101,
+      last_solved_at: '2026-11-15T00:10:00Z',
+    }),
+    rankingRow('later-last-solve', {
+      last_solved_at: '2026-11-15T02:00:00Z',
+    }),
+    rankingRow('earlier-last-solve', {
+      // This string sorts after 02:00Z, but represents the earlier instant.
+      last_solved_at: '2026-11-15T10:00:00+09:00',
+      problem_scores: [{ solved: false, attempts: 99 }],
+    }),
+  ]);
+  assert.deepEqual(
+    rows.map((team) => [team.team_name, team.rank]),
+    [
+      ['earlier-last-solve', 1],
+      ['later-last-solve', 2],
+      ['more-time', 3],
+      ['fewer-solves', 4],
+    ],
+  );
+});
+
+test('ICPC equal instants share rank regardless of team name or unresolved attempts', () => {
+  const rows = rankRows([
+    rankingRow('Zulu', {
+      last_solved_at: '2026-11-15T10:00:00+09:00',
+      problem_scores: [{ solved: false, attempts: 99 }],
+    }),
+    rankingRow('Next', { last_solved_at: '2026-11-15T01:00:01Z' }),
+    rankingRow('Alpha'),
+  ]);
+  assert.deepEqual(
+    rows.map((team) => [team.team_name, team.rank]),
+    [
+      ['Alpha', 1],
+      ['Zulu', 1],
+      ['Next', 3],
+    ],
+  );
+});
+
+test('unsolved teams share rank with no last solve, regardless of attempts', () => {
+  const rows = rankRows([
+    rankingRow('Zulu', {
+      solved: 0,
+      penalty: 0,
+      last_solved_at: null,
+      problem_scores: [{ solved: false, attempts: 4 }],
+    }),
+    rankingRow('Alpha', {
+      solved: 0,
+      penalty: 0,
+      last_solved_at: null,
+    }),
+  ]);
+  assert.deepEqual(
+    rows.map((team) => [team.team_name, team.rank]),
+    [
+      ['Alpha', 1],
+      ['Zulu', 1],
+    ],
+  );
+});
+
+test('IOI equal scores still share rank despite solve, time and attempt differences', () => {
+  const rows = rankRows(
+    [
+      rankingRow('later', {
+        total_score: 100,
+        solved: 1,
+        penalty: 999,
+        last_solved_at: '2026-11-15T02:00:00Z',
+        problem_scores: [{ solved: false, attempts: 99 }],
+      }),
+      rankingRow('lower-score', { total_score: 90, solved: 9, penalty: 0 }),
+      rankingRow('earlier', { total_score: 100, solved: 2, penalty: 0 }),
+    ],
+    'ioi',
+  );
+  assert.deepEqual(
+    rows.map((team) => [team.team_name, team.rank]),
+    [
+      ['earlier', 1],
+      ['later', 1],
+      ['lower-score', 3],
+    ],
+  );
+});
 
 test('practice is a deterministic fictional division with five ordered problems', () => {
   assert.match(PRACTICE_DIVISION.division_id, /^guide-practice-/);
@@ -202,7 +315,7 @@ test('resolver consumes all-WA cell, then CE-WA-AC cell and refreshes rank', () 
     problem_code: 'B',
     status: 'wrong_answer',
     from_rank: 6,
-    to_rank: 7,
+    to_rank: 6,
   });
   assert.equal(firstBoard.release.resolver.step, 1);
   assert.equal(cell(firstBoard, '차분한 오리', 'B').attempts, 4);
@@ -221,7 +334,7 @@ test('resolver consumes all-WA cell, then CE-WA-AC cell and refreshes rank', () 
   );
   assert.equal(secondBoard.release.resolver.last_event.problem_code, 'C');
   assert.equal(secondBoard.release.resolver.last_event.status, 'accepted');
-  assert.equal(secondBoard.release.resolver.last_event.from_rank, 7);
+  assert.equal(secondBoard.release.resolver.last_event.from_rank, 6);
   assert.equal(secondBoard.release.resolver.last_event.to_rank, 6);
   assert.equal(cell(secondBoard, '차분한 오리', 'C').wrong_attempts, 1);
   assert.equal(cell(secondBoard, '차분한 오리', 'C').penalty, 170);

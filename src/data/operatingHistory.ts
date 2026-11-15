@@ -45,7 +45,7 @@ export const operatingHistory: readonly OperatingHistoryEvent[] = [
   },
   {
     id: '2026-hepc',
-    title: 'HEPC 2026',
+    title: '2026 HEPC',
     name: 'Hanyang ERICA Programming Contest',
     organization: '한양대학교 ERICA 학회 영과일',
     date: '2026-05-28',

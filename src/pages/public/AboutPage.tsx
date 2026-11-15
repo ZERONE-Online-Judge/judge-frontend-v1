@@ -7,9 +7,23 @@ import './AboutPage.css';
 
 const operatingHistory = [
   {
+    title: '2026 DSPC',
+    name: 'Dankook Univ. SWAG Programming Contest',
+    badge: '최근 실운영',
+    date: '2026-11-15',
+    dateLabel: '2026. 11. 15',
+    hours: 3,
+    stats: [
+      ['11', '참가팀', '팀', '등록 14팀 중 실제 코드 제출'],
+      ['226', '코드 제출', '건', '대회 중 참가자 제출'],
+      ['8', '문제', '개', '출제 문제 수'],
+      ['480', '테스트케이스', '개', '운영 테스트 수'],
+    ],
+  },
+  {
     title: '2026 ZOAC',
     name: 'Zero One Algorithm Contest',
-    badge: '최근 실운영',
+    badge: '실운영 사례',
     date: '2026-11-12',
     dateLabel: '2026. 11. 12',
     hours: 3,
@@ -362,8 +376,8 @@ export default function AboutPage() {
             <div>
               <h2 id="about-experience-heading">운영 이력</h2>
               <p>
-                HEPC 2026에 이어 2026 ZOAC까지, 실제 대회 현장에서 운영 경험을
-                쌓아가고 있습니다.
+                HEPC 2026과 2026 ZOAC에 이어, 단국대학교 알고리즘 동아리 SWAG의
+                2026 DSPC까지 실제 대회 현장에서 운영 경험을 쌓아가고 있습니다.
               </p>
             </div>
           </div>

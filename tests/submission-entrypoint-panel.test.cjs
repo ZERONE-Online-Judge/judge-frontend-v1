@@ -229,6 +229,91 @@ test('C++ submits directly and never shows JVM filename or confirmation', async 
   assert.doesNotMatch(host.textContent, /Main\.java|Main\.kt/);
 });
 
+test('incorrect C++ standard header case needs confirmation and preserves the exact code', async () => {
+  const code = '#include <String>\r\n#include <Vector>\r\nint main() {}\r\n';
+  await render({ language: 'cpp17', sourceCode: code });
+  await click('제출하기');
+  const dialog = document.querySelector('dialog');
+  assert.ok(dialog);
+  assert.match(dialog.textContent, /C\+\+ 제출 전 확인/);
+  assert.match(dialog.textContent, /헤더 이름의 대소문자/);
+  assert.match(dialog.textContent, /리눅스/);
+  assert.match(dialog.textContent, /1행.*<String>.*→.*<string>/s);
+  assert.match(dialog.textContent, /2행.*<Vector>.*→.*<vector>/s);
+  assert.doesNotMatch(dialog.textContent, /Main\.java|기본 제출 예시/);
+  assert.equal(submissions.length, 0);
+  await click('그대로 제출');
+  assert.equal(document.querySelector('dialog'), null);
+  assert.deepEqual(submissions, [
+    {
+      language: 'cpp17',
+      sourceCode: code,
+      context: props.submissionContextKey,
+    },
+  ]);
+});
+
+test('C header warnings can be dismissed, corrected, and then submitted without another modal', async () => {
+  await render({
+    language: 'c99',
+    sourceCode: '#include <STDIO.H>\nint main(void) {}',
+  });
+  await click('제출하기');
+  assert.match(document.querySelector('dialog').textContent, /C 제출 전 확인/);
+  assert.match(
+    document.querySelector('dialog').textContent,
+    /<STDIO\.H>.*<stdio\.h>/s,
+  );
+  await click('코드 수정');
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(submissions.length, 0);
+  const code = '#include <stdio.h>\nint main(void) {}';
+  await render({ sourceCode: code });
+  await click('제출하기');
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(submissions[0].sourceCode, code);
+});
+
+test('custom quoted headers and fake directives never require confirmation', async () => {
+  const code =
+    '#include "String"\n#include <MyLibrary.h>\n// #include <String>\nconst char* s = R"(#include <Vector>)";\nint main() {}';
+  await render({ language: 'cpp17', sourceCode: code });
+  await click('제출하기');
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(submissions[0].sourceCode, code);
+});
+
+test('a changed C++ source or problem cannot reuse the previous header confirmation', async () => {
+  const code = '#include <String>\nint main() {}';
+  await render({ language: 'cpp17', sourceCode: code });
+  await click('제출하기');
+  assert.ok(document.querySelector('dialog'));
+  await render({ sourceCode: code + '\n// changed' });
+  assert.equal(document.querySelector('dialog'), null);
+  await render({ sourceCode: code });
+  assert.equal(document.querySelector('dialog'), null);
+  await click('제출하기');
+  assert.ok(document.querySelector('dialog'));
+  await render({ submissionContextKey: 'another-problem' });
+  assert.equal(document.querySelector('dialog'), null);
+  assert.equal(submissions.length, 0);
+});
+
+test('double header confirmation clicks create just one submission', async () => {
+  await render({
+    language: 'cpp17',
+    sourceCode: '#include <String>\nint main() {}',
+  });
+  await click('제출하기');
+  const confirm = button('그대로 제출');
+  await act(() => {
+    confirm.click();
+    confirm.click();
+  });
+  assert.equal(submissions.length, 1);
+  assert.equal(document.querySelector('dialog'), null);
+});
+
 test('cancel with Escape restores the submit control without creating a request', async () => {
   await render({ sourceCode: warningJava });
   button('제출하기').focus();

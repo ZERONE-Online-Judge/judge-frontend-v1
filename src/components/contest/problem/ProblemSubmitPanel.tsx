@@ -8,6 +8,15 @@ import {
   type SubmissionEntryPointCheck,
 } from '@/domains/submissionScoreboard/submissionEntryPoint';
 import SubmissionEntryPointDialog from '@/components/contest/problem/SubmissionEntryPointDialog';
+import SubmissionHeaderCaseDialog from '@/components/contest/problem/SubmissionHeaderCaseDialog';
+import {
+  inspectCHeaderCase,
+  type CHeaderCaseIssue,
+} from '@/shared/lib/cHeaderCase';
+
+type SubmissionCheck =
+  | { kind: 'entry-point'; value: SubmissionEntryPointCheck }
+  | { kind: 'header-case'; issues: CHeaderCaseIssue[] };
 
 type ProblemSubmitPanelProps = {
   allowedLanguages?: JudgeLanguage[];
@@ -71,7 +80,7 @@ export default function ProblemSubmitPanel({
     sourceCode: string;
     context: string;
     allowed: string;
-    check: SubmissionEntryPointCheck;
+    check: SubmissionCheck;
   } | null>(null);
   const submitLock = useRef(false);
   const context = JSON.stringify([
@@ -119,9 +128,26 @@ export default function ProblemSubmitPanel({
     if (submitDisabled || submitLock.current) return;
     const check = inspectSubmissionEntryPoint(language, sourceCode);
     if (check && check.issues.length > 0) {
-      setConfirmation({ language, sourceCode, context, allowed, check });
+      setConfirmation({
+        language,
+        sourceCode,
+        context,
+        allowed,
+        check: { kind: 'entry-point', value: check },
+      });
     } else {
-      sendSubmission();
+      const issues = inspectCHeaderCase(language, sourceCode);
+      if (issues.length) {
+        setConfirmation({
+          language,
+          sourceCode,
+          context,
+          allowed,
+          check: { kind: 'header-case', issues },
+        });
+      } else {
+        sendSubmission();
+      }
     }
   }
 
@@ -226,9 +252,23 @@ export default function ProblemSubmitPanel({
         <PageNotice message={message} status={messageStatus} />
       </div>
       {footer ? <div className="mt-4">{footer}</div> : null}
-      {confirmation && confirmationCurrent ? (
+      {confirmation &&
+      confirmationCurrent &&
+      confirmation.check.kind === 'entry-point' ? (
         <SubmissionEntryPointDialog
-          check={confirmation.check}
+          check={confirmation.check.value}
+          onClose={() => setConfirmation(null)}
+          onConfirm={() => {
+            if (confirmationCurrent) sendSubmission();
+          }}
+        />
+      ) : null}
+      {confirmation &&
+      confirmationCurrent &&
+      confirmation.check.kind === 'header-case' ? (
+        <SubmissionHeaderCaseDialog
+          language={confirmation.language === 'c99' ? 'C' : 'C++'}
+          issues={confirmation.check.issues}
           onClose={() => setConfirmation(null)}
           onConfirm={() => {
             if (confirmationCurrent) sendSubmission();

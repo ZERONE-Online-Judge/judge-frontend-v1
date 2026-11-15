@@ -51,6 +51,10 @@ npm run preview
 
 `npm run build` 이후 실행합니다.
 
+운영 배포는 `bash deploy/deploy-static.sh`로 별도 경로에 빌드하고 정적
+파일을 추가한 다음 `index.html`만 원자적으로 교체합니다. 기존 탭에서
+사용하는 파일과 실행 중인 API·채점기·nginx는 유지합니다.
+
 ## 코드 검사와 포맷
 
 ```bash

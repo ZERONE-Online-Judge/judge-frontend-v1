@@ -212,7 +212,7 @@ function ContestScoreboardContent({
         />
       ) : null}
 
-      <div className="mt-9">
+      <div className="mt-9 space-y-4">
         {!canViewScoreboard ? (
           <PageNotice
             message={contestResourceAccessMessage(
@@ -264,7 +264,7 @@ function ContestScoreboardContent({
         ) : null}
 
         {canViewScoreboard && contest.scoring_mode === 'ioi' ? (
-          <p className="mb-4 text-xs leading-5 text-slate-500">
+          <p className="text-xs leading-5 text-slate-500">
             서브태스크별 최고점 합산 · 총점 동점은 공동 순위 · 시간·오답 페널티
             없음
           </p>

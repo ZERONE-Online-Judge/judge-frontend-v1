@@ -13,8 +13,8 @@ global.window = dom.window;
 global.document = dom.window.document;
 global.FormData = dom.window.FormData;
 global.IS_REACT_ACT_ENVIRONMENT = true;
-global.requestAnimationFrame = (callback) => setTimeout(callback, 0);
-global.cancelAnimationFrame = clearTimeout;
+global.requestAnimationFrame = (callback) => window.setTimeout(callback, 0);
+global.cancelAnimationFrame = (id) => window.clearTimeout(id);
 const React = require('react');
 const { act } = React;
 const h = React.createElement;
@@ -201,6 +201,14 @@ function source(relative) {
           return { data: [], page: {} };
         },
       };
+    if (id === '@/shared/api/client')
+      return {
+        apiRequest: async (path, token) => {
+          assert.match(path, /^\/admin\/judge\/editor-jobs\?/);
+          calls.push({ type: 'editor-jobs', path, token });
+          return { items: [], total: 0, page: 1, page_size: 20, pages: 1 };
+        },
+      };
     if (id === '@/shared/ui/ModalDialog')
       return {
         __esModule: true,
@@ -213,15 +221,20 @@ function source(relative) {
             footer,
             onClose && h('button', { onClick: onClose }, '닫기'),
           ),
-        ModalButton: ({ children, tone, ...props }) =>
-          h('button', props, children),
+        ModalButton: ({ children, tone, ...props }) => {
+          void tone;
+          return h('button', props, children);
+        },
       };
-    if (!id.startsWith('@/')) return native(id);
-    return source(
-      ['.ts', '.tsx']
-        .map((ext) => id.slice(2) + ext)
-        .find((file) => fs.existsSync(path.resolve(__dirname, '../src', file))),
-    );
+    if (!id.startsWith('@/') && !id.startsWith('.')) return native(id);
+    const base = id.startsWith('@/')
+      ? path.resolve(__dirname, '../src', id.slice(2))
+      : path.resolve(path.dirname(filename), id);
+    const target = ['.ts', '.tsx']
+      .map((ext) => base + ext)
+      .find((file) => fs.existsSync(file));
+    assert.ok(target, `Cannot resolve ${id}`);
+    return source(path.relative(path.resolve(__dirname, '../src'), target));
   };
   cache.set(filename, loaded);
   loaded._compile(
@@ -304,7 +317,9 @@ afterEach(async () => {
 });
 after(() => dom.window.close());
 async function flush() {
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 12)));
+  await act(
+    async () => new Promise((resolve) => window.setTimeout(resolve, 12)),
+  );
 }
 async function render(Page = Notices, url = '/admin/notices/new') {
   await act(async () =>
@@ -429,7 +444,7 @@ test('master assignment links only the selected contest to the shared owner chan
   assert.equal(calls.length, 0);
 });
 
-test('judge nodes, queue and submissions are distinct and inactive submissions do not poll', async () => {
+test('judge work tabs load submissions and Editor records only when selected', async () => {
   await render(Judge, '/admin/judge');
   assert.equal(calls.filter((c) => c.type === 'submissions').length, 0);
   assert.ok(
@@ -442,6 +457,11 @@ test('judge nodes, queue and submissions are distinct and inactive submissions d
   assert.equal(calls.filter((c) => c.type === 'submissions').length, 1);
   assert.match(host.textContent, /최근 제출/);
   assert.equal(host.querySelectorAll('details').length, 0);
+  assert.equal(calls.filter((c) => c.type === 'editor-jobs').length, 0);
+  await click(sectionTab('작업 내역 (Editor)'));
+  assert.equal(calls.filter((c) => c.type === 'editor-jobs').length, 1);
+  assert.match(location.search, /view=editor-jobs/);
+  assert.match(host.textContent, /조건에 맞는 에디터 작업이 없습니다/);
 });
 test('editor preserves per-account drafts, line breaks and safe literal text without publishing', async () => {
   await render();
@@ -641,7 +661,7 @@ test('user filters and pagination update URL and server query, search resets pag
   );
   await flush();
   assert.equal(calls.at(-1).filters.q, '김다른이름');
-  assert.equal(new URLSearchParams(location.search).get('page'), null);
+  assert.equal(new window.URLSearchParams(location.search).get('page'), null);
   await act(() => navigate('/admin/users?q=back'));
   await flush();
   assert.equal(host.querySelector('input').value, 'back');
@@ -664,8 +684,8 @@ test('user details retain distinct contest names and close without changing filt
   });
   await click(button('닫기', modal));
   assert.equal(host.querySelector('[role=dialog]'), null);
-  assert.equal(new URLSearchParams(location.search).get('q'), '김');
-  assert.equal(new URLSearchParams(location.search).get('user'), null);
+  assert.equal(new window.URLSearchParams(location.search).get('q'), '김');
+  assert.equal(new window.URLSearchParams(location.search).get('user'), null);
 });
 test('user directory and detail failures are retryable and do not show empty success', async () => {
   userFailure = new Error('offline');
@@ -713,7 +733,10 @@ test('user sorting resets pagination, preserves filters and survives page naviga
   await click(button('다음'));
   assert.equal(calls.at(-1).filters.offset, 25);
   assert.equal(calls.at(-1).filters.sort, 'created_at');
-  assert.equal(new URLSearchParams(location.search).get('order'), 'desc');
+  assert.equal(
+    new window.URLSearchParams(location.search).get('order'),
+    'desc',
+  );
   await fill(host.querySelectorAll('.admin-users-order select')[1], 'asc');
   await flush();
   assert.equal(calls.at(-1).filters.order, 'asc');
@@ -724,7 +747,7 @@ test('user sorting resets pagination, preserves filters and survives page naviga
     host.querySelectorAll('.admin-users-order select')[1].value,
     'desc',
   );
-  assert.equal(new URLSearchParams(location.search).get('page'), '2');
+  assert.equal(new window.URLSearchParams(location.search).get('page'), '2');
 });
 test('user sort parameters fall back safely and selected date is visible in the list', async () => {
   await render(Users, '/admin/users?sort=unknown&order=unknown');

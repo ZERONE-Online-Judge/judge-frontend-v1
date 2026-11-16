@@ -1,4 +1,6 @@
 import useAdminView from '@/components/admin/useAdminView';
+import AdminSubmissionDetailDialog from '@/components/admin/AdminSubmissionDetailDialog';
+import EditorJobHistory from '@/components/admin/EditorJobHistory';
 import Select from '@/shared/ui/Select';
 import JudgeNodeWorkloads from '@/domains/auditMonitoring/components/JudgeNodeWorkloads';
 import { judgeLanguageLabel } from '@/domains/submissionScoreboard/languageLabel';
@@ -35,21 +37,15 @@ import type {
   AdminJudgeSubmissionEntry,
 } from '@/domains/auditMonitoring/types';
 import { tokenQueryIdentity } from '@/domains/identityAccess/queryIdentity';
-import { contestStaffDisplayName } from '@/domains/identityAccess/staffDisplay';
 import {
-  parseJudgeDetail,
+  isSubmissionPending,
   submissionProgressText,
-  submissionStatusLabel,
 } from '@/domains/submissionScoreboard/status';
 import { formatApiError } from '@/shared/api/errors';
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/dateTime';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import AnimatedNumber from '@/shared/ui/AnimatedNumber';
-import {
-  MotionProgressText,
-  ResultTransition,
-} from '@/shared/ui/ProgressMotion';
-import type { ReactNode } from 'react';
+import { MotionProgressText } from '@/shared/ui/ProgressMotion';
 import useDocumentVisibility from '@/shared/hooks/useDocumentVisibility';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
 import { submissionRecencyStrength } from '@/domains/submissionScoreboard/submissionTime';
@@ -94,7 +90,7 @@ export default function AdminJudgePage() {
 
 function AdminJudgeContent({ token }: { token: string }) {
   const [view, setView] = useAdminView(
-    ['nodes', 'queue', 'submissions'] as const,
+    ['nodes', 'queue', 'submissions', 'editor-jobs'] as const,
     'nodes',
   );
   const isVisible = useDocumentVisibility();
@@ -172,7 +168,11 @@ function AdminJudgeContent({ token }: { token: string }) {
       queryIdentity,
     ],
     queryFn: () => getAdminJudgeSubmission(selectedSubmissionId!, token, true),
-    placeholderData: keepPreviousData,
+    placeholderData: () => undefined,
+    refetchInterval: (query) =>
+      isVisible && isSubmissionPending(query.state.data?.submission.status)
+        ? 1_500
+        : false,
   });
 
   const selectedNode = (dashboardQuery.data?.nodes ?? []).find(
@@ -306,7 +306,7 @@ function AdminJudgeContent({ token }: { token: string }) {
 
   return (
     <AdminLayout
-      description="채점 노드, 큐, 최근 제출을 실시간에 가깝게 확인합니다."
+      description="채점 노드와 큐, 대회 제출과 에디터 실행 기록을 확인합니다."
       title="채점 관리"
     >
       {dashboardQuery.error ||
@@ -394,9 +394,11 @@ function AdminJudgeContent({ token }: { token: string }) {
           { label: '채점 노드', value: 'nodes' },
           { label: '작업 큐', value: 'queue' },
           { label: '제출 내역', value: 'submissions' },
+          { label: '작업 내역 (Editor)', value: 'editor-jobs' },
         ]}
       />
       <div className="grid gap-6">
+        {view === 'editor-jobs' && <EditorJobHistory token={token} />}
         {view === 'nodes' && (
           <AdminPanel
             title="채점 노드"
@@ -644,10 +646,11 @@ function AdminJudgeContent({ token }: { token: string }) {
       </div>
 
       {selectedSubmissionId ? (
-        <SubmissionDetailModal
+        <AdminSubmissionDetailDialog
+          token={token}
           entry={selectedSubmissionQuery.data}
           error={selectedSubmissionQuery.error}
-          isLoading={selectedSubmissionQuery.isFetching}
+          isLoading={selectedSubmissionQuery.isPending}
           onClose={() => setSelectedSubmissionId(null)}
         />
       ) : null}
@@ -746,41 +749,6 @@ function JudgeNodeLogsModal({
       </div>
     </ModalDialog>
   );
-}
-
-function entryOwner(entry: AdminJudgeSubmissionEntry) {
-  if (entry.submission.submission_kind === 'mock_judging') return '모의채점';
-  if (entry.submission.submission_kind === 'operator_test') {
-    return contestStaffDisplayName(
-      entry.submission.submitted_by_name,
-      entry.submission.submitted_by_title,
-    );
-  }
-  return (
-    entry.team?.team_name ??
-    entry.submission.team_name ??
-    entry.member?.name ??
-    entry.submission.member_name ??
-    '-'
-  );
-}
-
-function entryOwnerDetail(entry: AdminJudgeSubmissionEntry) {
-  if (entry.submission.submitted_by_email)
-    return entry.submission.submitted_by_email;
-  return (
-    entry.member?.email ??
-    entry.submission.member_email ??
-    entry.contest?.title ??
-    '-'
-  );
-}
-
-function entryProblemLabel(entry: AdminJudgeSubmissionEntry) {
-  const code = entry.problem?.problem_code ?? entry.submission.problem_code;
-  const title = entry.problem?.title ?? entry.submission.problem_title;
-  if (code && title) return `${code}. ${title}`;
-  return code ?? title ?? entry.submission.problem_id;
 }
 
 function entryContestDivisionLabel(entry: AdminJudgeSubmissionEntry) {
@@ -936,164 +904,6 @@ function SubmissionRow({
   );
 }
 
-function SubmissionDetailModal({
-  entry,
-  error,
-  isLoading,
-  onClose,
-}: {
-  entry?: AdminJudgeSubmissionEntry;
-  error: unknown;
-  isLoading: boolean;
-  onClose: () => void;
-}) {
-  const submissionId = entry?.submission.submission_id;
-
-  return (
-    <ModalDialog
-      onClose={onClose}
-      title="제출 상세"
-      titleId="admin-submission-detail-title"
-      description={submissionId ?? '제출 정보를 불러오는 중입니다.'}
-      size="wide"
-      fill
-      customBody
-    >
-      <div className="overflow-auto px-6 py-5">
-        <SubmissionDetail entry={entry} error={error} isLoading={isLoading} />
-      </div>
-    </ModalDialog>
-  );
-}
-
-function SubmissionDetail({
-  entry,
-  error,
-  isLoading,
-}: {
-  entry?: AdminJudgeSubmissionEntry;
-  error: unknown;
-  isLoading: boolean;
-}) {
-  if (error) {
-    return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-        {formatApiError(error, '제출 상세를 불러오지 못했습니다')}
-      </div>
-    );
-  }
-
-  if (isLoading && !entry) {
-    return (
-      <p className="rounded-lg border border-slate-200 px-4 py-8 text-center text-sm font-medium text-slate-500">
-        불러오는 중입니다.
-      </p>
-    );
-  }
-
-  if (!entry) return null;
-
-  const { submission } = entry;
-  const sourceCode = submission.source_code?.trim() || '';
-  const detail = parseJudgeDetail(submission.judge_message);
-  const runtime =
-    submission.runtime_ms ?? submission.time_ms ?? submission.execution_time_ms;
-  const memory =
-    submission.memory_kb ??
-    submission.memory_usage_kb ??
-    submission.max_memory_kb;
-  const progressSubmission = {
-    ...submission,
-    queue_position: submission.queue_position,
-  };
-  const contestDivision = entryContestDivisionLabel(entry);
-
-  return (
-    <div className="grid gap-4">
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <DetailCard label="제출" value={submission.submission_id} />
-        <DetailCard label="대회" value={contestDivision.contest} />
-        <DetailCard label="유형" value={contestDivision.division} />
-        <DetailCard label="에이전트" value={entryJudgeNodeLabel(entry)} />
-        <DetailCard label="팀/계정" value={entryOwner(entry)} />
-        <DetailCard label="계정 정보" value={entryOwnerDetail(entry)} />
-        <DetailCard label="문제" value={entryProblemLabel(entry)} />
-        <DetailCard
-          label="결과"
-          value={
-            <ResultTransition
-              as="span"
-              stateKey={`${submission.submission_id}:${submission.status}`}
-            >
-              {submissionStatusLabel(submission.status)}
-            </ResultTransition>
-          }
-        />
-        <DetailCard
-          label="언어"
-          value={judgeLanguageLabel(submission.language)}
-        />
-        <DetailCard
-          label="진행"
-          value={
-            <MotionProgressText
-              text={submissionProgressText(progressSubmission) || '-'}
-              scope={`${submission.submission_id}:${submission.progress_total ?? ''}`}
-            />
-          }
-        />
-        <DetailCard label="시간" value={formatDuration(runtime)} />
-        <DetailCard label="메모리" value={formatMemoryKb(memory)} />
-        <DetailCard
-          label="실패 케이스"
-          value={String(submission.failed_testcase_order ?? '-')}
-        />
-        <DetailCard
-          label="제출 시각"
-          value={formatDateTime(submission.submitted_at)}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <p className="text-sm font-semibold text-slate-700">결과</p>
-        <ContestSubmissionResultBadge
-          submission={progressSubmission}
-          status={submission.status}
-        />
-      </div>
-
-      {submission.compile_message ? (
-        <div className="grid gap-2">
-          <p className="text-sm font-semibold text-slate-700">컴파일 메시지</p>
-          <pre className="max-h-48 overflow-auto rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 font-medium text-amber-900">
-            {submission.compile_message}
-          </pre>
-        </div>
-      ) : null}
-
-      <div className="grid gap-2">
-        <p className="text-sm font-semibold text-slate-700">채점 로그</p>
-        <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-950 p-3 text-xs leading-5 font-medium text-slate-50">
-          {submission.judge_message || '-'}
-        </pre>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <LogBlock label="실패 입력" value={detail.inputText || '-'} />
-        <LogBlock label="기대 출력" value={detail.expectedText || '-'} />
-        <LogBlock label="실제 출력" value={detail.actualText || '-'} />
-      </div>
-
-      <div className="grid gap-2">
-        <p className="text-sm font-semibold text-slate-700">소스 코드</p>
-        <pre className="max-h-[560px] overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs leading-5 text-slate-100">
-          <code>{sourceCode || '소스 코드가 포함되지 않은 응답입니다.'}</code>
-        </pre>
-      </div>
-    </div>
-  );
-}
-
 function shortSubmissionId(submissionId: string) {
   return submissionId.split('-')[0] || submissionId.slice(0, 8);
 }
@@ -1101,26 +911,4 @@ function shortSubmissionId(submissionId: string) {
 function formatDuration(value?: number | null) {
   if (typeof value !== 'number') return '-';
   return `${value} ms`;
-}
-
-function DetailCard({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="grid min-w-0 gap-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="text-xs font-semibold text-slate-500">{label}</span>
-      <strong className="zoj-break-anywhere text-sm font-semibold text-slate-950">
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-function LogBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <label className="grid gap-2 text-sm font-semibold text-slate-700">
-      {label}
-      <pre className="max-h-96 overflow-auto rounded-lg border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-xs leading-5 whitespace-pre-wrap text-slate-50">
-        {value}
-      </pre>
-    </label>
-  );
 }

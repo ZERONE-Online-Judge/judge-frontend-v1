@@ -148,12 +148,14 @@ after(() => {
   dom.window.close();
 });
 
-test('valid Java keeps filename guidance and submits exact bytes without a modal', async () => {
+test('valid Java keeps naming guidance and submits exact bytes without a modal', async () => {
   const code = validJava.replaceAll(' ', ' \r\n');
   await render({ sourceCode: code });
-  assert.match(host.textContent, /Main\.java/);
-  assert.match(host.textContent, /Main 클래스/);
-  assert.match(host.textContent, /필요한 경우에만/);
+  assert.match(
+    host.textContent,
+    /클래스 이름은 Main, 메인 메서드 이름은 main으로 해주세요\./,
+  );
+  assert.doesNotMatch(host.textContent, /저장합니다|제출 전에 안내/);
   await click('제출하기');
   assert.equal(document.querySelector('dialog'), null);
   assert.deepEqual(submissions, [
@@ -165,14 +167,14 @@ test('valid Java keeps filename guidance and submits exact bytes without a modal
   ]);
 });
 
-test('valid Kotlin including a packaged object main submits directly with JAR guidance', async () => {
+test('valid Kotlin including a packaged object main submits directly with naming guidance', async () => {
   for (const code of [
     validKotlin,
     'package example\nobject Solution { @JvmStatic fun main(args: Array<String>) {} }',
   ]) {
     await render({ language: 'kotlin', sourceCode: code });
-    assert.match(host.textContent, /Main\.kt/);
-    assert.match(host.textContent, /JAR/);
+    assert.match(host.textContent, /메인 함수 이름은 main으로 해주세요\./);
+    assert.doesNotMatch(host.textContent, /JAR|저장합니다|제출 전에 안내/);
     await click('제출하기');
     assert.equal(document.querySelector('dialog'), null);
     assert.equal(submissions.at(-1).sourceCode, code);

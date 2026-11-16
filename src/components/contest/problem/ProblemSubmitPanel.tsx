@@ -1,5 +1,5 @@
 import Select from '@/shared/ui/Select';
-import { type ReactNode, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import CodeEditor from '@/shared/ui/CodeEditor';
 import PageNotice from '@/shared/ui/PageNotice';
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
@@ -108,10 +108,6 @@ export default function ProblemSubmitPanel({
   // Discard the exact snapshot as soon as any submission input changes. A
   // later edit back to the same text must not revive an earlier confirmation.
   if (confirmation && !confirmationCurrent) setConfirmation(null);
-  const entryPointGuidance = useMemo(
-    () => inspectSubmissionEntryPoint(language, ''),
-    [language],
-  );
   function sendSubmission() {
     if (submitDisabled || submitLock.current) return;
     submitLock.current = true;
@@ -192,14 +188,20 @@ export default function ProblemSubmitPanel({
         </span>
       </label>
 
-      {entryPointGuidance ? (
+      {language === 'java8' || language === 'kotlin' ? (
         <p className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-5 text-indigo-900">
-          <strong className="font-mono">{entryPointGuidance.filename}</strong>로
-          저장합니다.{' '}
-          {language === 'java8'
-            ? '기본 패키지의 Main 클래스에 main 메서드를 작성해 주세요.'
-            : '실행 가능한 JAR로 실행합니다.'}{' '}
-          확인이 필요한 경우에만 제출 전에 안내합니다.
+          {language === 'java8' ? (
+            <>
+              클래스 이름은 <strong className="font-mono">Main</strong>, 메인
+              메서드 이름은 <strong className="font-mono">main</strong>으로
+              해주세요.
+            </>
+          ) : (
+            <>
+              메인 함수 이름은 <strong className="font-mono">main</strong>으로
+              해주세요.
+            </>
+          )}
         </p>
       ) : null}
 

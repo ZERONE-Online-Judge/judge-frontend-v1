@@ -10,7 +10,6 @@ import {
   contestResourceAccess,
 } from '@/domains/contestAdministration/logic';
 import type { PublicContestDetail } from '@/domains/contestAdministration/types';
-import { contestLoginPath } from '@/shared/lib/loginRedirect';
 import MarkdownPreview from '@/shared/ui/MarkdownPreview';
 import './ContestPublicOverview.css';
 
@@ -297,30 +296,6 @@ export default function ContestPublicOverview({
               </div>
             ) : null}
           </section>
-
-          <aside
-            className="contest-public-access"
-            aria-labelledby="contest-public-access-title"
-          >
-            <span className="contest-public-access-mark" aria-hidden="true">
-              {'{ }'}
-            </span>
-            <h2 id="contest-public-access-title">이 대회의 참가자이신가요?</h2>
-            <p>
-              참가 계정으로 로그인하면 내 참가 정보와 참가자에게 공개된 자료를
-              확인할 수 있습니다.
-            </p>
-            <Link
-              className="contest-public-login"
-              to={contestLoginPath(contest.contest_id, contestPath)}
-            >
-              참가 계정으로 로그인
-              <OverviewIcon name="arrow" />
-            </Link>
-            <span className="contest-public-access-note">
-              대회 소개와 공개 자료는 로그인 없이 볼 수 있어요.
-            </span>
-          </aside>
         </div>
 
         {ended || resourceCards.length > 0 ? (

@@ -21,6 +21,95 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#312e81" />
+    <style id="zoj-startup-style">
+      #zoj-startup {
+        display: none;
+        box-sizing: border-box;
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 3.5rem 1.5rem;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      html.zoj-starting #zoj-public-summary {
+        display: none;
+      }
+      html.zoj-starting #zoj-startup {
+        display: block;
+      }
+      #zoj-startup-notice {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        border: 1px solid #bae6fd;
+        border-radius: 0.375rem;
+        padding: 0.75rem 1rem;
+        background: #f0f9ff;
+        color: #075985;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+      #zoj-startup-retry {
+        margin-left: auto;
+        border: 1px solid #bae6fd;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      #zoj-startup-retry[hidden] {
+        display: none;
+      }
+    </style>
+    <script>
+      // Run before body parsing and without waiting for the application bundle.
+      (function () {
+        document.documentElement.classList.add('zoj-starting');
+        var timer = window.setTimeout(function () {
+          offerRetry('페이지를 불러오는 데 시간이 걸리고 있습니다.');
+        }, 15000);
+
+        function offerRetry(message) {
+          var text = document.getElementById('zoj-startup-message');
+          var retry = document.getElementById('zoj-startup-retry');
+          if (text) text.textContent = message;
+          if (retry) retry.hidden = false;
+        }
+
+        function resourceFailed(event) {
+          var target = event.target;
+          if (target instanceof HTMLScriptElement && target.type === 'module') {
+            window.clearTimeout(timer);
+            offerRetry('페이지를 불러오지 못했습니다. 다시 시도해 주세요.');
+          }
+        }
+
+        function retryStartup(event) {
+          if (
+            event.target instanceof Element &&
+            event.target.closest('#zoj-startup-retry')
+          ) {
+            window.location.reload();
+          }
+        }
+
+        function ready() {
+          window.clearTimeout(timer);
+          document.documentElement.classList.remove('zoj-starting');
+          var notice = document.getElementById('zoj-startup');
+          if (notice) notice.remove();
+          window.removeEventListener('error', resourceFailed, true);
+          document.removeEventListener('click', retryStartup);
+        }
+
+        window.addEventListener('error', resourceFailed, true);
+        document.addEventListener('click', retryStartup);
+        document.addEventListener('zoj:app-ready', ready, { once: true });
+      })();
+    </script>
 
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:type" content="website" />
@@ -47,6 +136,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <section id="zoj-startup" aria-label="페이지 로딩">
+      <div id="zoj-startup-notice" role="status" aria-live="polite">
+        <span id="zoj-startup-message">페이지를 불러오는 중입니다.</span>
+        <button id="zoj-startup-retry" type="button" hidden>새로고침</button>
+      </div>
+    </section>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

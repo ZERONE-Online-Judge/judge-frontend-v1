@@ -11,6 +11,7 @@ import type {
   Submission,
 } from '@/domains/submissionScoreboard/types';
 import { formatUserApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 
 export type ProblemReviewRun = {
   id: string;
@@ -59,6 +60,7 @@ export default function useProblemReviewRuns(contestId: string, token: string) {
     gcTime: Infinity,
     placeholderData: () => undefined,
   });
+  useFrontendUpdateBlocker(runs.some(isReviewRunPending), 'operation');
   const context = useMemo(() => createReviewContext(historyKey), [historyKey]);
   const latestToken = useRef(token);
 

@@ -20,6 +20,7 @@ import {
   type SupportTabId,
 } from '@/data/supportGuideContent';
 import { formatApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 
 const emptyContactForm = {
   body: '',
@@ -70,6 +71,11 @@ export default function SupportGuidePage() {
       );
     },
   });
+
+  useFrontendUpdateBlocker(
+    Object.values(contactForm).some((value) => value.length > 0),
+  );
+  useFrontendUpdateBlocker(contactMutation.isPending, 'operation');
 
   function changeTab(tabId: SupportTabId) {
     navigate(supportPath(tabId));

@@ -526,6 +526,8 @@ test('publishing validates fields, requires a final review and cancellation pres
 test('confirmed publishing sends the selected notice kind, clears draft and refreshes both lists', async () => {
   await render();
   await write();
+  const updateSafety = source('shared/lib/frontendUpdateSafety.ts');
+  assert.ok(updateSafety.getFrontendUpdateSafety().drafts > 0);
   await fill(
     host.querySelector('.admin-field input:not(.admin-notice-title-input)'),
     '  짧은 요약  ',
@@ -550,6 +552,8 @@ test('confirmed publishing sends the selected notice kind, clears draft and refr
   );
   assert.equal(window.sessionStorage.getItem(draftKey), null);
   assert.equal(location.pathname, '/admin/notices');
+  assert.equal(updateSafety.getFrontendUpdateSafety().drafts, 0);
+  assert.equal(updateSafety.getFrontendUpdateSafety().operations, 0);
   assert.match(location.search, /notice=created/);
   assert.ok(
     invalidations.some(
@@ -571,6 +575,9 @@ test('failed publishing keeps content and can be retried without losing the draf
     '  안내 내용\n둘째 줄  ',
   );
   assert.ok(window.sessionStorage.getItem(draftKey));
+  const updateSafety = source('shared/lib/frontendUpdateSafety.ts');
+  assert.ok(updateSafety.getFrontendUpdateSafety().drafts > 0);
+  assert.equal(updateSafety.getFrontendUpdateSafety().operations, 0);
   createFailure = null;
   await click(button('공지 발행', host.querySelector('[role=dialog]')));
   assert.equal(calls.length, 2);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import PageNotice from '@/shared/ui/PageNotice';
 import SessionActivityTime from '@/shared/ui/SessionActivityTime';
@@ -39,6 +40,10 @@ export default function PasskeyDialog({
   const [failed, setFailed] = useState(false);
   const supported = supportsPasskeys();
   const cooldown = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  useFrontendUpdateBlocker(
+    Boolean(enrollment || challengeId || code || removing),
+  );
+  useFrontendUpdateBlocker(busy, 'operation');
 
   useEffect(() => {
     let active = true;

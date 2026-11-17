@@ -1,5 +1,6 @@
 import { sourceFileText } from '@/shared/lib/largeText';
 import { useEffect, useRef, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import type { VerificationExecution } from './verificationExecution';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -114,6 +115,10 @@ export default function useVerificationCodeRuns({
 }) {
   const queryClient = useQueryClient();
   const [runs, setRuns] = useState<Record<string, VerificationRunResult>>({});
+  useFrontendUpdateBlocker(
+    Object.values(runs).some(isVerificationRunning),
+    'operation',
+  );
   const activeRunIds = useRef(new Set<string>());
   const runIdsByAsset = useRef(new Map<string, string>());
   const mounted = useRef(false);

@@ -10,6 +10,7 @@ import { isContestOperationLocked } from '@/domains/contestAdministration/logic'
 import type { Contest, Division } from '@/domains/contestAdministration/types';
 import { formatApiError } from '@/shared/api/errors';
 import useConfirmation from '@/shared/ui/useConfirmation';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 
 const emptyForm = { divisionId: '', name: '', description: '' };
 
@@ -74,6 +75,8 @@ export default function ParticipantDivisionsPanel({
   const dirty =
     form.name !== (selected?.name ?? '') ||
     form.description !== (selected?.description ?? '');
+  useFrontendUpdateBlocker(dirty);
+  useFrontendUpdateBlocker(save.isPending || remove.isPending, 'operation');
   const guard = {
     confirm: async (action: () => void) => {
       if (

@@ -52,6 +52,7 @@ import {
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 import type { Submission } from '@/domains/submissionScoreboard/types';
 import { formatUserApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { loadCodeDraft, saveCodeDraft } from '@/shared/lib/codeDraftStorage';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import PageNotice from '@/shared/ui/PageNotice';
@@ -270,6 +271,7 @@ function ContestProblemDetailContent({
   const [draftSourceCodes, setDraftSourceCodes] = useState<
     Record<string, string>
   >({});
+  useFrontendUpdateBlocker(Object.values(draftSourceCodes).some(Boolean));
   const [submitFeedbackByKey, setSubmitFeedbackByKey] = useState<
     Record<string, SubmitFeedback>
   >({});

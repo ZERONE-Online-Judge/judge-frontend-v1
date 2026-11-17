@@ -18,6 +18,7 @@ import type {
   TeamImportRow,
 } from '@/domains/teamParticipation/types';
 import { formatApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import Select from '@/shared/ui/Select';
 import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
@@ -310,6 +311,8 @@ function ParticipantBulkImportContent({
               ? 'checked'
               : 'checking';
   const dirty = !!text.trim() || (!result && !!rows.length);
+  useFrontendUpdateBlocker(dirty || sourceDirty);
+  useFrontendUpdateBlocker(busy || reading, 'operation');
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {

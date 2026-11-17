@@ -35,6 +35,7 @@ import {
 import { submissionStatusLabel } from '@/domains/submissionScoreboard/status';
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 import { formatUserApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { loadCodeDraft, saveCodeDraft } from '@/shared/lib/codeDraftStorage';
 
 export default function OperatorProblemReviewPage() {
@@ -367,6 +368,7 @@ function ReviewWorkspace({
     };
   });
   const [selectedRunId, setSelectedRunId] = useState('');
+  useFrontendUpdateBlocker(Boolean(draft.sourceCode));
   const assets = useQuery({
     queryKey: [
       'operator',

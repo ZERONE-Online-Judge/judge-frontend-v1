@@ -2,6 +2,7 @@ import Select from '@/shared/ui/Select';
 import { type ReactNode, useRef, useState } from 'react';
 import CodeEditor from '@/shared/ui/CodeEditor';
 import PageNotice from '@/shared/ui/PageNotice';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import type { JudgeLanguage } from '@/domains/submissionScoreboard/types';
 import {
   inspectSubmissionEntryPoint,
@@ -105,6 +106,8 @@ export default function ProblemSubmitPanel({
     confirmation.allowed === allowed &&
     !submitDisabled,
   );
+  useFrontendUpdateBlocker(Boolean(sourceCode) || confirmationCurrent);
+  useFrontendUpdateBlocker(isSubmitting, 'operation');
   // Discard the exact snapshot as soon as any submission input changes. A
   // later edit back to the same text must not revive an earlier confirmation.
   if (confirmation && !confirmationCurrent) setConfirmation(null);

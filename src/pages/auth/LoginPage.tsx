@@ -7,6 +7,7 @@ import {
 import { hasParticipantPreviewAccess } from '@/domains/identityAccess/participantPreview';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import { useEffect, useRef, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import {
   Link,
   useLocation,
@@ -249,6 +250,20 @@ export default function LoginPage() {
     useState<PendingSessionReplacement>(null);
   const [now, setNow] = useState(currentTimestamp);
   const otpInputRef = useRef<HTMLInputElement | null>(null);
+  const initialEmail = useRef(email);
+  useFrontendUpdateBlocker(
+    loginMethod !== 'email' ||
+      email !== initialEmail.current ||
+      Boolean(
+        password ||
+        otpCode ||
+        otpRequested ||
+        pendingSessionReplacement ||
+        enrollmentSession ||
+        passwordResetOpen,
+      ),
+  );
+  useFrontendUpdateBlocker(isSubmitting, 'operation');
 
   const shouldShowContestLoginModal = searchParams.get('reason') === 'contest';
   const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));

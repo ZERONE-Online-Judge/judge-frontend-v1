@@ -8,6 +8,7 @@ import NoticeCountdownText from '@/components/contest/NoticeCountdownText';
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import { hasOperatorAnswer } from '@/domains/serviceCommunication/boardPresentation';
 import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeading } from '@/components/common/PageLayout';
@@ -304,6 +305,16 @@ function ContestBoardContent({
       });
     },
   });
+
+  useFrontendUpdateBlocker(
+    isWritingQuestion ||
+      questionForm !== null ||
+      Object.values(answerDrafts).some((body) => body.length > 0),
+  );
+  useFrontendUpdateBlocker(
+    createQuestionMutation.isPending || createAnswerMutation.isPending,
+    'operation',
+  );
 
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

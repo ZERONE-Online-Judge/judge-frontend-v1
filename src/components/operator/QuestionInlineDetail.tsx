@@ -1,4 +1,5 @@
 import Select from '@/shared/ui/Select';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import type { FormEvent } from 'react';
 import type {
   ContestAnswer,
@@ -98,6 +99,11 @@ export default function QuestionInlineDetail({
 }) {
   const isAnswerFormOpen =
     answerForm.questionId === question.contest_question_id;
+  useFrontendUpdateBlocker(isAnswerFormOpen);
+  useFrontendUpdateBlocker(
+    answerActionPending || deletePending || isAnswerSubmitting || updatePending,
+    'operation',
+  );
   const forcedPrivateAnswer = question.visibility === 'private';
 
   const answers = [...question.answers].sort(

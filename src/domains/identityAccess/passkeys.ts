@@ -44,28 +44,30 @@ export async function registerPasskey(token: string, name: string) {
   });
 }
 export async function loginPasskey(email: string) {
-  const data = await apiRequest<{
-    challenge_id: string;
-    options: PublicKeyCredentialRequestOptionsJSON;
-  }>('/auth/general/passkeys/login/options', undefined, {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
-  const credential = await startAuthentication({ optionsJSON: data.options });
-  const result = await apiRequest<GeneralSessionApi>(
-    '/auth/general/passkeys/login/verify',
-    undefined,
-    {
+  return withPasskeyCeremony(async () => {
+    const data = await apiRequest<{
+      challenge_id: string;
+      options: PublicKeyCredentialRequestOptionsJSON;
+    }>('/auth/general/passkeys/login/options', undefined, {
       method: 'POST',
-      body: JSON.stringify({
-        challenge_id: data.challenge_id,
-        credential,
-      }),
-    },
-  );
-  const session = mapGeneralSession(result);
-  saveGeneralSession(session);
-  return session;
+      body: JSON.stringify({ email }),
+    });
+    const credential = await startAuthentication({ optionsJSON: data.options });
+    const result = await apiRequest<GeneralSessionApi>(
+      '/auth/general/passkeys/login/verify',
+      undefined,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          challenge_id: data.challenge_id,
+          credential,
+        }),
+      },
+    );
+    const session = mapGeneralSession(result);
+    saveGeneralSession(session);
+    return session;
+  });
 }
 export async function confirmPasskeyLoginTransfer(
   email: string,
@@ -88,27 +90,29 @@ export async function verifyPasswordPasskey(
   token?: string,
   email?: string,
 ) {
-  const scope = { purpose, ...(purpose === 'reset' ? { email } : {}) };
-  const data = await apiRequest<{
-    challenge_id: string;
-    options: PublicKeyCredentialRequestOptionsJSON;
-  }>('/auth/general/password/passkey/options', token, {
-    method: 'POST',
-    body: JSON.stringify(scope),
-  });
-  const credential = await startAuthentication({ optionsJSON: data.options });
-  return apiRequest<{ proof_token: string; valid_seconds: number }>(
-    '/auth/general/password/passkey/verify',
-    token,
-    {
+  return withPasskeyCeremony(async () => {
+    const scope = { purpose, ...(purpose === 'reset' ? { email } : {}) };
+    const data = await apiRequest<{
+      challenge_id: string;
+      options: PublicKeyCredentialRequestOptionsJSON;
+    }>('/auth/general/password/passkey/options', token, {
       method: 'POST',
-      body: JSON.stringify({
-        ...scope,
-        challenge_id: data.challenge_id,
-        credential,
-      }),
-    },
-  );
+      body: JSON.stringify(scope),
+    });
+    const credential = await startAuthentication({ optionsJSON: data.options });
+    return apiRequest<{ proof_token: string; valid_seconds: number }>(
+      '/auth/general/password/passkey/verify',
+      token,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ...scope,
+          challenge_id: data.challenge_id,
+          credential,
+        }),
+      },
+    );
+  });
 }
 
 export function removePasskey(token: string, id: string) {

@@ -8,6 +8,7 @@ const ts = require('typescript');
 test('session transfer uses the verified proof without starting a second WebAuthn ceremony', async () => {
   const calls = [];
   const saved = [];
+  let activeCeremonies = 0;
   const conflict = Object.assign(new Error('session_conflict'), {
     status: 409,
     details: { transfer_token: 'verified-proof' },
@@ -15,15 +16,25 @@ test('session transfer uses the verified proof without starting a second WebAuth
   const mocks = {
     '@simplewebauthn/browser': {
       startAuthentication: async () => {
+        assert.equal(activeCeremonies, 1);
         calls.push('ceremony');
         return { id: 'signed-credential' };
       },
     },
     '@/shared/api/client': {
+      withPasskeyCeremony: async (action) => {
+        activeCeremonies++;
+        try {
+          return await action();
+        } finally {
+          activeCeremonies--;
+        }
+      },
       apiRequest: async (url, token, init) => {
         const body = JSON.parse(init.body);
         calls.push({ url, body });
         assert.equal(token, undefined);
+        assert.equal(activeCeremonies, url.endsWith('/transfer') ? 0 : 1);
         if (url.endsWith('/options'))
           return { challenge_id: 'challenge', options: {} };
         if (url.endsWith('/verify')) throw conflict;
@@ -52,6 +63,7 @@ test('session transfer uses the verified proof without starting a second WebAuth
     loginPasskey('user@example.com'),
     (error) => error === conflict,
   );
+  assert.equal(activeCeremonies, 0);
   assert.deepEqual(saved, []);
   const result = await confirmPasskeyLoginTransfer(
     'user@example.com',

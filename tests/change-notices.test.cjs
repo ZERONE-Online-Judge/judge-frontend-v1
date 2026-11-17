@@ -57,6 +57,9 @@ function source(relative) {
   return mod.exports;
 }
 const { apiRequest } = source('shared/api/client.ts');
+const { getFrontendUpdateSafety } = source(
+  'shared/lib/frontendUpdateSafety.ts',
+);
 const notice = source('shared/api/changeNotice.ts');
 const Dialog = source('components/operator/ChangeNoticeDialog.tsx').default;
 const draft = {
@@ -126,6 +129,7 @@ test('no mutation retry until editable notice and a reason are confirmed', async
     result = apiRequest('/operator/contests/c/settings', 'token', init);
   });
   assert.equal(calls.length, 1);
+  assert.ok(getFrontendUpdateSafety().operations > 0);
   assert.equal(document.querySelector('input').value, draft.title);
   assert.equal(document.querySelector('textarea').value, draft.body);
   assert.equal(document.querySelector('button[type="submit"]').disabled, true);
@@ -133,6 +137,7 @@ test('no mutation retry until editable notice and a reason are confirmed', async
   assert.equal(document.querySelector('button[type="submit"]').disabled, false);
   await submit();
   assert.deepEqual(await result, { saved: true });
+  assert.equal(getFrontendUpdateSafety().operations, 0);
   const sent = JSON.parse(calls[1].body);
   assert.equal(sent._change_notice.reason, '장비 점검으로 1시간 연장');
   assert.equal(sent._change_notice.fingerprint, draft.fingerprint);
@@ -162,6 +167,7 @@ test('cancel closes the modal without sending a change or losing the original pa
       .click(),
   );
   await rejected;
+  assert.equal(getFrontendUpdateSafety().operations, 0);
   assert.equal(calls.length, 1);
   assert.equal(document.querySelector('dialog'), null);
 });
@@ -239,4 +245,32 @@ test('notice preview shows the final reason without saving and retains all edite
   );
   await submit();
   assert.equal((await result).reason, '현장 사정으로 연장');
+});
+
+test('passkey operation protection spans asynchronous authentication and always releases', async () => {
+  const { withPasskeyCeremony, isPasskeyCeremonyActive } = source(
+    'shared/api/client.ts',
+  );
+  for (const failing of [false, true]) {
+    let resume;
+    const failure = new Error('authentication cancelled');
+    const pending = withPasskeyCeremony(async () => {
+      await new Promise((resolve) => {
+        resume = resolve;
+      });
+      assert.equal(isPasskeyCeremonyActive(), true);
+      assert.ok(getFrontendUpdateSafety().operations > 0);
+      if (failing) throw failure;
+      return 'verified';
+    });
+    assert.equal(isPasskeyCeremonyActive(), true);
+    assert.ok(getFrontendUpdateSafety().operations > 0);
+    const settled = failing
+      ? assert.rejects(pending, (error) => error === failure)
+      : pending.then((value) => assert.equal(value, 'verified'));
+    resume();
+    await settled;
+    assert.equal(isPasskeyCeremonyActive(), false);
+    assert.equal(getFrontendUpdateSafety().operations, 0);
+  }
 });

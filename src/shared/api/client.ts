@@ -1,4 +1,8 @@
 import {
+  acquireFrontendUpdateBlocker,
+  protectFrontendWrite,
+} from '@/shared/lib/frontendUpdateSafety';
+import {
   ApiClientError,
   isParticipantAccessBlockedError,
   toApiError,
@@ -46,10 +50,12 @@ export function isPasskeyCeremonyActive() {
 
 export async function withPasskeyCeremony<T>(action: () => Promise<T>) {
   activePasskeyCeremonies++;
+  const release = acquireFrontendUpdateBlocker('operation');
   try {
     return await action();
   } finally {
     activePasskeyCeremonies--;
+    release();
   }
 }
 let generalSessionRequestInFlight: {
@@ -68,6 +74,19 @@ export function parseContestId(path: string) {
 }
 
 export async function apiFetchRaw(
+  path: string,
+  token?: string,
+  init?: RequestInit,
+): Promise<ApiRawResponse> {
+  const release = protectFrontendWrite(init);
+  try {
+    return await performApiFetchRaw(path, token, init);
+  } finally {
+    release();
+  }
+}
+
+async function performApiFetchRaw(
   path: string,
   token?: string,
   init?: RequestInit,
@@ -636,6 +655,20 @@ export async function apiRequest<T>(
   init?: RequestInit,
   noticeAttempts = 0,
 ): Promise<T> {
+  const release = protectFrontendWrite(init);
+  try {
+    return await performApiRequest<T>(path, token, init, noticeAttempts);
+  } finally {
+    release();
+  }
+}
+
+async function performApiRequest<T>(
+  path: string,
+  token?: string,
+  init?: RequestInit,
+  noticeAttempts = 0,
+): Promise<T> {
   let currentToken = preferredStoredTokenForRequest(path, token);
   let result = await apiFetchRaw(path, currentToken, init);
   result =
@@ -756,6 +789,19 @@ export async function apiBlobRequest(
 }
 
 export async function apiPageRequest<T>(
+  path: string,
+  token?: string,
+  init?: RequestInit,
+): Promise<ApiPagePayload<T>> {
+  const release = protectFrontendWrite(init);
+  try {
+    return await performApiPageRequest<T>(path, token, init);
+  } finally {
+    release();
+  }
+}
+
+async function performApiPageRequest<T>(
   path: string,
   token?: string,
   init?: RequestInit,

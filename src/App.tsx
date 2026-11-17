@@ -5,6 +5,7 @@ import SessionExpiryRedirector from '@/app/providers/SessionExpiryRedirector';
 import Layout from '@/components/layout/Layout';
 import AppRoutes from '@/routes/AppRoutes';
 import ChangeNoticeDialog from '@/components/operator/ChangeNoticeDialog';
+import FrontendUpdateNotice from '@/app/providers/FrontendUpdateNotice';
 
 export default function App() {
   useLayoutEffect(() => {
@@ -16,6 +17,7 @@ export default function App() {
     <BrowserRouter>
       <AppProviders>
         <SessionExpiryRedirector />
+        <FrontendUpdateNotice />
         <ChangeNoticeDialog />
         <Layout>
           <AppRoutes />

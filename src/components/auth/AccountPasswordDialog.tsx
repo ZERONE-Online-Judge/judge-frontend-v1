@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { z } from 'zod';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import {
@@ -48,6 +49,17 @@ export default function AccountPasswordDialog({
   const [repeat, setRepeat] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useFrontendUpdateBlocker(
+    Boolean(
+      sent ||
+      passkeyProof ||
+      code ||
+      password ||
+      repeat ||
+      email !== initialEmail,
+    ),
+  );
+  useFrontendUpdateBlocker(busy, 'operation');
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);

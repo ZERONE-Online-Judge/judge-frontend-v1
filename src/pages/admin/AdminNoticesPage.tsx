@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import {
   Link,
   useLocation,
@@ -382,6 +383,9 @@ function NoticeComposer({
       );
     },
   });
+  useFrontendUpdateBlocker(dirty || review);
+  useFrontendUpdateBlocker(mutation.isPending, 'operation');
+
   function change(patch: Partial<PickNotice>) {
     const next = { ...form, ...patch };
     setForm(next);

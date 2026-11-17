@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import type { ParticipantTeam } from '@/domains/teamParticipation/types';
 import { formatApiError } from '@/shared/api/errors';
 import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
@@ -18,6 +19,8 @@ export default function ParticipantWithdrawalDialog({
 }) {
   const formId = useId();
   const [reason, setReason] = useState('');
+  useFrontendUpdateBlocker(true);
+  useFrontendUpdateBlocker(pending, 'operation');
   const restoring = Boolean(team.withdrawn);
   const action = restoring ? '기권 취소' : '기권 처리';
   const individuallyBlocked = team.members.filter(

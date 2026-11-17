@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import type {
   ParticipantTeam,
   TeamMember,
@@ -30,6 +31,8 @@ export default function ParticipantAccessDialog({
   const label = member ? `${member.name} (${member.email})` : team.team_name;
   const action = blocked ? '차단 해제' : '접근 차단';
   const [reason, setReason] = useState('');
+  useFrontendUpdateBlocker(true);
+  useFrontendUpdateBlocker(pending, 'operation');
   const individuallyBlocked = team.members.filter(
     (item) => item.access_blocked,
   ).length;

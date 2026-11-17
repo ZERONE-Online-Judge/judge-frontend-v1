@@ -116,6 +116,7 @@ import type {
   Submission,
 } from '@/domains/submissionScoreboard/types';
 import { formatApiError } from '@/shared/api/errors';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { loadCodeDraft, saveCodeDraft } from '@/shared/lib/codeDraftStorage';
 import { formatMemoryKb } from '@/shared/lib/formatters';
 import {
@@ -739,6 +740,7 @@ function OperatorProblemsContent({
     loadLastJudgeLanguage(),
   );
   const [testSourceCode, setTestSourceCode] = useState('');
+  useFrontendUpdateBlocker(Boolean(testSourceCode));
   const [testSubmission, setTestSubmission] = useState<Submission | null>(null);
   const [uploadProgress, setUploadProgress] = useState('');
   const [uploadProgressValue, setUploadProgressValue] = useState(0);
@@ -797,6 +799,9 @@ function OperatorProblemsContent({
   }).length;
   const hasUnsavedProblem = Boolean(
     selectedProblem && changedProblemFieldCount,
+  );
+  useFrontendUpdateBlocker(
+    editorMode !== 'idle' && changedProblemFieldCount > 0,
   );
   const testDraftScope = `operator:${contestId}`;
   const testDraftKey = effectiveSelectedProblemId

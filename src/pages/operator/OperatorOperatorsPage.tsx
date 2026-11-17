@@ -2,6 +2,7 @@ import OperatorList from '@/components/operator/OperatorList';
 import CollapsibleEditor from '@/components/operator/CollapsibleEditor';
 import useConfirmation from '@/shared/ui/useConfirmation';
 import { type FormEvent, useId, useRef, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { flushSync } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -269,6 +270,22 @@ function OperatorOperatorsContent({
       });
     },
   });
+
+  useFrontendUpdateBlocker(
+    editorOpen ||
+      Boolean(
+        operatorForm.email ||
+        operatorForm.displayName ||
+        operatorForm.editingEmail ||
+        operatorForm.roles.length,
+      ),
+  );
+  useFrontendUpdateBlocker(
+    saveOperatorMutation.isPending ||
+      transferMutation.isPending ||
+      removeOperatorMutation.isPending,
+    'operation',
+  );
 
   async function handleOperatorSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -2,6 +2,9 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '@/components/common/PageLayout';
 import { safeLoginRedirectTarget } from '@/shared/lib/loginRedirect';
+import { getFrontendUpdateSafety } from '@/shared/lib/frontendUpdateSafety';
+import { isPresentationUpdateDeferred } from '@/shared/lib/frontendVersion';
+import { queryClient } from '@/shared/query/queryClient';
 
 type RouteErrorBoundaryProps = {
   children: ReactNode;
@@ -32,13 +35,29 @@ function chunkReloadStorageKey() {
 
 function shouldRetryChunkLoad() {
   if (typeof window === 'undefined') return false;
-  const key = chunkReloadStorageKey();
-  const lastRetry = Number(window.sessionStorage.getItem(key) ?? '0');
-  if (Number.isFinite(lastRetry) && Date.now() - lastRetry < CHUNK_RELOAD_RETRY_WINDOW_MS) {
+  const safety = getFrontendUpdateSafety();
+  if (
+    safety.drafts ||
+    safety.operations ||
+    queryClient.isMutating() ||
+    isPresentationUpdateDeferred(window.location.pathname) ||
+    document.fullscreenElement
+  )
+    return false;
+  try {
+    const key = chunkReloadStorageKey();
+    const lastRetry = Number(window.sessionStorage.getItem(key) ?? '0');
+    if (
+      Number.isFinite(lastRetry) &&
+      Date.now() - lastRetry < CHUNK_RELOAD_RETRY_WINDOW_MS
+    ) {
+      return false;
+    }
+    window.sessionStorage.setItem(key, String(Date.now()));
+    return true;
+  } catch {
     return false;
   }
-  window.sessionStorage.setItem(key, String(Date.now()));
-  return true;
 }
 
 function reloadWithCacheBust() {
@@ -67,10 +86,7 @@ export default class RouteErrorBoundary extends Component<
   }
 
   componentDidUpdate(previousProps: RouteErrorBoundaryProps) {
-    if (
-      this.state.hasError &&
-      previousProps.resetKey !== this.props.resetKey
-    ) {
+    if (this.state.hasError && previousProps.resetKey !== this.props.resetKey) {
       this.setState({ hasError: false, isRecovering: false });
     }
   }

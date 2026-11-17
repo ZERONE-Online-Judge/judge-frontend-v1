@@ -1,4 +1,5 @@
 import Select from '@/shared/ui/Select';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import ParticipantTeamRoster from '@/components/operator/ParticipantTeamRoster';
 import ParticipantAccessDialog, {
   type ParticipantAccessTarget,
@@ -262,6 +263,23 @@ function OperatorParticipantsContent({
       });
     },
   });
+
+  useFrontendUpdateBlocker(
+    teamEditorOpen ||
+      Boolean(
+        teamForm.teamName ||
+        teamForm.leaderName ||
+        teamForm.leaderEmail ||
+        draftMembers.some((member) => member.name || member.email),
+      ),
+  );
+  useFrontendUpdateBlocker(
+    createTeamMutation.isPending ||
+      deleteTeamMutation.isPending ||
+      accessMutation.isPending ||
+      withdrawalMutation.isPending,
+    'operation',
+  );
 
   function openWithdrawalDialog(team: ParticipantTeam) {
     if (!canManageParticipants) return;

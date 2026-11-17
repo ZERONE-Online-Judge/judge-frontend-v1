@@ -1,4 +1,5 @@
 import { SettingsIcon } from '@/components/operator/OperatorShell';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import './SettingsSaveBar.css';
 
 export default function SettingsSaveBar({
@@ -26,6 +27,8 @@ export default function SettingsSaveBar({
   disabled?: boolean;
   saveDisabled?: boolean;
 }) {
+  useFrontendUpdateBlocker(changedCount > 0);
+  useFrontendUpdateBlocker(pending, 'operation');
   return (
     <div className="operator-settings-savebar" aria-label={label}>
       <div className="min-w-0" aria-live="polite">

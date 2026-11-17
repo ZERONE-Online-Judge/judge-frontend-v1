@@ -158,8 +158,8 @@ async function apiRequest(url, token, init) {
       unread_count: notificationItems.filter((item) => !item.read_at).length,
       total_count: notificationItems.length,
     };
-  if (url.endsWith('/notices')) return structuredClone(notices);
-  if (url.endsWith('/boards')) return structuredClone(questions);
+  if (url.endsWith('/notices')) return global.structuredClone(notices);
+  if (url.endsWith('/boards')) return global.structuredClone(questions);
   if (url.startsWith('/contests/contest/submissions')) return [];
   throw new Error(`Unexpected API ${url}`);
 }
@@ -253,6 +253,9 @@ const Navigation = source(
 ).default;
 const Problems = source('pages/contest/ContestProblemsPage.tsx').default;
 const Detail = source('pages/contest/ContestProblemDetailPage.tsx').default;
+const { getFrontendUpdateSafety } = source(
+  'shared/lib/frontendUpdateSafety.ts',
+);
 const Board = source('pages/contest/ContestBoardPage.tsx').default;
 const Notifications = source(
   'components/layout/HeaderNotifications.tsx',
@@ -487,6 +490,39 @@ test('selected preview can submit code before start using the ordinary participa
     ),
   );
   assert.equal(currentPath, '/contests/contest/submissions');
+});
+
+test('an unsaved code draft stays protected after hiding the submit panel when storage is unavailable', async () => {
+  state.participantSession = previewSession();
+  serverDivision = 'a';
+  const nativeSetItem = window.Storage.prototype.setItem;
+  window.Storage.prototype.setItem = () => {
+    throw new Error('Synthetic storage unavailable');
+  };
+  try {
+    await render('/contests/contest/problems/problem/submit?preview=1');
+    await input(
+      await waitForElement('textarea[aria-label="제출 코드"]'),
+      'print("keep this draft")',
+    );
+    assert.ok(getFrontendUpdateSafety().drafts > 0);
+    await click(container.querySelector('a[href*="/statement"]'));
+    assert.equal(
+      container.querySelector('textarea[aria-label="제출 코드"]'),
+      null,
+    );
+    assert.ok(
+      getFrontendUpdateSafety().drafts > 0,
+      'The parent retains protection while the submit panel is unmounted',
+    );
+    await click(container.querySelector('a[href*="/submit"]'));
+    assert.equal(
+      (await waitForElement('textarea[aria-label="제출 코드"]')).value,
+      'print("keep this draft")',
+    );
+  } finally {
+    window.Storage.prototype.setItem = nativeSetItem;
+  }
 });
 
 test('selected preview can post a question through the actual participant board', async () => {

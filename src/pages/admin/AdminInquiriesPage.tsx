@@ -1,5 +1,6 @@
 import useAdminView from '@/components/admin/useAdminView';
 import { type FormEvent, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AdminAccessGate,
@@ -59,6 +60,11 @@ function AdminInquiriesContent({ token }: { token: string }) {
       });
     },
   });
+
+  useFrontendUpdateBlocker(
+    Object.values(answers).some((answer) => answer.length > 0),
+  );
+  useFrontendUpdateBlocker(answerMutation.isPending, 'operation');
 
   const inquiries = inquiriesQuery.data ?? [];
   const pendingCount = inquiries.filter(

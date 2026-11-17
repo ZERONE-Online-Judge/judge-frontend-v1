@@ -289,6 +289,7 @@ function appWithStubbedChildren() {
     }
     if (
       id === '@/app/providers/SessionExpiryRedirector' ||
+      id === '@/app/providers/FrontendUpdateNotice' ||
       id === '@/components/operator/ChangeNoticeDialog'
     ) {
       return { __esModule: true, default: () => null };

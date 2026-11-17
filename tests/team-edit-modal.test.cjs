@@ -316,7 +316,11 @@ function deferred() {
 test('editing is a populated modal and cancellation preserves the separate add draft without API writes', async () => {
   await render();
   const form = await addDraft();
+  const updateSafety = source('shared/lib/frontendUpdateSafety.ts');
+  const addDraftBlockers = updateSafety.getFrontendUpdateSafety().drafts;
+  assert.ok(addDraftBlockers > 0);
   const modal = await edit();
+  assert.ok(updateSafety.getFrontendUpdateSafety().drafts > addDraftBlockers);
   assert.equal(field(modal, '팀명').value, '첫 팀');
   assert.equal(field(modal, '팀장 이름').value, '첫 팀 팀장');
   assert.equal(field(modal, '팀원 1 이름').value, '첫 팀 팀원');
@@ -328,6 +332,7 @@ test('editing is a populated modal and cancellation preserves the separate add d
   await input(modal, '팀명', '취소할 수정');
   await input(modal, '팀장 이름', '취소할 팀장');
   await click(button(modal, '취소'));
+  assert.equal(updateSafety.getFrontendUpdateSafety().drafts, addDraftBlockers);
   assert.equal(document.querySelector('dialog[open]'), null);
   assert.equal(field(form, '팀명').value, '작성 중인 새 팀');
   assert.equal(field(form, '팀장 이름').value, '새 팀장');
@@ -406,10 +411,13 @@ test('saving the modal updates only the selected team and its real member IDs, a
 test('saving prevents repeated writes and all dismissal paths until the request settles', async () => {
   await render();
   const modal = await edit();
+  const updateSafety = source('shared/lib/frontendUpdateSafety.ts');
+  assert.ok(updateSafety.getFrontendUpdateSafety().drafts > 0);
   const waiting = deferred();
   writeResponder = (call) => waiting.promise.then(() => applyWrite(call));
   const form = modal.querySelector('form');
   await click(button(modal, '변경사항 저장'));
+  assert.ok(updateSafety.getFrontendUpdateSafety().operations > 0);
   assert.equal(writes.length, 1);
   assert.equal(button(modal, '취소').disabled, true);
   assert.equal(field(modal, '팀명').matches(':disabled'), true);
@@ -429,6 +437,8 @@ test('saving prevents repeated writes and all dismissal paths until the request 
   await act(async () => waiting.resolve());
   await settle();
   assert.equal(document.querySelector('dialog[open]'), null);
+  assert.equal(updateSafety.getFrontendUpdateSafety().drafts, 0);
+  assert.equal(updateSafety.getFrontendUpdateSafety().operations, 0);
   assert.equal(
     writes.length,
     3,

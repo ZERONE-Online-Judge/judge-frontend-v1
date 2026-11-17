@@ -1,4 +1,5 @@
 import { type FormEvent, useId, useRef, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { useMutation } from '@tanstack/react-query';
 import type { Division } from '@/domains/contestAdministration/types';
 import type {
@@ -114,6 +115,9 @@ export default function ParticipantTeamEditDialog({
       busy.current = false;
     },
   });
+
+  useFrontendUpdateBlocker(true);
+  useFrontendUpdateBlocker(mutation.isPending, 'operation');
 
   function close() {
     if (!busy.current && !mutation.isPending) onClose();

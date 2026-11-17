@@ -9,6 +9,7 @@ import {
 } from '@/domains/serviceCommunication/boardPresentation';
 import useConfirmation from '@/shared/ui/useConfirmation';
 import { type FormEvent, useMemo, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -244,6 +245,16 @@ function OperatorBoardContent({
       });
     },
   });
+
+  useFrontendUpdateBlocker(Boolean(answerForm.questionId));
+  useFrontendUpdateBlocker(
+    answerMutation.isPending ||
+      updateQuestionMutation.isPending ||
+      deleteQuestionMutation.isPending ||
+      updateAnswerMutation.isPending ||
+      deleteAnswerMutation.isPending,
+    'operation',
+  );
 
   async function startAnswer(question: ContestQuestion) {
     if (answerMutation.isPending) return;

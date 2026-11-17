@@ -8,6 +8,7 @@ import NoticeCountdownText, {
 import useConfirmation from '@/shared/ui/useConfirmation';
 import ModalDialog from '@/shared/ui/ModalDialog';
 import { type FormEvent, useState } from 'react';
+import { useFrontendUpdateBlocker } from '@/shared/hooks/useFrontendUpdateBlocker';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageLayout from '@/components/common/PageLayout';
@@ -237,6 +238,16 @@ function OperatorNoticesContent({
       });
     },
   });
+
+  useFrontendUpdateBlocker(
+    editorOpen || emergencyDraft !== null || Boolean(form.title || form.body),
+  );
+  useFrontendUpdateBlocker(
+    saveNoticeMutation.isPending ||
+      saveEmergencyMutation.isPending ||
+      deleteNoticeMutation.isPending,
+    'operation',
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -18,6 +18,7 @@ export type HeaderNavItem = {
   badge?: string;
   to: string;
   end?: boolean;
+  external?: boolean;
 };
 
 type HeaderShellProps = {
@@ -94,20 +95,45 @@ export default function HeaderShell({
   function links() {
     return navItems.map((item) => (
       <li key={item.key}>
-        <NavLink
-          onClick={() => setMenu(null)}
-          className={({ isActive }) =>
-            [
-              isActive ? 'is-active' : '',
-              isActive ? (item.activeClassName ?? '') : '',
-            ].join(' ')
-          }
-          end={item.end}
-          to={item.to}
-        >
-          <span>{item.label}</span>
-          {item.badge && <span className="site-nav-badge">{item.badge}</span>}
-        </NavLink>
+        {item.external ? (
+          <a
+            href={item.to}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenu(null)}
+          >
+            <span>{item.label}</span>
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M7 17 17 7M7 7h10v10" />
+            </svg>
+            <span className="sr-only">(새 탭)</span>
+          </a>
+        ) : (
+          <NavLink
+            onClick={() => setMenu(null)}
+            className={({ isActive }) =>
+              [
+                isActive ? 'is-active' : '',
+                isActive ? (item.activeClassName ?? '') : '',
+              ].join(' ')
+            }
+            end={item.end}
+            to={item.to}
+          >
+            <span>{item.label}</span>
+            {item.badge && <span className="site-nav-badge">{item.badge}</span>}
+          </NavLink>
+        )}
       </li>
     ));
   }

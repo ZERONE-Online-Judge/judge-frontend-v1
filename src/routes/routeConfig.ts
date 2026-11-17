@@ -139,7 +139,6 @@ export const appRoutes: readonly AppRoute[] = [
     name: 'Editor 소개',
     path: '/editor',
     Component: EditorAboutPage,
-    navigationBadge: 'NEW',
   },
   {
     name: routeText.contests,

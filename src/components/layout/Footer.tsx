@@ -9,7 +9,7 @@ const footerGroups = [
     title: '둘러보기',
     links: [
       { label: 'ZOJ 소개', href: '/about' },
-      { label: 'Editor 소개', href: '/editor', badge: 'NEW' },
+      { label: 'Editor 소개', href: '/editor' },
       { label: '대회 목록', href: '/contests' },
       { label: '공지사항', href: '/notices' },
       { label: '채점 안내', href: '/judge-status' },
@@ -90,11 +90,6 @@ export default function Footer() {
                 {group.links.map((link) => (
                   <Link to={link.href} key={link.href}>
                     {link.label}
-                    {'badge' in link && (
-                      <span className="ml-2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] leading-none font-bold tracking-wide text-violet-700">
-                        {link.badge}
-                      </span>
-                    )}
                   </Link>
                 ))}
               </nav>

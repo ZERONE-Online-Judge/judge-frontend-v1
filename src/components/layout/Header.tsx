@@ -20,6 +20,13 @@ export default function Header() {
     }),
   );
 
+  navItems.push({
+    key: 'editor-shortcut',
+    label: '에디터 바로가기',
+    to: 'https://editor.zoj.kr',
+    external: true,
+  });
+
   if (contestId) {
     navItems.push({
       activeClassName: 'text-zoj-blue',

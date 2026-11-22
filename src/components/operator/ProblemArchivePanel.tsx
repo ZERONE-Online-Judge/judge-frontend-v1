@@ -11,6 +11,7 @@ import {
 import { formatApiError } from '@/shared/api/errors';
 import EditorTransferLink from './EditorTransferLink';
 import EditorPackageImportHint from '@/components/operator/EditorPackageImportHint';
+import { FileDropZone } from '@/shared/ui/FileDropZone';
 
 function sizeLabel(bytes: number) {
   return bytes >= 1024 * 1024
@@ -76,6 +77,24 @@ export default function ProblemArchivePanel({
     (importing.error
       ? formatApiError(importing.error, '문제를 등록하지 못했습니다')
       : '');
+
+  function selectFile(selected: File | null) {
+    if (busy) return;
+    setFile(selected);
+    setFileError('');
+    inspect.reset();
+    importing.reset();
+    if (!selected) return;
+    if (selected.size > 512 * 1024 * 1024) {
+      setFileError('512 MiB 이하의 ZIP을 선택해 주세요.');
+      return;
+    }
+    if (!selected.name.toLowerCase().endsWith('.zip')) {
+      setFileError('ZOJ에서 내보낸 ZIP 파일을 선택해 주세요.');
+      return;
+    }
+    inspect.mutate(selected);
+  }
 
   return (
     <>
@@ -169,35 +188,30 @@ export default function ProblemArchivePanel({
               이 창은 ZOJ에서 내보낸 문제 ZIP을 받습니다.
             </p>
             <EditorPackageImportHint />
-            <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-800">
-              ZOJ 문제 ZIP 파일
-              <input
-                type="file"
-                accept=".zip,application/zip"
-                disabled={busy}
-                className="block w-full min-w-0 rounded-lg border border-slate-200 p-3 text-xs file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700"
-                onChange={(event) => {
-                  const selected = event.target.files?.[0] ?? null;
-                  setFile(selected);
-                  setFileError('');
-                  inspect.reset();
-                  importing.reset();
-                  if (!selected) return;
-                  if (selected.size > 512 * 1024 * 1024) {
-                    setFileError('512 MiB 이하의 ZIP을 선택해 주세요.');
-                    return;
-                  }
-                  if (!selected.name.toLowerCase().endsWith('.zip')) {
-                    setFileError('ZOJ에서 내보낸 ZIP 파일을 선택해 주세요.');
-                    return;
-                  }
-                  inspect.mutate(selected);
-                }}
-              />
-              <span className="text-xs leading-5 font-normal text-slate-600">
-                최대 512 MiB · 압축 해제 후 2 GiB · ZOJ 문제 ZIP 형식 v1
-              </span>
-            </label>
+            <FileDropZone
+              accept=".zip,application/zip"
+              disabled={busy}
+              label="ZOJ 문제 ZIP 업로드"
+              onFiles={([selected]) => selectFile(selected ?? null)}
+            >
+              <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-800">
+                ZOJ 문제 ZIP 파일
+                <input
+                  type="file"
+                  accept=".zip,application/zip"
+                  disabled={busy}
+                  className="block w-full min-w-0 rounded-lg border border-slate-200 p-3 text-xs file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700"
+                  onChange={(event) => {
+                    const selected = event.target.files?.[0] ?? null;
+                    event.currentTarget.value = '';
+                    selectFile(selected);
+                  }}
+                />
+                <span className="text-xs leading-5 font-normal text-slate-600">
+                  최대 512 MiB · 압축 해제 후 2 GiB · ZOJ 문제 ZIP 형식 v1
+                </span>
+              </label>
+            </FileDropZone>
             {busy ? (
               <p
                 role="status"

@@ -1,4 +1,5 @@
 import BoundedText from '@/shared/ui/BoundedText';
+import { FileDropZone } from '@/shared/ui/FileDropZone';
 import Select from '@/shared/ui/Select';
 import {
   MotionProgress,
@@ -114,77 +115,88 @@ export default function VerificationCodeSection({
           );
 
           return (
-            <section
-              aria-label={kind.label}
-              className="min-w-0 overflow-hidden rounded-lg border border-slate-200"
+            <FileDropZone
+              accept=".c,.cc,.cpp,.cxx,.py,.kt,.java,text/plain"
+              multiple
               key={kind.expectedStatus}
+              label={`${kind.label} 파일 업로드`}
+              hint="파일을 끌어 놓거나 파일 추가를 누르세요. 추가하면 채점을 시작합니다."
+              onFiles={(files) => onUpload(kind.expectedStatus, files)}
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
-                <div className="grid gap-1">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    {kind.label}
-                    <span className="text-xs font-normal text-slate-500">
-                      {rows.length}개
-                    </span>
-                  </h4>
-                  <p className="text-xs font-normal text-slate-500">
-                    기대 판정 <span className="mx-1 text-slate-300">·</span>{' '}
-                    {submissionStatusLabel(kind.expectedStatus)}
-                  </p>
-                </div>
-                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition focus-within:ring-2 focus-within:ring-indigo-400 hover:border-indigo-300 hover:text-indigo-700">
-                  <svg
-                    aria-hidden="true"
-                    className="size-3.5"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  >
-                    <path d="M10 4v12M4 10h12" />
-                  </svg>
-                  파일 추가
-                  <input
-                    accept=".c,.cc,.cpp,.cxx,.py,.kt,.java,text/plain"
-                    aria-label={`${kind.label} 파일 선택`}
-                    className="sr-only"
-                    multiple
-                    onChange={(event) => {
-                      const files = Array.from(event.currentTarget.files ?? []);
-                      if (files.length) onUpload(kind.expectedStatus, files);
-                      event.currentTarget.value = '';
-                    }}
-                    type="file"
-                  />
-                </label>
-              </div>
-
-              {rows.length ? (
-                <div className="divide-y divide-slate-100 border-t border-slate-200">
-                  {rows.map((row) => (
-                    <VerificationCodeRow
-                      contestId={contestId}
-                      token={token}
-                      aiAvailable={aiAvailable}
-                      asset={row.asset}
-                      expectedStatus={kind.expectedStatus}
-                      filename={row.filename}
-                      key={row.id}
-                      label={kind.label}
-                      onDelete={onDelete}
-                      onDismiss={onDismiss}
-                      onPreview={onPreview}
-                      onRun={onRun}
-                      result={row.result}
+              <section
+                aria-label={kind.label}
+                className="min-w-0 overflow-hidden rounded-lg border border-slate-200"
+                key={kind.expectedStatus}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
+                  <div className="grid gap-1">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      {kind.label}
+                      <span className="text-xs font-normal text-slate-500">
+                        {rows.length}개
+                      </span>
+                    </h4>
+                    <p className="text-xs font-normal text-slate-500">
+                      기대 판정 <span className="mx-1 text-slate-300">·</span>{' '}
+                      {submissionStatusLabel(kind.expectedStatus)}
+                    </p>
+                  </div>
+                  <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition focus-within:ring-2 focus-within:ring-indigo-400 hover:border-indigo-300 hover:text-indigo-700">
+                    <svg
+                      aria-hidden="true"
+                      className="size-3.5"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    >
+                      <path d="M10 4v12M4 10h12" />
+                    </svg>
+                    파일 추가
+                    <input
+                      accept=".c,.cc,.cpp,.cxx,.py,.kt,.java,text/plain"
+                      aria-label={`${kind.label} 파일 선택`}
+                      className="sr-only"
+                      multiple
+                      onChange={(event) => {
+                        const files = Array.from(
+                          event.currentTarget.files ?? [],
+                        );
+                        if (files.length) onUpload(kind.expectedStatus, files);
+                        event.currentTarget.value = '';
+                      }}
+                      type="file"
                     />
-                  ))}
+                  </label>
                 </div>
-              ) : (
-                <p className="border-t border-dashed border-slate-200 px-4 py-5 text-center text-xs font-normal text-slate-400">
-                  등록된 {kind.label}가 없습니다.
-                </p>
-              )}
-            </section>
+
+                {rows.length ? (
+                  <div className="divide-y divide-slate-100 border-t border-slate-200">
+                    {rows.map((row) => (
+                      <VerificationCodeRow
+                        contestId={contestId}
+                        token={token}
+                        aiAvailable={aiAvailable}
+                        asset={row.asset}
+                        expectedStatus={kind.expectedStatus}
+                        filename={row.filename}
+                        key={row.id}
+                        label={kind.label}
+                        onDelete={onDelete}
+                        onDismiss={onDismiss}
+                        onPreview={onPreview}
+                        onRun={onRun}
+                        result={row.result}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="border-t border-dashed border-slate-200 px-4 py-5 text-center text-xs font-normal text-slate-400">
+                    등록된 {kind.label}가 없습니다.
+                  </p>
+                )}
+              </section>
+            </FileDropZone>
           );
         })}
       </div>

@@ -116,12 +116,14 @@ function source(relative) {
   loaded.require = (id) => {
     if (id.endsWith('.css')) return {};
     if (mocks[id]) return mocks[id];
-    if (!id.startsWith('@/')) return nativeRequire(id);
-    return source(
-      ['.ts', '.tsx']
-        .map((ext) => id.slice(2) + ext)
-        .find((file) => fs.existsSync(path.resolve(__dirname, '../src', file))),
-    );
+    if (!id.startsWith('@/') && !id.startsWith('.')) return nativeRequire(id);
+    const base = id.startsWith('@/')
+      ? path.resolve(__dirname, '../src', id.slice(2))
+      : path.resolve(path.dirname(filename), id);
+    const resolved = ['.ts', '.tsx']
+      .map((ext) => base + ext)
+      .find(fs.existsSync);
+    return source(path.relative(path.resolve(__dirname, '../src'), resolved));
   };
   cache.set(filename, loaded);
   loaded._compile(

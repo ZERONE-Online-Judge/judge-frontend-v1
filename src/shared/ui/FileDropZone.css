@@ -1,0 +1,73 @@
+.file-drop-zone {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px dashed #bfc6da;
+  border-radius: 10px;
+  background: #fafbfe;
+  text-align: start;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+.file-drop-zone__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #64718b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.file-drop-zone__hint svg {
+  flex: 0 0 auto;
+}
+.file-drop-zone__hint > span {
+  display: grid;
+  gap: 2px;
+}
+.file-drop-zone__hint strong {
+  color: #47536e;
+  font-weight: 600;
+}
+.file-drop-zone input[type='file'] {
+  max-width: 100%;
+}
+.file-drop-zone__selection,
+.file-drop-zone__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.file-drop-zone__selection {
+  color: #52617d;
+}
+.file-drop-zone__error {
+  color: #b42337;
+}
+.file-drop-zone.is-disabled {
+  opacity: 0.6;
+}
+[data-file-drop-zone][data-file-drop-active='true'] {
+  outline: 2px solid #7163eb;
+  outline-offset: -2px;
+  background-color: #f0edff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-drop-zone {
+    transition: none;
+  }
+}
+
+.file-drop-zone:focus-within {
+  outline: 2px solid #7163eb;
+  outline-offset: 2px;
+}
+
+.file-drop-zone > small {
+  display: block;
+  margin-top: 8px;
+  color: #64718b;
+  line-height: 1.6;
+}

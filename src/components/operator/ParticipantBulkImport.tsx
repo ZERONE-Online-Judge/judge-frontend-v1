@@ -23,6 +23,7 @@ import ModalDialog, { ModalButton } from '@/shared/ui/ModalDialog';
 import Select from '@/shared/ui/Select';
 import { MotionNumber, ResultTransition } from '@/shared/ui/ProgressMotion';
 import CollapsibleEditor from './CollapsibleEditor';
+import { FileDropZone } from '@/shared/ui/FileDropZone';
 
 type Validation = {
   key: string;
@@ -323,6 +324,37 @@ function ParticipantBulkImportContent({
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
+  function readImportFile(file: File) {
+    if (busy || submitting.current) return;
+    readingRef.current = true;
+    setReading(true);
+    generation.current++;
+    setValidation(null);
+    const epoch = ++fileGeneration.current,
+      owner = lifecycle.current,
+      reader = new FileReader();
+    reader.onload = () => {
+      if (owner.active && epoch === fileGeneration.current) {
+        readingRef.current = false;
+        setReading(false);
+        setOpen(false);
+        setText(String(reader.result ?? ''));
+        setError('');
+        setResult(null);
+      }
+    };
+    reader.onerror = () => {
+      if (owner.active && epoch === fileGeneration.current) {
+        readingRef.current = false;
+        setReading(false);
+        setError(
+          '파일을 읽지 못했습니다. UTF-8 CSV·TSV 파일을 다시 선택하세요.',
+        );
+      }
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <>
       <CollapsibleEditor
@@ -344,45 +376,28 @@ function ParticipantBulkImportContent({
             헤더: team_name, division, leader_name, leader_email, member1_name,
             member1_email…
           </p>
-          <input
-            aria-label="참가팀 CSV·TSV 파일"
-            type="file"
+          <FileDropZone
             accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"
             disabled={busy}
-            className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              event.currentTarget.value = '';
-              if (!file) return;
-              readingRef.current = true;
-              setReading(true);
-              generation.current++;
-              setValidation(null);
-              const epoch = ++fileGeneration.current,
-                owner = lifecycle.current,
-                reader = new FileReader();
-              reader.onload = () => {
-                if (owner.active && epoch === fileGeneration.current) {
-                  readingRef.current = false;
-                  setReading(false);
-                  setOpen(false);
-                  setText(String(reader.result ?? ''));
-                  setError('');
-                  setResult(null);
-                }
-              };
-              reader.onerror = () => {
-                if (owner.active && epoch === fileGeneration.current) {
-                  readingRef.current = false;
-                  setReading(false);
-                  setError(
-                    '파일을 읽지 못했습니다. UTF-8 CSV·TSV 파일을 다시 선택하세요.',
-                  );
-                }
-              };
-              reader.readAsText(file);
+            label="참가팀 CSV·TSV 업로드"
+            onFiles={([file]) => {
+              if (file) readImportFile(file);
             }}
-          />
+          >
+            <input
+              aria-label="참가팀 CSV·TSV 파일"
+              type="file"
+              accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"
+              disabled={busy}
+              className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = '';
+                if (!file) return;
+                readImportFile(file);
+              }}
+            />
+          </FileDropZone>
           <textarea
             aria-label="참가팀 일괄 등록 내용"
             value={text}

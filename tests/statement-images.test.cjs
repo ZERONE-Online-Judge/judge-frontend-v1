@@ -316,6 +316,89 @@ async function paste(file) {
   return event;
 }
 
+async function dropImages(target, files) {
+  const event = new window.Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', {
+    value: { types: ['Files'], files, items: [] },
+  });
+  await act(async () => {
+    target.dispatchEvent(event);
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+  return event;
+}
+
+test('dropping an image keeps the captured insertion position and validates bytes before upload', async () => {
+  const uploads = [];
+  await render({
+    onUpload: async (file) => {
+      uploads.push(file);
+      return { id: 'new', source: 'asset://new', name: file.name };
+    },
+  });
+  const textarea = document.querySelector('textarea');
+  textarea.setSelectionRange(7, 7);
+  const file = new File(
+    [Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0])],
+    'figure.png',
+  );
+  const event = await dropImages(textarea, [file]);
+  assert.equal(event.defaultPrevented, true);
+  assert.deepEqual(uploads, [file]);
+  assert.equal(changes.length, 1);
+  assert.ok(changes[0].indexOf('asset://new') < changes[0].indexOf('last'));
+  await render({ value: 'first\n\nlast' });
+  await dropImages(document.querySelector('textarea'), [
+    new File(['fake'], 'broken.png'),
+  ]);
+  assert.equal(uploads.length, 1);
+  assert.match(document.body.textContent, /이미지|PNG/);
+});
+
+test('image dialog owns its nested file drop and a multi-image drop does not silently choose the first', async () => {
+  const uploads = [];
+  await render({
+    onUpload: async (file) => {
+      uploads.push(file);
+      return { id: 'new', source: 'asset://new', name: file.name };
+    },
+  });
+  await click('▧ 이미지 추가·관리');
+  const file = new File(
+    [Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0])],
+    'figure.png',
+    { type: 'image/png' },
+  );
+  await dropImages(document.querySelector('dialog [data-file-drop-zone]'), [
+    file,
+    file,
+  ]);
+  assert.equal(uploads.length, 0);
+  assert.match(document.body.textContent, /한 번에 파일 하나/);
+  await dropImages(document.querySelector('dialog [data-file-drop-zone]'), [
+    file,
+  ]);
+  assert.equal(uploads.length, 1);
+  assert.equal(changes.length, 1);
+});
+
+test('read-only image areas consume a file drop without upload or navigating away', async () => {
+  let uploads = 0;
+  await render({
+    readOnly: true,
+    onUpload: async () => {
+      uploads++;
+      throw new Error('must not upload');
+    },
+  });
+  const event = await dropImages(document.querySelector('textarea'), [
+    new File(['image'], 'figure.png'),
+  ]);
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(uploads, 0);
+  assert.equal(changes.length, 0);
+});
+
 test('tools insert at the captured textarea caret without submitting surrounding forms', async () => {
   await render();
   const textarea = document.querySelector('textarea');

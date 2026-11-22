@@ -32,6 +32,7 @@ function source(relative) {
   m.paths = Module._nodeModulePaths(path.dirname(filename));
   const native = m.require.bind(m);
   m.require = (id) => {
+    if (id.endsWith('.css')) return {};
     if (id === '@/domains/teamParticipation/api') return apiMock;
     if (id === '@/domains/identityAccess/queryIdentity')
       return {
@@ -532,6 +533,76 @@ test('pending file reads cannot preview old text and manual edits invalidate a l
     /Manual/,
   );
   assert.equal(button('일괄 등록 내용 확인').disabled, false);
+});
+
+test('dropping a participant file uses the existing read and review flow without registering', async () => {
+  const readers = [];
+  global.FileReader = class {
+    constructor() {
+      readers.push(this);
+    }
+    readAsText(file) {
+      this.file = file;
+    }
+  };
+  await render();
+  await click(button('일괄 등록 펼치기'));
+  const zone = document.querySelector('[data-file-drop-zone]');
+  const file = new window.File([csv('Dropped')], 'teams.csv', {
+    type: 'text/csv',
+  });
+  const event = new window.Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', {
+    value: { types: ['Files'], files: [file], items: [] },
+  });
+  await act(async () => zone.dispatchEvent(event));
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(readers.length, 1);
+  assert.equal(readers[0].file, file);
+  assert.equal(button('일괄 등록 내용 확인').disabled, true);
+  await act(async () => {
+    readers[0].result = csv('Dropped');
+    readers[0].onload();
+  });
+  assert.match(
+    document.querySelector('[aria-label="참가팀 일괄 등록 내용"]').value,
+    /Dropped/,
+  );
+  assert.equal(creates.length, 0);
+  assert.equal(document.querySelector('dialog'), null);
+  await click(button('일괄 등록 내용 확인'));
+  assert.ok(document.querySelector('dialog'));
+  assert.match(document.querySelector('dialog').textContent, /Dropped/);
+  assert.equal(creates.length, 0);
+});
+
+test('dropping several participant files rejects the batch and preserves the current draft', async () => {
+  let reads = 0;
+  global.FileReader = class {
+    readAsText() {
+      reads++;
+    }
+  };
+  await render();
+  await click(button('일괄 등록 펼치기'));
+  await input('참가팀 일괄 등록 내용', csv('Keep'));
+  const event = new window.Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', {
+    value: {
+      types: ['Files'],
+      items: [],
+      files: [new window.File(['a'], 'a.csv'), new window.File(['b'], 'b.csv')],
+    },
+  });
+  await act(async () =>
+    document.querySelector('[data-file-drop-zone]').dispatchEvent(event),
+  );
+  assert.equal(reads, 0);
+  assert.match(document.body.textContent, /한 번에 파일 하나/);
+  assert.match(
+    document.querySelector('[aria-label="참가팀 일괄 등록 내용"]').value,
+    /Keep/,
+  );
 });
 
 test('routine token refresh preserves edited confirmation content while revalidating with the new token', async () => {

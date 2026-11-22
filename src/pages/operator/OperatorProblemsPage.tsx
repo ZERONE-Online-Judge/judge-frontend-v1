@@ -11,6 +11,7 @@ import StorageFileContent from '@/components/operator/StorageFileContent';
 import type { TextPreview } from '@/shared/lib/largeText';
 import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
+import { FileDropZone } from '@/shared/ui/FileDropZone';
 import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
@@ -727,7 +728,6 @@ function OperatorProblemsContent({
   const [filterDivisionId, setFilterDivisionId] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isTestcaseModalOpen, setIsTestcaseModalOpen] = useState(false);
-  const [isCaseDropActive, setIsCaseDropActive] = useState(false);
   const [testcaseFilePreview, setTestcaseFilePreview] = useState<{
     storageKey: string;
     title: string;
@@ -2396,24 +2396,37 @@ function OperatorProblemsContent({
                               추가·관리를 이용해 주세요.
                             </p>
                           </div>
-                          <label className="inline-flex h-10 w-fit cursor-pointer items-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition hover:bg-indigo-800">
-                            파일 선택
-                            <input
-                              accept="application/pdf"
-                              className="sr-only"
-                              disabled={
-                                !effectiveSelectedProblemId ||
-                                uploadEditorialAssetMutation.isPending
-                              }
-                              onChange={(event) => {
-                                const file = event.currentTarget.files?.[0];
-                                if (file)
-                                  uploadEditorialAssetMutation.mutate(file);
-                                event.currentTarget.value = '';
-                              }}
-                              type="file"
-                            />
-                          </label>
+                          <FileDropZone
+                            accept=".pdf,application/pdf"
+                            disabled={
+                              !effectiveSelectedProblemId ||
+                              uploadEditorialAssetMutation.isPending
+                            }
+                            label="해설 PDF 업로드"
+                            onFiles={([file]) => {
+                              if (file)
+                                uploadEditorialAssetMutation.mutate(file);
+                            }}
+                          >
+                            <label className="inline-flex h-10 w-fit cursor-pointer items-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition hover:bg-indigo-800">
+                              파일 선택
+                              <input
+                                accept="application/pdf"
+                                className="sr-only"
+                                disabled={
+                                  !effectiveSelectedProblemId ||
+                                  uploadEditorialAssetMutation.isPending
+                                }
+                                onChange={(event) => {
+                                  const file = event.currentTarget.files?.[0];
+                                  if (file)
+                                    uploadEditorialAssetMutation.mutate(file);
+                                  event.currentTarget.value = '';
+                                }}
+                                type="file"
+                              />
+                            </label>
+                          </FileDropZone>
                           <div className="grid gap-2">
                             {editorialAssets.map((asset) => {
                               const isImage =
@@ -2734,28 +2747,43 @@ function OperatorProblemsContent({
                               >
                                 삭제
                               </button>
-                              <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800">
-                                파일 선택
-                                <input
-                                  className="sr-only"
-                                  disabled={
-                                    !effectiveSelectedProblemId ||
-                                    uploadRoleFileMutation.isPending
-                                  }
-                                  onChange={(event) => {
-                                    const fileObject =
-                                      event.currentTarget.files?.[0];
-                                    if (fileObject) {
-                                      uploadRoleFileMutation.mutate({
-                                        file: fileObject,
-                                        role: file.role,
-                                      });
+                              <FileDropZone
+                                disabled={
+                                  !effectiveSelectedProblemId ||
+                                  uploadRoleFileMutation.isPending
+                                }
+                                label={`${file.label} 업로드`}
+                                onFiles={([fileObject]) => {
+                                  if (fileObject)
+                                    uploadRoleFileMutation.mutate({
+                                      file: fileObject,
+                                      role: file.role,
+                                    });
+                                }}
+                              >
+                                <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800">
+                                  파일 선택
+                                  <input
+                                    className="sr-only"
+                                    disabled={
+                                      !effectiveSelectedProblemId ||
+                                      uploadRoleFileMutation.isPending
                                     }
-                                    event.currentTarget.value = '';
-                                  }}
-                                  type="file"
-                                />
-                              </label>
+                                    onChange={(event) => {
+                                      const fileObject =
+                                        event.currentTarget.files?.[0];
+                                      if (fileObject) {
+                                        uploadRoleFileMutation.mutate({
+                                          file: fileObject,
+                                          role: file.role,
+                                        });
+                                      }
+                                      event.currentTarget.value = '';
+                                    }}
+                                    type="file"
+                                  />
+                                </label>
+                              </FileDropZone>
                             </div>
                           </div>
                         );
@@ -2766,36 +2794,18 @@ function OperatorProblemsContent({
                     <p className="text-sm font-semibold text-indigo-800">
                       테스트케이스 파일 추가
                     </p>
-                    <div
-                      className={[
-                        'grid gap-3 rounded-lg border border-dashed px-4 py-6 text-center transition',
-                        isCaseDropActive
-                          ? 'border-indigo-400 bg-white'
-                          : 'border-indigo-200 bg-white/70',
-                      ].join(' ')}
-                      onDragLeave={() => setIsCaseDropActive(false)}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        if (uploadMatchedTestcasesMutation.isPending) return;
-                        setIsCaseDropActive(true);
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        setIsCaseDropActive(false);
-                        if (uploadMatchedTestcasesMutation.isPending) return;
-                        handleMatchedFiles(
-                          Array.from(event.dataTransfer.files),
-                        );
-                      }}
+                    <FileDropZone
+                      accept=".in,.out"
+                      multiple
+                      disabled={
+                        !effectiveSelectedProblemId ||
+                        uploadMatchedTestcasesMutation.isPending
+                      }
+                      label="테스트케이스 파일 업로드"
+                      hint="같은 이름의 입력(.in)과 출력(.out)을 함께 끌어 놓거나 파일을 선택하세요. 파일명 기준으로 짝지어 반영합니다."
+                      className="text-center"
+                      onFiles={handleMatchedFiles}
                     >
-                      <p className="text-sm font-semibold text-slate-800">
-                        테스트케이스 파일을 이 영역에 드롭
-                      </p>
-                      <p className="text-xs font-medium text-slate-500">
-                        같은 이름의 입력 파일(.in)과 출력 파일(.out)을 함께
-                        선택하거나 드롭해 주세요. 파일명 기준으로 짝지어 한 번에
-                        반영합니다.
-                      </p>
                       <label
                         className={[
                           'mx-auto inline-flex h-10 items-center rounded-lg px-4 text-xs font-semibold text-white transition',
@@ -2822,7 +2832,7 @@ function OperatorProblemsContent({
                           type="file"
                         />
                       </label>
-                    </div>
+                    </FileDropZone>
                     {uploadProgress ? (
                       <p
                         aria-live="polite"

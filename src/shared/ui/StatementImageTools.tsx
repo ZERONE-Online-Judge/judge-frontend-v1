@@ -23,6 +23,8 @@ import {
 } from '../lib/statementImages';
 import './StatementImageTools.css';
 import StatementImage from './StatementImage';
+import { FileDropZone } from './FileDropZone';
+import { useFileDrop } from '../hooks/useFileDrop';
 
 export type { StatementImageAsset } from '../lib/statementImages';
 export type StatementImageToolsProps = {
@@ -131,22 +133,31 @@ function ImageDialog({
             </p>
           )}
           {onUpload && (
-            <label
-              className={`statement-image-upload ${locked ? 'is-disabled' : ''}`}
+            <FileDropZone
+              accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+              disabled={locked}
+              label="새 이미지 업로드"
+              onFiles={([file]) => {
+                if (file) onUpload(file);
+              }}
             >
-              새 이미지 업로드
-              <input
-                aria-label="새 이미지 업로드"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                disabled={locked}
-                onChange={(e) => {
-                  const file = e.currentTarget.files?.[0];
-                  e.currentTarget.value = '';
-                  if (file) onUpload(file);
-                }}
-              />
-            </label>
+              <label
+                className={`statement-image-upload ${locked ? 'is-disabled' : ''}`}
+              >
+                새 이미지 업로드
+                <input
+                  aria-label="새 이미지 업로드"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={locked}
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    e.currentTarget.value = '';
+                    if (file) onUpload(file);
+                  }}
+                />
+              </label>
+            </FileDropZone>
           )}
           <p className="statement-image-help">
             PNG · JPEG · WEBP, 최대 16MiB. 붙여넣거나 편집 영역에 끌어 놓아도
@@ -483,9 +494,21 @@ export default function StatementImageTools(props: StatementImageToolsProps) {
       if (mounted.current) setBusy(false);
     }
   }
+  const imageDrop = useFileDrop({
+    accept: '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp',
+    disabled: readOnly || !props.onUpload || busy,
+    onReject: setNotice,
+    onFiles: async ([file], event) => {
+      if (!file) return;
+      capture(event?.target ?? null);
+      await upload(file, currentContext());
+    },
+  });
   return (
     <div
       className="statement-image-tools"
+      data-file-drop-zone
+      data-file-drop-active={imageDrop.isDragging || undefined}
       onSelectCapture={(e) => capture(e.target)}
       onFocusCapture={(e) => capture(e.target)}
       onPasteCapture={(e) => {
@@ -498,20 +521,10 @@ export default function StatementImageTools(props: StatementImageToolsProps) {
         capture(e.target);
         void upload(file, currentContext());
       }}
-      onDragOverCapture={(e) => {
-        if (
-          !readOnly &&
-          props.onUpload &&
-          e.dataTransfer.types.includes('Files')
-        )
-          e.preventDefault();
-      }}
-      onDropCapture={(e) => {
-        if (readOnly || !props.onUpload || !e.dataTransfer.files.length) return;
-        e.preventDefault();
-        capture(e.target);
-        void upload(e.dataTransfer.files[0], currentContext());
-      }}
+      onDragEnterCapture={imageDrop.dropProps.onDragEnter}
+      onDragOverCapture={imageDrop.dropProps.onDragOver}
+      onDragLeaveCapture={imageDrop.dropProps.onDragLeave}
+      onDropCapture={imageDrop.dropProps.onDrop}
     >
       {props.children}
       {!readOnly && (

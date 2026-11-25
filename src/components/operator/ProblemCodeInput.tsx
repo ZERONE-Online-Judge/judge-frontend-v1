@@ -19,7 +19,9 @@ export default function ProblemCodeInput({
 }) {
   const id = useId();
   const [composing, setComposing] = useState(false);
-  const error = value && !composing ? problemCodeError(value) : '';
+  const [attempted, setAttempted] = useState(false);
+  const error =
+    (value || attempted) && !composing ? problemCodeError(value) : '';
   return (
     <div className="grid min-w-0 content-start gap-2 text-sm font-semibold text-slate-700">
       <label htmlFor={id}>{label}</label>
@@ -38,6 +40,16 @@ export default function ProblemCodeInput({
         spellCheck={false}
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={`${id}-hint${error ? ` ${id}-error` : ''}`}
+        onInvalid={(event) => {
+          event.preventDefault();
+          setAttempted(true);
+          const input = event.currentTarget;
+          window.requestAnimationFrame(() => {
+            if (!input.isConnected) return;
+            input.focus({ preventScroll: true });
+            input.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+          });
+        }}
         onCompositionStart={() => setComposing(true)}
         onCompositionEnd={(event) => {
           setComposing(false);

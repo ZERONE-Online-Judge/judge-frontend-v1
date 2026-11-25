@@ -1999,6 +1999,7 @@ function OperatorProblemsContent({
                         </label>
                         <div className="grid gap-3 md:grid-cols-2">
                           <ProblemCodeInput
+                            key={form.problemId || 'new'}
                             label="문제 번호"
                             onChange={(value) =>
                               setForm((prev) => ({

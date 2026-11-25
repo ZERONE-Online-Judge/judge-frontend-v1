@@ -1,3 +1,4 @@
+import { normalizeProblemCode, problemCodeError } from './problemCode';
 import { apiBlobRequest, apiRequest } from '@/shared/api/client';
 import type { Problem } from './types';
 
@@ -36,9 +37,11 @@ export function importProblemArchive(
   divisionId: string,
   problemCode: string,
 ) {
+  const error = problemCodeError(problemCode);
+  if (error) throw new Error(error);
   const query = new URLSearchParams({
     division_id: divisionId,
-    problem_code: problemCode.trim(),
+    problem_code: normalizeProblemCode(problemCode),
   });
   return apiRequest<Problem>(
     `/operator/contests/${contestId}/problem-archives:import?${query}`,

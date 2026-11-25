@@ -1,3 +1,8 @@
+import ProblemCodeInput from './ProblemCodeInput';
+import {
+  normalizeProblemCode,
+  problemCodeError,
+} from '@/domains/problemManagement/problemCode';
 import Select from '@/shared/ui/Select';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -47,7 +52,8 @@ export default function ProblemArchivePanel({
   const inspect = useMutation({
     mutationFn: (selected: File) =>
       inspectProblemArchive(contestId, token, selected),
-    onSuccess: (preview) => setProblemCode(preview.problem.problem_code),
+    onSuccess: (preview) =>
+      setProblemCode(normalizeProblemCode(preview.problem.problem_code)),
   });
   const importing = useMutation({
     mutationFn: () =>
@@ -67,8 +73,10 @@ export default function ProblemArchivePanel({
   const duplicate = problems.some(
     (problem) =>
       problem.division_id === divisionId &&
-      problem.problem_code === problemCode.trim(),
+      normalizeProblemCode(problem.problem_code) ===
+        normalizeProblemCode(problemCode),
   );
+  const codeError = problemCodeError(problemCode);
   const error =
     fileError ||
     (inspect.error
@@ -172,7 +180,7 @@ export default function ProblemArchivePanel({
                   !preview ||
                   !file ||
                   !divisionId ||
-                  !problemCode.trim() ||
+                  Boolean(codeError) ||
                   duplicate
                 }
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
@@ -301,19 +309,15 @@ export default function ProblemArchivePanel({
                       ))}
                     </Select>
                   </label>
-                  <label className="grid gap-2 text-sm font-semibold text-slate-800">
-                    등록할 문제 번호
-                    <input
-                      disabled={busy}
-                      maxLength={16}
-                      value={problemCode}
-                      onChange={(event) => {
-                        setProblemCode(event.target.value);
-                        importing.reset();
-                      }}
-                      className="h-11 min-w-0 rounded-lg border border-slate-300 px-3 text-sm"
-                    />
-                  </label>
+                  <ProblemCodeInput
+                    label="등록할 문제 번호"
+                    disabled={busy}
+                    value={problemCode}
+                    onChange={(value) => {
+                      setProblemCode(value);
+                      importing.reset();
+                    }}
+                  />
                 </div>
                 {duplicate ? (
                   <p role="alert" className="text-sm text-rose-700">

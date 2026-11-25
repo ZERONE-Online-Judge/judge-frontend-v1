@@ -1,3 +1,9 @@
+import ProblemCodeInput from '@/components/operator/ProblemCodeInput';
+import {
+  normalizeProblemCode,
+  problemCodeError,
+  uniqueProblemCode,
+} from '@/domains/problemManagement/problemCode';
 import SubtaskSettingsPanel from '@/components/operator/SubtaskSettingsPanel';
 import SubmissionScoreDetails from '@/components/contest/submissions/SubmissionScoreDetails';
 import { sortProblemsByCode } from '@/domains/problemManagement/problemCodeOrder';
@@ -589,6 +595,9 @@ function validateProblemForm(form: ProblemForm) {
     return '유형, 문제 번호, 제목은 반드시 입력해야 합니다.';
   }
 
+  const codeError = problemCodeError(form.problemCode);
+  if (codeError) return codeError;
+
   const languageLimitError = judgeLanguages
     .map((language) => {
       const limit = form.languageResourceLimits[language];
@@ -606,18 +615,6 @@ function validateProblemForm(form: ProblemForm) {
     positiveInteger(form.memoryLimitMb, '메모리 제한') ||
     languageLimitError
   );
-}
-
-function uniqueProblemCode(baseCode: string, existingCodes: Set<string>) {
-  if (!existingCodes.has(baseCode)) return baseCode;
-
-  let index = 1;
-  let candidate = `${baseCode}-copy`;
-  while (existingCodes.has(candidate)) {
-    index += 1;
-    candidate = `${baseCode}-copy${index}`;
-  }
-  return candidate;
 }
 
 function problemsInDivision(problems: Problem[], divisionId: string) {
@@ -1012,7 +1009,7 @@ function OperatorProblemsContent({
         language_resource_limits: languageResourceLimitsFromForm(problemForm),
         allowed_languages: problemForm.allowedLanguages,
         memory_limit_mb: Number(problemForm.memoryLimitMb),
-        problem_code: problemForm.problemCode.trim(),
+        problem_code: normalizeProblemCode(problemForm.problemCode),
         statement: problemStatementFromForm(problemForm),
         time_limit_ms: Number(problemForm.timeLimitMs),
         title: problemForm.title.trim(),
@@ -2001,7 +1998,7 @@ function OperatorProblemsContent({
                           </Select>
                         </label>
                         <div className="grid gap-3 md:grid-cols-2">
-                          <TextInput
+                          <ProblemCodeInput
                             label="문제 번호"
                             onChange={(value) =>
                               setForm((prev) => ({

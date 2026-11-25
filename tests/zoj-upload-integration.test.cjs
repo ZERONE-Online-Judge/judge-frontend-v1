@@ -135,13 +135,13 @@ async function drop(target, files) {
   });
   return event;
 }
-async function archive() {
+async function archive(problems = []) {
   await render(
     h(Archive, {
       contestId: 'contest',
       token: 'token',
       divisions: [{ division_id: 'division', name: '일반' }],
-      problems: [],
+      problems,
       activeDivisionId: 'division',
       disabled: false,
       onCreate() {},
@@ -175,6 +175,68 @@ test('archive drop rejects an oversized file before any upload', async () => {
   await drop(zone, [file]);
   assert.equal(inspections.length, 0);
   assert.match(host.textContent, /512 MiB 이하/);
+});
+async function enterCode(value) {
+  const input = host.querySelector('input[pattern]');
+  Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  ).set.call(input, value);
+  await act(() =>
+    input.dispatchEvent(new window.Event('input', { bubbles: true })),
+  );
+  return input;
+}
+function archivePreview(code) {
+  return {
+    problem: {
+      problem_code: code,
+      title: '기존 문제',
+      time_limit_ms: 1000,
+      memory_limit_mb: 256,
+    },
+    example_count: 0,
+    asset_count: 0,
+    testcase_count: 0,
+    total_bytes: 0,
+    testcase_sets: [],
+    assets: [],
+  };
+}
+test('legacy ZIP numbers must be corrected; new input uppercases letters and blocks invalid registration', async () => {
+  inspectResponder = async () => archivePreview('한글-번호');
+  const zone = await archive();
+  await drop(zone, [new window.File(['zip'], 'problem.zoj.zip')]);
+  const register = () =>
+    [...host.querySelectorAll('button')].find(
+      (button) => button.textContent === '새 문제로 등록',
+    );
+  assert.equal(register().disabled, true);
+  assert.match(host.textContent, /영문·숫자만/);
+  for (const value of ['A-1', 'ß', 'A'.repeat(17)]) {
+    const input = await enterCode(value);
+    assert.equal(input.getAttribute('aria-invalid'), 'true');
+    assert.equal(register().disabled, true);
+  }
+  const input = await enterCode('b12');
+  assert.equal(input.value, 'B12');
+  assert.equal(input.getAttribute('maxlength'), '16');
+  assert.equal(register().disabled, false);
+  await act(() => register().click());
+  assert.equal(imports.length, 1);
+  assert.equal(imports[0][4], 'B12');
+});
+test('ZIP numbers collide case-insensitively after uppercase normalization', async () => {
+  inspectResponder = async () => archivePreview('a1');
+  const zone = await archive([{ division_id: 'division', problem_code: 'a1' }]);
+  await drop(zone, [new window.File(['zip'], 'problem.zoj.zip')]);
+  assert.equal(host.querySelector('input[pattern]').value, 'A1');
+  const register = [...host.querySelectorAll('button')].find(
+    (button) => button.textContent === '새 문제로 등록',
+  );
+  assert.equal(register.disabled, true);
+  assert.match(host.textContent, /같은 문제 번호/);
+  assert.equal(imports.length, 0);
 });
 test('verification drops preserve the selected expected verdict and multiple files', async () => {
   const uploads = [];

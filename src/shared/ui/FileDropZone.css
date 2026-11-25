@@ -19,6 +19,25 @@
   font-weight: 500;
   line-height: 1.5;
 }
+.file-drop-zone--inline {
+  position: relative;
+  border-style: solid;
+  background: #fff;
+}
+.file-drop-zone__drop-prompt {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border-radius: inherit;
+  background: #f0edfff5;
+  color: #5040c5;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+}
 .file-drop-zone__hint svg {
   flex: 0 0 auto;
 }

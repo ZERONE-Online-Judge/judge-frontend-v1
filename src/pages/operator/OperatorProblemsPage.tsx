@@ -12,6 +12,8 @@ import type { TextPreview } from '@/shared/lib/largeText';
 import BoundedText from '@/shared/ui/BoundedText';
 import Select from '@/shared/ui/Select';
 import { FileDropZone } from '@/shared/ui/FileDropZone';
+import InterfaceIcon from '@/components/common/InterfaceIcon';
+import '@/components/operator/JudgeSupportFiles.css';
 import useNavigationViewport from '@/shared/hooks/useNavigationViewport';
 import LanguageResourceLimitsEditor from '@/components/operator/LanguageResourceLimitsEditor';
 import SettingsSaveBar from '@/components/operator/SettingsSaveBar';
@@ -2667,125 +2669,157 @@ function OperatorProblemsContent({
                         ))}
                       </ul>
                     ) : null}
-                    <div className="grid gap-2">
+                    <div className="judge-support-files">
+                      <div className="judge-support-files__heading">
+                        <h3>채점 프로그램</h3>
+                        <p>파일을 각 항목에 끌어 놓아 업로드할 수 있습니다.</p>
+                      </div>
                       {supportFileRows.map((file) => {
                         const asset = supportAssetByRole.get(file.role);
+                        const filename =
+                          asset?.original_filename ?? file.latest_filename;
+                        const isUploading =
+                          uploadRoleFileMutation.isPending &&
+                          uploadRoleFileMutation.variables?.role === file.role;
+                        const uploadDisabled =
+                          !effectiveSelectedProblemId ||
+                          uploadRoleFileMutation.isPending ||
+                          deleteAssetMutation.isPending;
+                        const previewFile = () => {
+                          if (asset)
+                            setSupportFilePreview({
+                              storageKey: asset.storage_key,
+                              title: `${file.label} · ${asset.original_filename}`,
+                            });
+                        };
 
                         return (
-                          <div
-                            className="grid gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs font-semibold text-slate-600 sm:grid-cols-[minmax(0,1fr)_auto]"
+                          <FileDropZone
                             key={file.role}
+                            className="judge-support-file"
+                            variant="inline"
+                            showSelection={false}
+                            disabled={uploadDisabled}
+                            label={`${file.label} 업로드`}
+                            onFiles={async ([fileObject]) => {
+                              if (!fileObject) return;
+                              try {
+                                await uploadRoleFileMutation.mutateAsync({
+                                  file: fileObject,
+                                  role: file.role,
+                                });
+                              } catch {
+                                // The shared ErrorBox below reports API failures.
+                              }
+                            }}
                           >
-                            <span className="grid min-w-0 gap-1">
-                              <span>
-                                {file.label}
-                                {file.required ? ' *' : ''}
-                              </span>
-                              {file.detail ? (
-                                <span className="text-[11px] font-medium text-slate-400">
-                                  {file.detail}
+                            <div className="judge-support-file__content">
+                              <div className="judge-support-file__identity">
+                                <span className="judge-support-file__icon">
+                                  <InterfaceIcon name="code" size={19} />
                                 </span>
-                              ) : null}
-                              <button
-                                className={[
-                                  'w-fit max-w-full truncate text-left font-semibold',
-                                  asset
-                                    ? 'text-indigo-700 hover:text-indigo-950'
-                                    : file.status === 'ready'
-                                      ? 'text-emerald-700'
-                                      : 'text-amber-700',
-                                ].join(' ')}
-                                disabled={!asset}
-                                onClick={() =>
-                                  asset
-                                    ? setSupportFilePreview({
-                                        storageKey: asset.storage_key,
-                                        title: `${file.label} · ${asset.original_filename}`,
-                                      })
-                                    : undefined
-                                }
-                                title={asset?.original_filename ?? undefined}
-                                type="button"
-                              >
-                                {asset?.original_filename ??
-                                  file.latest_filename ??
-                                  '파일 없음'}
-                              </button>
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                className="h-9 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:border-slate-200 disabled:text-slate-300"
-                                disabled={!asset}
-                                onClick={() =>
-                                  asset
-                                    ? setSupportFilePreview({
-                                        storageKey: asset.storage_key,
-                                        title: `${file.label} · ${asset.original_filename}`,
-                                      })
-                                    : undefined
-                                }
-                                type="button"
-                              >
-                                보기
-                              </button>
-                              <button
-                                className="h-9 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:border-slate-200 disabled:text-slate-300"
-                                disabled={
-                                  !asset || deleteAssetMutation.isPending
-                                }
-                                onClick={async () => {
-                                  if (
-                                    asset &&
-                                    (await confirmAction(
-                                      `${asset.original_filename} 파일을 삭제할까요?`,
-                                    ))
-                                  ) {
-                                    deleteAssetMutation.mutate(asset);
-                                  }
-                                }}
-                                type="button"
-                              >
-                                삭제
-                              </button>
-                              <FileDropZone
-                                disabled={
-                                  !effectiveSelectedProblemId ||
-                                  uploadRoleFileMutation.isPending
-                                }
-                                label={`${file.label} 업로드`}
-                                onFiles={([fileObject]) => {
-                                  if (fileObject)
-                                    uploadRoleFileMutation.mutate({
-                                      file: fileObject,
-                                      role: file.role,
-                                    });
-                                }}
-                              >
-                                <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800">
-                                  파일 선택
+                                <div className="judge-support-file__description">
+                                  <div className="judge-support-file__title">
+                                    <span>{file.label}</span>
+                                    {file.required ? (
+                                      <span className="judge-support-file__required">
+                                        필수
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {file.detail ? <p>{file.detail}</p> : null}
+                                </div>
+                              </div>
+                              <div className="judge-support-file__current">
+                                <span
+                                  className={`judge-support-file__status ${filename ? 'is-ready' : file.required ? 'is-missing' : ''}`}
+                                >
+                                  {filename ? (
+                                    <InterfaceIcon name="check" size={13} />
+                                  ) : null}
+                                  {filename
+                                    ? '등록됨'
+                                    : file.required
+                                      ? '등록 필요'
+                                      : '선택 사항'}
+                                </span>
+                                {filename ? (
+                                  <button
+                                    className="judge-support-file__filename"
+                                    disabled={!asset || uploadDisabled}
+                                    onClick={previewFile}
+                                    title={filename}
+                                    type="button"
+                                  >
+                                    {filename}
+                                  </button>
+                                ) : (
+                                  <span className="judge-support-file__empty">
+                                    등록된 파일 없음
+                                  </span>
+                                )}
+                              </div>
+                              <div className="judge-support-file__actions">
+                                <button
+                                  className="judge-support-file__button"
+                                  disabled={!asset || uploadDisabled}
+                                  onClick={previewFile}
+                                  aria-label={`${file.label} 보기`}
+                                  type="button"
+                                >
+                                  보기
+                                </button>
+                                <label
+                                  className={`judge-support-file__button judge-support-file__upload ${uploadDisabled ? 'is-disabled' : ''}`}
+                                >
+                                  <InterfaceIcon name="arrowUp" size={15} />
+                                  {isUploading
+                                    ? '업로드 중…'
+                                    : filename
+                                      ? '파일 교체'
+                                      : '파일 업로드'}
                                   <input
+                                    aria-label={`${file.label} ${filename ? '파일 교체' : '파일 업로드'}`}
                                     className="sr-only"
-                                    disabled={
-                                      !effectiveSelectedProblemId ||
-                                      uploadRoleFileMutation.isPending
-                                    }
+                                    disabled={uploadDisabled}
                                     onChange={(event) => {
                                       const fileObject =
                                         event.currentTarget.files?.[0];
-                                      if (fileObject) {
+                                      if (fileObject)
                                         uploadRoleFileMutation.mutate({
                                           file: fileObject,
                                           role: file.role,
                                         });
-                                      }
                                       event.currentTarget.value = '';
                                     }}
                                     type="file"
                                   />
                                 </label>
-                              </FileDropZone>
+                                <button
+                                  className="judge-support-file__button judge-support-file__delete"
+                                  disabled={
+                                    !asset ||
+                                    deleteAssetMutation.isPending ||
+                                    uploadRoleFileMutation.isPending
+                                  }
+                                  aria-label={`${file.label} 삭제`}
+                                  onClick={async () => {
+                                    if (
+                                      asset &&
+                                      (await confirmAction(
+                                        `${asset.original_filename} 파일을 삭제할까요?`,
+                                      ))
+                                    ) {
+                                      deleteAssetMutation.mutate(asset);
+                                    }
+                                  }}
+                                  type="button"
+                                >
+                                  삭제
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          </FileDropZone>
                         );
                       })}
                     </div>

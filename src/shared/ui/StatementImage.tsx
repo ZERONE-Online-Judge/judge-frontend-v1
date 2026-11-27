@@ -74,7 +74,7 @@ function ImageLoad({ src, alt = '', className, style, compact }: Props) {
           style={{
             ...style,
             display: style?.display ? 'flex' : undefined,
-            width: style?.width || (compact ? '100%' : 'min(100%, 32rem)'),
+            width: style?.width || '100%',
             minHeight: style?.height ? 0 : undefined,
           }}
           role="status"

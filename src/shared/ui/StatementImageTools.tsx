@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { FileDropZone } from './FileDropZone';
+import { useFileDrop } from '../hooks/useFileDrop';
 import {
   imageEditContextMatches,
   insertStatementImage,
@@ -15,16 +17,16 @@ import {
   parseStatementImages,
   replaceStatementImage,
   statementImageMarkup,
+  statementImagePreviewSource,
   statementImageTextEditable,
   validateStatementImageUpload,
   type ImageAlignment,
   type StatementImageAsset,
   type StatementImageOccurrence,
 } from '../lib/statementImages';
-import './StatementImageTools.css';
 import StatementImage from './StatementImage';
-import { FileDropZone } from './FileDropZone';
-import { useFileDrop } from '../hooks/useFileDrop';
+import { statementImageStyle, statementUrl } from '../lib/statementHtml';
+import './StatementImageTools.css';
 
 export type { StatementImageAsset } from '../lib/statementImages';
 export type StatementImageToolsProps = {
@@ -78,10 +80,39 @@ function ImageDialog({
   const [assetId, setAssetId] = useState(assets[0]?.id ?? '');
   const [alt, setAlt] = useState(assets[0]?.name ?? '');
   const [align, setAlign] = useState<ImageAlignment>('center');
-  const [width, setWidth] = useState('');
+  const [sizeMode, setSizeMode] = useState('');
+  const [sizeValue, setSizeValue] = useState('70');
+  const [sizeUnit, setSizeUnit] = useState<'%' | 'px'>('%');
+  const [sizeTouched, setSizeTouched] = useState(false);
+  const width =
+    sizeMode === 'custom'
+      ? `${sizeValue}${sizeUnit}`
+      : sizeMode === 'legacy'
+        ? ''
+        : sizeMode;
+  const sizeNumber = Number(sizeValue);
+  const sizeError =
+    sizeMode === 'custom' &&
+    (!/^\d+(?:\.\d+)?$/.test(sizeValue) ||
+      !Number.isFinite(sizeNumber) ||
+      sizeNumber < 1 ||
+      sizeNumber > (sizeUnit === '%' ? 100 : 4096))
+      ? `너비는 1~${sizeUnit === '%' ? '100%' : '4096px'}로 입력해 주세요.`
+      : '';
+  const legacy = selected && !sizeTouched ? selected.legacy : undefined;
+  const layoutProperties = {
+    ...legacy,
+    'data-zoj-align': align,
+    'data-zoj-width': sizeError ? undefined : width,
+  };
   const asset = assets.find((item) => item.id === assetId);
   const source = selected?.source ?? asset?.source ?? '';
+  const previewSource = statementUrl(
+    statementImagePreviewSource(source, assets),
+    'src',
+  );
   const locked = busy || !valid;
+  const layoutLocked = locked || !source || selected?.layoutEditable === false;
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -98,9 +129,20 @@ function ImageDialog({
     setSelected(image);
     setAlt(image.alt);
     setAlign(image.align ?? 'center');
-    setWidth(image.width ?? '');
+    const match = /^(\d+(?:\.\d+)?)(%|px)$/.exec(image.width ?? '');
+    setSizeMode(
+      Object.keys(image.legacy ?? {}).length
+        ? 'legacy'
+        : image.width
+          ? ['25%', '50%', '70%', '100%'].includes(image.width)
+            ? image.width
+            : 'custom'
+          : '',
+    );
+    setSizeValue(match?.[1] ?? '70');
+    setSizeUnit(match?.[2] === 'px' ? 'px' : '%');
+    setSizeTouched(false);
   }
-  const tex = selected?.kind === 'tex';
   return createPortal(
     <dialog
       ref={ref}
@@ -134,12 +176,11 @@ function ImageDialog({
           )}
           {onUpload && (
             <FileDropZone
-              accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
               disabled={locked}
-              label="새 이미지 업로드"
-              onFiles={([file]) => {
-                if (file) onUpload(file);
-              }}
+              onFiles={(files) => onUpload(files[0])}
+              label="이미지를 끌어 놓으세요"
+              hint="PNG · JPEG · WEBP 이미지 한 개를 추가합니다."
             >
               <label
                 className={`statement-image-upload ${locked ? 'is-disabled' : ''}`}
@@ -181,7 +222,8 @@ function ImageDialog({
                       setAssetId(item.id);
                       setAlt(item.name);
                       setAlign('center');
-                      setWidth('');
+                      setSizeMode('');
+                      setSizeTouched(false);
                     }}
                   >
                     <span className="statement-image-thumbnail">
@@ -189,7 +231,7 @@ function ImageDialog({
                         renderThumbnail(item)
                       ) : item.previewUrl ? (
                         <StatementImage
-                          src={item.previewUrl}
+                          src={item.previewUrl || ''}
                           alt={item.name}
                           compact
                         />
@@ -224,11 +266,7 @@ function ImageDialog({
                   >
                     <span>{index + 1}</span>
                     <span>{image.alt || image.source}</span>
-                    <small>
-                      {image.kind === 'tex'
-                        ? 'TeX'
-                        : image.width || '원본 크기'}
-                    </small>
+                    <small>{image.width || '자동 크기'}</small>
                   </button>
                 ))}
               </div>
@@ -236,56 +274,137 @@ function ImageDialog({
           )}
           <section className="statement-image-section">
             <h3>{selected ? '선택한 이미지 수정' : '이미지 삽입'}</h3>
-            {tex ? (
-              <p className="statement-image-help">
-                TeX 원문을 보존합니다. 문단 사이로 이동하거나 본문에서 제거할 수
-                있습니다.
+            {selected?.layoutEditable === false && (
+              <p className="statement-image-warning" role="status">
+                회전·자르기 등 별도 TeX 설정이 있는 이미지입니다. 정렬과 크기는
+                원문에서 수정해 주세요. 문단 이동과 제거는 할 수 있습니다.
               </p>
-            ) : (
-              <>
+            )}
+            <label>
+              이미지 설명
+              <input
+                value={alt}
+                disabled={layoutLocked}
+                onChange={(e) => setAlt(e.target.value)}
+                placeholder="그림을 설명해 주세요"
+              />
+            </label>
+            <div className="statement-image-options">
+              <div className="statement-image-alignment">
+                <span>정렬</span>
+                <div
+                  className="statement-image-align"
+                  role="group"
+                  aria-label="이미지 정렬"
+                >
+                  {(
+                    [
+                      ['left', '왼쪽'],
+                      ['center', '가운데'],
+                      ['right', '오른쪽'],
+                    ] as const
+                  ).map(([value, text]) => (
+                    <button
+                      type="button"
+                      key={value}
+                      aria-pressed={align === value}
+                      disabled={layoutLocked}
+                      onClick={() => setAlign(value)}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label>
+                너비
+                <select
+                  aria-label="이미지 너비"
+                  value={sizeMode}
+                  disabled={layoutLocked}
+                  onChange={(e) => {
+                    setSizeMode(e.target.value);
+                    setSizeTouched(true);
+                  }}
+                >
+                  <option value="">자동 · 화면에 맞게</option>
+                  {['25%', '50%', '70%', '100%'].map((size) => (
+                    <option key={size}>{size}</option>
+                  ))}
+                  <option value="custom">직접 입력</option>
+                  {sizeMode === 'legacy' && (
+                    <option value="legacy">기존 크기 유지</option>
+                  )}
+                </select>
+              </label>
+            </div>
+            {sizeMode === 'custom' && (
+              <div className="statement-image-custom-size">
                 <label>
-                  이미지 설명
+                  너비 값
                   <input
-                    value={alt}
-                    disabled={locked || !source}
-                    onChange={(e) => setAlt(e.target.value)}
-                    placeholder="그림을 설명해 주세요"
+                    type="number"
+                    inputMode="decimal"
+                    min="1"
+                    max={sizeUnit === '%' ? 100 : 4096}
+                    step="any"
+                    aria-label="이미지 너비 값"
+                    aria-invalid={Boolean(sizeError)}
+                    aria-describedby={
+                      sizeError ? `${title}-size-error` : undefined
+                    }
+                    value={sizeValue}
+                    disabled={layoutLocked}
+                    onChange={(e) => {
+                      setSizeValue(e.target.value);
+                      setSizeTouched(true);
+                    }}
                   />
                 </label>
-                <div className="statement-image-options">
-                  <label>
-                    정렬
-                    <select
-                      value={align}
-                      disabled={locked || !source}
-                      onChange={(e) =>
-                        setAlign(e.target.value as ImageAlignment)
-                      }
-                    >
-                      <option value="left">왼쪽</option>
-                      <option value="center">가운데</option>
-                      <option value="right">오른쪽</option>
-                    </select>
-                  </label>
-                  <label>
-                    너비
-                    <select
-                      value={width}
-                      disabled={locked || !source}
-                      onChange={(e) => setWidth(e.target.value)}
-                    >
-                      <option value="">원본 크기</option>
-                      {['25%', '50%', '75%', '100%'].map((size) => (
-                        <option key={size}>{size}</option>
-                      ))}
-                      {width &&
-                        !['25%', '50%', '75%', '100%'].includes(width) && (
-                          <option value={width}>{width}</option>
-                        )}
-                    </select>
-                  </label>
+                <label>
+                  단위
+                  <select
+                    aria-label="이미지 너비 단위"
+                    value={sizeUnit}
+                    disabled={layoutLocked}
+                    onChange={(e) => {
+                      setSizeUnit(e.target.value as '%' | 'px');
+                      setSizeTouched(true);
+                    }}
+                  >
+                    <option value="%">%</option>
+                    <option value="px">px</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {sizeError && (
+              <p
+                className="statement-image-size-error"
+                role="alert"
+                id={`${title}-size-error`}
+              >
+                {sizeError}
+              </p>
+            )}
+            <p className="statement-image-help">
+              자동 크기는 본문 폭에 맞춰 최대 70~100%로 표시하며 작은 원본은
+              확대하지 않습니다. 너비를 지정하면 원본 비율을 유지합니다.
+            </p>
+            {previewSource && !sizeError && (
+              <div
+                className="statement-image-layout-preview"
+                aria-label="이미지 배치 미리보기"
+              >
+                <span>배치 미리보기</span>
+                <div>
+                  <StatementImage
+                    src={previewSource}
+                    alt={alt}
+                    style={statementImageStyle(layoutProperties)}
+                  />
                 </div>
-              </>
+              </div>
             )}
             {selected && (
               <div className="statement-image-moves">
@@ -349,30 +468,29 @@ function ImageDialog({
           <button type="button" onClick={onClose}>
             닫기
           </button>
-          {!tex && (
-            <button
-              type="button"
-              className="statement-image-primary"
-              disabled={locked || !source}
-              onClick={() => {
-                const markup = statementImageMarkup(
-                  { source, alt, align, width },
-                  selected?.legacy,
-                );
-                onApply(
-                  selected
-                    ? replaceStatementImage(context.value, selected, markup)
-                    : insertStatementImage(
-                        context.value,
-                        context.position,
-                        markup,
-                      ),
-                );
-              }}
-            >
-              {selected ? '변경 적용' : '커서 위치에 삽입'}
-            </button>
-          )}
+          <button
+            type="button"
+            className="statement-image-primary"
+            disabled={layoutLocked || Boolean(sizeError)}
+            onClick={() => {
+              if (sizeError) return;
+              const markup = statementImageMarkup(
+                { source, alt, align, width },
+                legacy,
+              );
+              onApply(
+                selected
+                  ? replaceStatementImage(context.value, selected, markup)
+                  : insertStatementImage(
+                      context.value,
+                      context.position,
+                      markup,
+                    ),
+              );
+            }}
+          >
+            {selected ? '변경 적용' : '커서 위치에 삽입'}
+          </button>
         </footer>
       </section>
     </dialog>,
@@ -494,21 +612,20 @@ export default function StatementImageTools(props: StatementImageToolsProps) {
       if (mounted.current) setBusy(false);
     }
   }
-  const imageDrop = useFileDrop({
-    accept: '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp',
+  const fileDrop = useFileDrop({
+    accept: 'image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp',
     disabled: readOnly || !props.onUpload || busy,
-    onReject: setNotice,
-    onFiles: async ([file], event) => {
-      if (!file) return;
+    onFiles: async (files, event) => {
       capture(event?.target ?? null);
-      await upload(file, currentContext());
+      await upload(files[0], currentContext());
     },
+    onReject: setNotice,
   });
   return (
     <div
       className="statement-image-tools"
-      data-file-drop-zone
-      data-file-drop-active={imageDrop.isDragging || undefined}
+      data-file-drop-zone=""
+      data-file-drop-active={fileDrop.isDragging || undefined}
       onSelectCapture={(e) => capture(e.target)}
       onFocusCapture={(e) => capture(e.target)}
       onPasteCapture={(e) => {
@@ -521,10 +638,10 @@ export default function StatementImageTools(props: StatementImageToolsProps) {
         capture(e.target);
         void upload(file, currentContext());
       }}
-      onDragEnterCapture={imageDrop.dropProps.onDragEnter}
-      onDragOverCapture={imageDrop.dropProps.onDragOver}
-      onDragLeaveCapture={imageDrop.dropProps.onDragLeave}
-      onDropCapture={imageDrop.dropProps.onDrop}
+      onDragEnterCapture={fileDrop.dropProps.onDragEnter}
+      onDragOverCapture={fileDrop.dropProps.onDragOver}
+      onDragLeaveCapture={fileDrop.dropProps.onDragLeave}
+      onDropCapture={fileDrop.dropProps.onDrop}
     >
       {props.children}
       {!readOnly && (
@@ -540,7 +657,7 @@ export default function StatementImageTools(props: StatementImageToolsProps) {
           >
             <span aria-hidden="true">▧</span> 이미지 추가·관리
           </button>
-          <span>커서 위치에 삽입 · 정렬과 크기 조절</span>
+          <span>이미지를 끌어 놓거나 붙여넣기 · 정렬과 크기 조절</span>
         </div>
       )}
       {notice && (

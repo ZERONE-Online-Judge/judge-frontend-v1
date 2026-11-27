@@ -349,3 +349,37 @@ test('image management uses the same compact loading and failure states without 
   assert.match(thumbnail.textContent, /이미지를 불러오지 못했습니다/);
   assert.equal(thumbnail.closest('button').disabled, false);
 });
+
+test('automatic statement image bounds cover loading and size or alignment edits keep the decoded image', async () => {
+  const Preview = await component('MarkdownPreview');
+  const source = 'https://authorized.test/adaptive.png';
+  async function render(layout = '') {
+    await act(() =>
+      root.render(
+        React.createElement(Preview, {
+          statement: `<img src="${source}" alt="크기 조절" ${layout}>`,
+        }),
+      ),
+    );
+  }
+  await render();
+  const image = host.querySelector('img');
+  const placeholder = host.querySelector('[role=status]');
+  assert.equal(image.style.maxWidth, 'clamp(70%, calc(40% + 288px), 100%)');
+  assert.equal(placeholder.style.maxWidth, image.style.maxWidth);
+  let decodes = 0;
+  loaded(image, async () => {
+    decodes++;
+  });
+  await event(image, 'load');
+  await render('data-zoj-width="43%" data-zoj-align="right"');
+  assert.equal(host.querySelector('img'), image);
+  assert.equal(status().dataset.statementImageState, 'ready');
+  assert.equal(image.style.width, '43%');
+  assert.equal(image.style.maxWidth, '100%');
+  assert.equal(image.style.height, 'auto');
+  assert.equal(image.style.marginLeft, 'auto');
+  assert.equal(image.style.marginRight, '0px');
+  assert.equal(decodes, 1);
+  assert.equal(host.querySelector('[role=status]'), null);
+});

@@ -169,6 +169,59 @@ body:has(> .statement-image-dialog[open]) {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+.statement-image-alignment {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 7px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+}
+.statement-image-align {
+  display: flex;
+  gap: 5px;
+}
+.statement-image-align > button {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 6px;
+}
+.statement-image-custom-size {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 0.35fr);
+  gap: 12px;
+}
+.statement-image-size-error {
+  margin: 0;
+  font-size: 12px;
+  color: #be123c;
+}
+.statement-image-section input[aria-invalid='true'] {
+  border-color: #fda4af;
+}
+.statement-image-layout-preview {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #e5e7ef;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 11px;
+  color: #64748b;
+}
+.statement-image-layout-preview > div {
+  min-width: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fff;
+}
+.statement-image-layout-preview img {
+  height: auto;
+}
 .statement-image-upload {
   display: inline-flex;
   position: relative;
@@ -354,6 +407,9 @@ body:has(> .statement-image-dialog[open]) {
   .statement-image-dialog input,
   .statement-image-dialog select {
     font-size: 16px;
+  }
+  .statement-image-options {
+    grid-template-columns: 1fr;
   }
   .statement-image-dialog footer p {
     flex-basis: 100%;

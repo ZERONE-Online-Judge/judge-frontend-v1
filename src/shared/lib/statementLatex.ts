@@ -341,11 +341,12 @@ export function statementToMarkdown(value: string): string {
     return null;
   }
   const dimension = (value: string) => {
-    const fraction = /^([\d.]+)\\(?:textwidth|linewidth|columnwidth)$/.exec(
-      value.trim(),
-    );
+    const fraction =
+      /^((?:\d+(?:\.\d*)?|\.\d+)?)\\(?:textwidth|linewidth|columnwidth)$/.exec(
+        value.trim(),
+      );
     if (fraction)
-      return `${Math.min(100, Math.max(1, Number(fraction[1]) * 100))}%`;
+      return `${Math.min(100, Math.max(1, Number(fraction[1] || 1) * 100))}%`;
     const unit = /^([\d.]+)\s*(cm|mm|pt|px)$/.exec(value.trim());
     if (!unit || !Number.isFinite(Number(unit[1]))) return '';
     const factor =

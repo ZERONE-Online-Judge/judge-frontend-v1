@@ -2,7 +2,11 @@ import { defaultSchema } from 'rehype-sanitize';
 import type { Options } from 'rehype-sanitize';
 import { defaultUrlTransform } from 'react-markdown';
 import type { CSSProperties } from 'react';
-import { imageAlignment, normalizeImageWidth } from './statementImages';
+import {
+  imageAlignment,
+  normalizeImageWidth,
+  normalizeNativeImageDimension,
+} from './statementImages';
 
 export const statementSchema: Options = {
   ...defaultSchema,
@@ -91,15 +95,25 @@ export function statementImageStyle(
       ? `${Math.min(match[2] === '%' ? 100 : 4096, Math.max(1, Number(match[1])))}${match[2]}`
       : undefined;
   };
-  const raw = Number(properties['data-tex-scale']);
+  const width = normalizeImageWidth(properties['data-zoj-width']);
+  const raw = width ? 1 : Number(properties['data-tex-scale']);
   const scale =
     Number.isFinite(raw) && raw > 0 ? Math.min(4, Math.max(0.1, raw)) : 1;
   const align = imageAlignment(properties['data-zoj-align']);
-  const width = normalizeImageWidth(properties['data-zoj-width']);
+  const authoredWidth =
+    width ??
+    dimension(properties['data-tex-width']) ??
+    normalizeNativeImageDimension(properties.width);
+  const authoredHeight =
+    dimension(properties['data-tex-height']) ??
+    normalizeNativeImageDimension(properties.height);
   return {
-    width: width ?? dimension(properties['data-tex-width']),
-    height: dimension(properties['data-tex-height']),
-    maxWidth: `${100 / Math.max(1, scale)}%`,
+    width: authoredWidth,
+    height: width ? 'auto' : authoredHeight,
+    maxWidth:
+      authoredWidth || authoredHeight || scale !== 1
+        ? `${100 / Math.max(1, scale)}%`
+        : 'clamp(70%, calc(40% + 288px), 100%)',
     zoom: scale === 1 ? undefined : scale,
     ...(align
       ? {

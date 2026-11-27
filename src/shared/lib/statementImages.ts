@@ -22,6 +22,7 @@ export type StatementImageOccurrence = StatementImageOptions & {
   text: string;
   kind: 'markdown' | 'html' | 'tex';
   legacy?: Record<string, string>;
+  layoutEditable?: boolean;
 };
 export const STATEMENT_IMAGE_MAX_BYTES = 16 * 1024 * 1024;
 /** Match the bounded textarea's edit limits; never change a truncated preview. */
@@ -90,6 +91,69 @@ export function normalizeImageWidth(value: unknown): string | undefined {
   if (!match || !Number.isFinite(Number(match[1]))) return undefined;
   return `${Math.min(match[2] === '%' ? 100 : 4096, Math.max(1, Number(match[1])))}${match[2]}`;
 }
+/** Native HTML dimensions must be positive, unlike normalized authored controls. */
+export function normalizeNativeImageDimension(
+  value: unknown,
+): string | undefined {
+  const text = String(value ?? '');
+  const match = /^(\d+(?:\.\d+)?)(px|%)?$/.exec(text);
+  if (!match || !Number.isFinite(Number(match[1])) || Number(match[1]) <= 0)
+    return undefined;
+  return normalizeImageWidth(`${match[1]}${match[2] ?? 'px'}`);
+}
+
+export function statementImagePreviewSource(
+  source: string,
+  assets: StatementImageAsset[],
+): string {
+  const exact = assets.find((asset) => asset.source === source);
+  if (exact) return exact.previewUrl || exact.source;
+  if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(source)) return source;
+  let name = source;
+  try {
+    name = decodeURIComponent(name);
+  } catch {
+    /* Keep malformed authored paths literal. */
+  }
+  name = name.replace(/^\.\//, '');
+  const named = assets.find(
+    (asset) => asset.name.replace(/^\.\//, '') === name,
+  );
+  if (named) return named.previewUrl || named.source;
+  const basename = name.split('/').pop();
+  const matching = assets.filter(
+    (asset) => asset.name.split('/').pop() === basename,
+  );
+  return matching.length === 1
+    ? matching[0].previewUrl || matching[0].source
+    : source;
+}
+
+/** Match the statement TeX renderer's supported, bounded image dimensions. */
+export function normalizeTexImageDimension(
+  value: unknown,
+  pixelsInCm = 37.8,
+): string | undefined {
+  const text = String(value ?? '').trim();
+  const fraction =
+    /^((?:\d+(?:\.\d*)?|\.\d+)?)\\(?:textwidth|linewidth|columnwidth)$/.exec(
+      text,
+    );
+  if (fraction)
+    return normalizeImageWidth(`${Number(fraction[1] || 1) * 100}%`);
+  const unit = /^(\d+(?:\.\d*)?|\.\d+)\s*(cm|mm|pt|px)$/.exec(text);
+  if (!unit) return normalizeImageWidth(text);
+  const factor =
+    unit[2] === 'cm'
+      ? pixelsInCm
+      : unit[2] === 'mm'
+        ? pixelsInCm / 10
+        : unit[2] === 'pt'
+          ? 4 / 3
+          : 1;
+  return normalizeImageWidth(`${Number(unit[1]) * factor}px`);
+}
+
 export function imageAlignment(value: unknown): ImageAlignment | undefined {
   return value === 'left' || value === 'center' || value === 'right'
     ? value
@@ -215,17 +279,27 @@ export function parseStatementImages(
         if (range.start < 0) return;
         const p = element.properties ?? {};
         const legacy: Record<string, string> = {};
-        for (const key of ['Width', 'Height', 'Scale']) {
-          const name = `dataTex${key}`;
-          if (p[name] != null)
-            legacy[`data-tex-${key.toLowerCase()}`] = String(p[name]);
+        const nativeWidth = normalizeNativeImageDimension(p.width);
+        const nativeHeight = normalizeNativeImageDimension(p.height);
+        const canonicalWidth = normalizeImageWidth(p.dataZojWidth);
+        const legacyWidth = normalizeImageWidth(p.dataTexWidth) ?? nativeWidth;
+        const legacyHeight =
+          normalizeImageWidth(p.dataTexHeight) ?? nativeHeight;
+        const legacyScale = Number(p.dataTexScale);
+        if (!canonicalWidth) {
+          if (legacyWidth) legacy['data-tex-width'] = legacyWidth;
+          if (legacyHeight) legacy['data-tex-height'] = legacyHeight;
+          if (Number.isFinite(legacyScale) && legacyScale > 0)
+            legacy['data-tex-scale'] = String(
+              Math.min(4, Math.max(0.1, legacyScale)),
+            );
         }
         add(
           {
             source: String(p.src ?? ''),
             alt: String(p.alt ?? ''),
             align: imageAlignment(p.dataZojAlign),
-            width: normalizeImageWidth(p.dataZojWidth ?? p.dataTexWidth),
+            width: canonicalWidth ?? legacyWidth,
           },
           'html',
           start + range.start,
@@ -249,10 +323,35 @@ export function parseStatementImages(
     const path = group(value, options?.end ?? command.lastIndex, '{', '}');
     if (!path) continue;
     const source = path.value.replace(/\\([%&#_${}])/g, '$1');
-    const width = /(?:^|,)\s*width\s*=\s*([^,]+)/.exec(
-      options?.value ?? '',
-    )?.[1];
-    const simpleWidth = normalizeImageWidth(width);
+    const opts = Object.fromEntries(
+      (options?.value ?? '')
+        .split(',')
+        .filter((entry) => entry.trim())
+        .map((entry) => entry.trim().split(/\s*=\s*/, 2)),
+    );
+    const pixelDefinitions = [
+      ...value
+        .slice(0, start)
+        .matchAll(/\\def\s*\\htmlPixelsInCm\s*\{([\d.]+)\}/g),
+    ].filter(
+      (definition) =>
+        value[definition.index! - 1] !== '\\' &&
+        !protectedRanges.some(
+          (range) =>
+            definition.index! >= range.start && definition.index! < range.end,
+        ),
+    );
+    const pixelsInCm = pixelDefinitions.length
+      ? Math.min(200, Math.max(1, Number(pixelDefinitions.at(-1)![1]) || 37.8))
+      : 37.8;
+    const width = normalizeTexImageDimension(opts.width, pixelsInCm);
+    const height = normalizeTexImageDimension(opts.height, pixelsInCm);
+    const scale = Number(opts.scale);
+    const legacy: Record<string, string> = {};
+    if (width) legacy['data-tex-width'] = width;
+    if (height) legacy['data-tex-height'] = height;
+    if (Number.isFinite(scale) && scale > 0)
+      legacy['data-tex-scale'] = String(Math.min(4, Math.max(0.1, scale)));
     found.push({
       source,
       alt: source,
@@ -260,7 +359,16 @@ export function parseStatementImages(
       start,
       end: path.end,
       text: value.slice(start, path.end),
-      width: simpleWidth,
+      width,
+      legacy,
+      layoutEditable:
+        !match[0].endsWith('*') &&
+        Object.keys(opts).every((key) =>
+          ['width', 'height', 'scale'].includes(key),
+        ) &&
+        (!opts.width || Boolean(width)) &&
+        (!opts.height || Boolean(height)) &&
+        (!opts.scale || (Number.isFinite(scale) && scale > 0)),
     });
     command.lastIndex = path.end;
   }
@@ -279,7 +387,9 @@ export function statementImageMarkup(
   const align = imageAlignment(options.align) ?? 'center';
   const width = normalizeImageWidth(options.width);
   const old = Object.entries(legacy)
-    .filter(([name]) => ['data-tex-height', 'data-tex-scale'].includes(name))
+    .filter(([name]) =>
+      ['data-tex-width', 'data-tex-height', 'data-tex-scale'].includes(name),
+    )
     .map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`)
     .join('');
   return `<img src="${escapeAttribute(options.source)}" alt="${escapeAttribute(options.alt)}" data-zoj-align="${align}"${width ? ` data-zoj-width="${width}"` : ''}${old}>`;

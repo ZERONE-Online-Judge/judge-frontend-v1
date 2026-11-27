@@ -598,3 +598,282 @@ test('duplicate upload gestures start one request and unmounted completion does 
   );
   assert.equal(changes.length, 0);
 });
+
+test('unsized and invalidly sized images use a column-relative adaptive maximum without forcing an upscale', async () => {
+  const html = source(
+    path.resolve(
+      __dirname,
+      editor
+        ? '../src/lib/statementHtml.ts'
+        : '../src/shared/lib/statementHtml.ts',
+    ),
+    await ready,
+  );
+  for (const properties of [
+    {},
+    { width: 'invalid', height: 'invalid', 'data-zoj-width': 'calc(200%)' },
+  ]) {
+    const style = html.statementImageStyle(properties);
+    assert.equal(style.width, undefined);
+    assert.equal(style.maxWidth, 'clamp(70%, calc(40% + 288px), 100%)');
+  }
+  const explicit = html.statementImageStyle({ width: 320, height: 180 });
+  assert.equal(explicit.width, '320px');
+  assert.equal(explicit.height, '180px');
+  assert.equal(explicit.maxWidth, '100%');
+  const resized = html.statementImageStyle({
+    'data-zoj-width': '57%',
+    'data-tex-height': '900px',
+    'data-tex-scale': '4',
+  });
+  assert.equal(resized.width, '57%');
+  assert.equal(resized.height, 'auto');
+  assert.equal(resized.zoom, undefined);
+  assert.equal(resized.maxWidth, '100%');
+});
+
+test('TeX and native HTML dimensions are captured for unedited size preservation', async () => {
+  const api = await engine();
+  const [tex, html] =
+    api.parseStatementImages(String.raw`\includegraphics[width=0.5\textwidth,height=2cm,scale=1.5]{figure.png}
+
+<img src="other.png" width="320" height="180">`);
+  assert.equal(tex.width, '50%');
+  assert.deepEqual(tex.legacy, {
+    'data-tex-width': '50%',
+    'data-tex-height': '75.6px',
+    'data-tex-scale': '1.5',
+  });
+  assert.deepEqual(html.legacy, {
+    'data-tex-width': '320px',
+    'data-tex-height': '180px',
+  });
+  assert.equal(html.width, '320px');
+});
+
+async function chooseSize(value) {
+  const select = document.querySelector('select[aria-label="이미지 너비"]');
+  await act(() => {
+    select.value = value;
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+}
+
+async function customSize(value) {
+  const input = document.querySelector('input[aria-label="이미지 너비 값"]');
+  const reactProps = Object.keys(input).find((key) =>
+    key.startsWith('__reactProps'),
+  );
+  await act(() => input[reactProps].onChange({ target: { value } }));
+}
+
+test('alignment-only edits keep old TeX dimensions while an automatic reset removes them', async () => {
+  const value = String.raw`\includegraphics[width=0.5\textwidth,height=2cm,scale=1.5]{figure.png}`;
+  await render({ value });
+  await click('▧ 이미지 추가·관리');
+  await act(() =>
+    document.querySelector('.statement-image-occurrences button').click(),
+  );
+  assert.equal(
+    document.querySelector('select[aria-label="이미지 너비"]').value,
+    'legacy',
+  );
+  await click('오른쪽');
+  await click('변경 적용');
+  assert.match(changes[0], /data-zoj-align="right"/);
+  assert.match(changes[0], /data-tex-width="50%"/);
+  assert.match(changes[0], /data-tex-height="75.6px"/);
+  assert.match(changes[0], /data-tex-scale="1.5"/);
+  assert.doesNotMatch(changes[0], /data-zoj-width/);
+  await render({ value });
+  await click('▧ 이미지 추가·관리');
+  await act(() =>
+    document.querySelector('.statement-image-occurrences button').click(),
+  );
+  await chooseSize('');
+  await click('변경 적용');
+  assert.doesNotMatch(changes[1], /data-(?:tex|zoj)-(?:width|height|scale)/);
+});
+
+test('custom image sizes validate percent and pixel bounds and new sizing discards legacy distortion', async () => {
+  await render({
+    value:
+      '<img src="figure.png" data-tex-width="400px" data-tex-height="300px" data-tex-scale="2">',
+  });
+  await click('▧ 이미지 추가·관리');
+  await act(() =>
+    document.querySelector('.statement-image-occurrences button').click(),
+  );
+  await chooseSize('custom');
+  const unit = document.querySelector('select[aria-label="이미지 너비 단위"]');
+  await act(() => {
+    unit.value = '%';
+    unit.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  await customSize('101');
+  let apply = buttons().find((button) => button.textContent === '변경 적용');
+  assert.equal(apply.disabled, true);
+  assert.match(document.querySelector('[role=alert]').textContent, /1~100%/);
+
+  await act(() => {
+    unit.value = 'px';
+    unit.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  await customSize('4097');
+  assert.equal(apply.disabled, true);
+  await customSize('320');
+  assert.equal(apply.disabled, false);
+  assert.equal(
+    document.querySelector('.statement-image-layout-preview img').style.width,
+    '320px',
+  );
+  await click('왼쪽');
+  await click('변경 적용');
+  assert.match(changes[0], /data-zoj-width="320px"/);
+  assert.match(changes[0], /data-zoj-align="left"/);
+  assert.doesNotMatch(changes[0], /data-tex-/);
+});
+
+test('canonical explicit width wins over conflicting legacy dimensions during an alignment edit', async () => {
+  const value =
+    '<img src="figure.png" data-zoj-width="50%" data-tex-width="60%" data-tex-height="20px" data-tex-scale="1.5">';
+  const api = await engine();
+  assert.deepEqual(api.parseStatementImages(value)[0].legacy, {});
+  await render({ value });
+  await click('▧ 이미지 추가·관리');
+  await act(() =>
+    document.querySelector('.statement-image-occurrences button').click(),
+  );
+  assert.equal(
+    document.querySelector('select[aria-label="이미지 너비"]').value,
+    '50%',
+  );
+  await click('오른쪽');
+  await click('변경 적용');
+  assert.match(changes[0], /data-zoj-width="50%"/);
+  assert.doesNotMatch(changes[0], /data-tex-/);
+});
+
+test('unsupported TeX options stay intact and only movement or removal is offered', async () => {
+  const api = await engine();
+  for (const value of [
+    String.raw`\includegraphics[width=10em]{figure.png}`,
+    String.raw`\includegraphics[angle=90,width=2cm]{figure.png}`,
+    String.raw`\includegraphics*[width=2cm]{figure.png}`,
+  ]) {
+    assert.equal(api.parseStatementImages(value)[0].layoutEditable, false);
+  }
+  await render({
+    value: String.raw`\includegraphics[angle=90,width=2cm]{figure.png}`,
+  });
+  await click('▧ 이미지 추가·관리');
+  await act(() =>
+    document.querySelector('.statement-image-occurrences button').click(),
+  );
+  assert.equal(
+    buttons().find((b) => b.textContent === '변경 적용').disabled,
+    true,
+  );
+  assert.equal(
+    buttons().find((b) => b.textContent === '본문에서 제거').disabled,
+    false,
+  );
+  assert.match(document.body.textContent, /별도 TeX 설정/);
+});
+
+test('invalid native dimensions do not bypass automatic sizing or generate invalid legacy markup', async () => {
+  const api = await engine();
+  const html = source(
+    path.resolve(
+      __dirname,
+      editor
+        ? '../src/lib/statementHtml.ts'
+        : '../src/shared/lib/statementHtml.ts',
+    ),
+    await ready,
+  );
+  for (const value of [0, -1, '0px', '0%', 'evil', 'NaN', 'Infinitypx']) {
+    assert.equal(api.normalizeNativeImageDimension(value), undefined);
+    assert.equal(
+      html.statementImageStyle({ width: value, height: value }).maxWidth,
+      'clamp(70%, calc(40% + 288px), 100%)',
+    );
+  }
+  const [image] = api.parseStatementImages(
+    '<img src="x.png" width="-1" height="0">',
+  );
+  assert.deepEqual(image.legacy, {});
+  assert.doesNotThrow(() => api.statementImageMarkup(image, image.legacy));
+  const [percent] = api.parseStatementImages(
+    '<img src="x.png" width="50%" height="100">',
+  );
+  assert.deepEqual(percent.legacy, {
+    'data-tex-width': '50%',
+    'data-tex-height': '100px',
+  });
+});
+
+test('dialog previews use authorized assets for relative and encoded filenames without replacing external URLs', async () => {
+  const api = await engine();
+  const assets = [
+    {
+      id: 'one',
+      source: 'asset://one',
+      name: '그림.png',
+      previewUrl: 'blob:authorized',
+    },
+  ];
+  assert.equal(
+    api.statementImagePreviewSource('asset://one', assets),
+    'blob:authorized',
+  );
+  assert.equal(
+    api.statementImagePreviewSource('./%EA%B7%B8%EB%A6%BC.png', assets),
+    'blob:authorized',
+  );
+  assert.equal(
+    api.statementImagePreviewSource('folder/그림.png', assets),
+    'blob:authorized',
+  );
+  assert.equal(
+    api.statementImagePreviewSource('https://example.com/그림.png', assets),
+    'https://example.com/그림.png',
+  );
+  assert.equal(
+    api.statementImagePreviewSource('그림.png', [
+      ...assets.map((a) => ({ ...a, name: 'one/그림.png' })),
+      {
+        ...assets[0],
+        id: 'two',
+        name: 'two/그림.png',
+        previewUrl: 'blob:other',
+      },
+    ]),
+    '그림.png',
+  );
+});
+
+test('basic TeX leading decimals and bare column dimensions stay editable', async () => {
+  const api = await engine();
+  for (const [value, expected] of [
+    [String.raw`.6\linewidth`, '60%'],
+    [String.raw`\textwidth`, '100%'],
+    [String.raw`\columnwidth`, '100%'],
+    ['.5cm', '18.9px'],
+  ]) {
+    assert.equal(api.normalizeTexImageDimension(value), expected);
+    const [image] = api.parseStatementImages(
+      `\\includegraphics[width=${value},height=20px,scale=1.5]{figure.png}`,
+    );
+    assert.equal(image.layoutEditable, true);
+    assert.equal(image.legacy['data-tex-width'], expected);
+  }
+});
+
+test('TeX pixel conversion honors an authored htmlPixelsInCm definition during layout edits', async () => {
+  const api = await engine();
+  const [image] = api.parseStatementImages(String.raw`\def\htmlPixelsInCm{40}
+\includegraphics[width=2cm,height=3mm]{figure.png}`);
+  assert.equal(image.legacy['data-tex-width'], '80px');
+  assert.equal(image.legacy['data-tex-height'], '12px');
+});

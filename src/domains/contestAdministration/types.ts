@@ -52,6 +52,8 @@ export type Contest = {
   scoring_type?: ContestFormatType | null;
   scoreboard_public_during_contest?: boolean;
   hide_participation_counts_before_start?: boolean;
+  show_staff_credits_before_end?: boolean;
+  show_staff_credits_after_end?: boolean;
   scoreboard_access_after_end?: ContestResourceAccess;
   submission_access_after_end?: ContestResourceAccess;
   board_access_after_end?: ContestResourceAccess;
@@ -89,11 +91,19 @@ export type PublicHomeReadModel = {
   emergency_notice?: string | null;
 };
 
+export type ContestStaffCredits = {
+  leadership: { name: string; role: 'owner' | 'master' }[];
+  operators: string[];
+  authors: string[];
+  reviewers: string[];
+};
+
 export type PublicContestDetail = {
   contest: Contest;
   divisions: Division[];
   participant_count?: number;
   team_count?: number;
+  staff_credits?: ContestStaffCredits | null;
 };
 
 export type ContestWorkspace = {
@@ -135,6 +145,8 @@ export type ContestSettingsPatch = Partial<
     | 'problem_access_after_end'
     | 'scoreboard_public_during_contest'
     | 'hide_participation_counts_before_start'
+    | 'show_staff_credits_before_end'
+    | 'show_staff_credits_after_end'
     | 'scoreboard_access_after_end'
     | 'submission_access_after_end'
     | 'board_access_after_end'

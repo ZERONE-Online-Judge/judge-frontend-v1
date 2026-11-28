@@ -1,5 +1,6 @@
 import InterfaceIcon from '@/components/common/InterfaceIcon';
 import ContestPublicSchedule from '@/components/contest/ContestPublicSchedule';
+import ContestStaffCredits from '@/components/contest/ContestStaffCredits';
 import { useClockTick } from '@/shared/hooks/useAutoRefresh';
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
@@ -296,6 +297,7 @@ export default function ContestPublicOverview({
               </div>
             ) : null}
           </section>
+          <ContestStaffCredits credits={detail.staff_credits} />
         </div>
 
         {ended || resourceCards.length > 0 ? (

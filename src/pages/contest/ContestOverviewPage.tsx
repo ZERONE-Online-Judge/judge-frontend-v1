@@ -2,6 +2,7 @@ import ContestTeamRoster from '@/components/contest/ContestTeamRoster';
 import { getParticipantSessionMe } from '@/domains/teamParticipation/api';
 import ContestParticipantSummary from '@/components/contest/ContestParticipantSummary';
 import ContestPublicOverview from '@/components/contest/ContestPublicOverview';
+import ContestStaffCredits from '@/components/contest/ContestStaffCredits';
 import ContestProgressStatus from '@/components/contest/ContestProgressStatus';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -169,9 +170,11 @@ function NoticePreview({
 function ContestOverviewContent({
   contest,
   divisions,
+  staffCredits,
 }: {
   contest: Contest;
   divisions: Division[];
+  staffCredits: PublicContestDetail['staff_credits'];
 }) {
   const {
     activeParticipantSession,
@@ -295,6 +298,8 @@ function ContestOverviewContent({
         />
       </section>
 
+      <ContestStaffCredits credits={staffCredits} />
+
       <div className="zoj-overview-notices zoj-card mt-6">
         <NoticePreview
           contestId={contest.contest_id}
@@ -326,6 +331,7 @@ function ContestOverview({ detail }: { detail: PublicContestDetail }) {
     <ContestOverviewContent
       contest={detail.contest}
       divisions={detail.divisions}
+      staffCredits={detail.staff_credits}
     />
   );
 }

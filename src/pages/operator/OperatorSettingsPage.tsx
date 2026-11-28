@@ -67,6 +67,8 @@ type SettingsForm = BoardWritingPolicy & {
   problem_access_after_end: ContestResourceAccess;
   scoreboard_public_during_contest: boolean;
   hide_participation_counts_before_start: boolean;
+  show_staff_credits_before_end: boolean;
+  show_staff_credits_after_end: boolean;
   scoreboard_access_after_end: ContestResourceAccess;
   scoreboard_release_mode: ScoreboardReleaseMode;
   presentation_freeze_alert_minutes: string;
@@ -137,6 +139,9 @@ function settingsFormFromContest(contest: Contest): SettingsForm {
     hide_participation_counts_before_start: Boolean(
       contest.hide_participation_counts_before_start,
     ),
+    show_staff_credits_before_end:
+      contest.show_staff_credits_before_end ?? true,
+    show_staff_credits_after_end: contest.show_staff_credits_after_end ?? true,
     scoreboard_public_during_contest: Boolean(
       contest.scoreboard_public_during_contest,
     ),
@@ -307,6 +312,8 @@ function OperatorSettingsContent({
       scoreboard_public_during_contest: form.scoreboard_public_during_contest,
       hide_participation_counts_before_start:
         form.hide_participation_counts_before_start,
+      show_staff_credits_before_end: form.show_staff_credits_before_end,
+      show_staff_credits_after_end: form.show_staff_credits_after_end,
       scoreboard_access_after_end: form.scoreboard_access_after_end,
       scoreboard_release_mode: form.scoreboard_release_mode,
       submission_access_after_end: form.submission_access_after_end,
@@ -390,6 +397,9 @@ function OperatorSettingsContent({
       setSavedMessage('설정이 저장되었습니다.');
       void queryClient.invalidateQueries({
         queryKey: ['operator', 'dashboard', contestId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['public-contest', contestId],
       });
       notifyScoreboardUpdate(contestId);
     },
@@ -693,6 +703,44 @@ function OperatorSettingsContent({
                         )
                       }
                     />
+                  </SettingsSection>
+                  <SettingsSection
+                    title="대회 개요 크레딧"
+                    summary={`종료 전 ${settingsForm.show_staff_credits_before_end ? '표시' : '숨김'} · 종료 후 ${settingsForm.show_staff_credits_after_end ? '표시' : '숨김'}`}
+                    description="대회 개요를 볼 수 있는 사람에게 운영자 이름을 역할별로 표시합니다."
+                  >
+                    <div className="zoj-settings-fields">
+                      <ChoiceCard
+                        type="checkbox"
+                        checked={settingsForm.show_staff_credits_before_end}
+                        title="시작 전·진행 중 표시"
+                        onChange={(checked) =>
+                          setSettingsForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  show_staff_credits_before_end: checked,
+                                }
+                              : prev,
+                          )
+                        }
+                      />
+                      <ChoiceCard
+                        type="checkbox"
+                        checked={settingsForm.show_staff_credits_after_end}
+                        title="종료 후 표시"
+                        onChange={(checked) =>
+                          setSettingsForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  show_staff_credits_after_end: checked,
+                                }
+                              : prev,
+                          )
+                        }
+                      />
+                    </div>
                   </SettingsSection>
                   <SettingsSection
                     title="시작 전 참가 규모"

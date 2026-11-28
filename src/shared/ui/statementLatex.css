@@ -30,6 +30,9 @@
 .zoj-statement .zoj-tex-flushright {
   text-align: right;
 }
+.zoj-statement :is(img, .statement-image-placeholder) {
+  margin-block: 0.75rem;
+}
 .zoj-statement .zoj-tex-center img {
   display: inline-block;
 }
